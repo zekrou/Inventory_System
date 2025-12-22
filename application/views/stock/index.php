@@ -1,9 +1,15 @@
+<!-- Content Wrapper -->
 <div class="content-wrapper">
   <section class="content-header">
     <h1>Stock Management <small>Overview</small></h1>
+    <ol class="breadcrumb">
+      <li><a href="#"><i class="fa fa-dashboard"></i> Home</a></li>
+      <li class="active">Stock</li>
+    </ol>
   </section>
 
   <section class="content">
+    
     <!-- Statistics Boxes -->
     <div class="row">
       <div class="col-md-3 col-sm-6">
@@ -47,10 +53,36 @@
       </div>
     </div>
 
+    <?php if(in_array('createStock', $user_permission)): ?>
+      <button class="btn btn-primary" data-toggle="modal" data-target="#addModal">
+        <i class="fa fa-plus"></i> Add Stock
+      </button>
+      <br /><br />
+    <?php endif; ?>
+
+    <!-- Stock Management -->
+    <div class="box">
+      <div class="box-header">
+        <h3 class="box-title">Manage Stock</h3>
+      </div>
+      <div class="box-body">
+        <table id="manageTable" class="table table-bordered table-striped">
+          <thead>
+            <tr>
+              <th>Stock Name</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+    </div>
+
     <!-- Filters -->
     <div class="box">
       <div class="box-header">
-        <h3 class="box-title">Filter Stock</h3>
+        <h3 class="box-title">Filter Products</h3>
       </div>
       <div class="box-body">
         <form method="get" action="<?php echo base_url('stock'); ?>">
@@ -66,11 +98,11 @@
               </select>
             </div>
             <div class="col-md-3">
-              <select name="store" class="form-control">
-                <option value="">All Stores</option>
-                <?php foreach($stores as $store): ?>
-                  <option value="<?php echo $store['id']; ?>" <?php echo ($current_store == $store['id']) ? 'selected' : ''; ?>>
-                    <?php echo $store['name']; ?>
+              <select name="stock" class="form-control">
+                <option value="">All Stocks</option>
+                <?php foreach($stocks as $stock): ?>
+                  <option value="<?php echo $stock['id']; ?>" <?php echo ($current_stock == $stock['id']) ? 'selected' : ''; ?>>
+                    <?php echo $stock['name']; ?>
                   </option>
                 <?php endforeach; ?>
               </select>
@@ -93,10 +125,10 @@
       </div>
     </div>
 
-    <!-- Stock Table -->
+    <!-- Products Table -->
     <div class="box">
       <div class="box-header">
-        <h3 class="box-title">Stock Overview</h3>
+        <h3 class="box-title">Products Overview</h3>
       </div>
       <div class="box-body">
         <table class="table table-bordered table-striped">
@@ -104,7 +136,7 @@
             <tr>
               <th>Product</th>
               <th>SKU</th>
-              <th>Store</th>
+              <th>Stock</th>
               <th>Quantity</th>
               <th>Status</th>
               <th>Price</th>
@@ -115,8 +147,8 @@
               <?php foreach($products as $product): ?>
                 <tr>
                   <td><?php echo $product['name']; ?></td>
-                  <td><?php echo $product['sku']; ?></td>
-                  <td><?php echo $product['store_name']; ?></td>
+                  <td><?php echo $product['sku'] ?: '-'; ?></td>
+                  <td><?php echo $product['stock_name']; ?></td>
                   <td><strong><?php echo $product['qty']; ?></strong></td>
                   <td>
                     <span class="label label-<?php echo $product['stock_status_class']; ?>">
@@ -137,3 +169,179 @@
     </div>
   </section>
 </div>
+
+<!-- Create Stock Modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Add Stock</h4>
+      </div>
+      <form id="createForm" action="<?php echo base_url('stock/create') ?>" method="post">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Stock Name *</label>
+            <input type="text" class="form-control" name="stock_name" required>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea class="form-control" name="description" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Status *</label>
+            <select class="form-control" name="active" required>
+              <option value="1">Active</option>
+              <option value="0">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Stock Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Edit Stock</h4>
+      </div>
+      <form id="updateForm" method="post">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Stock Name *</label>
+            <input type="text" class="form-control" id="edit_stock_name" name="edit_stock_name" required>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea class="form-control" id="edit_description" name="edit_description" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Status *</label>
+            <select class="form-control" id="edit_active" name="edit_active" required>
+              <option value="1">Active</option>
+              <option value="0">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary">Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Remove Modal -->
+<div class="modal fade" id="removeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Remove Stock</h4>
+      </div>
+      <form id="removeForm" method="post">
+        <div class="modal-body">
+          <p>Do you really want to remove this stock?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-danger">Remove</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+var manageTable;
+var base_url = "<?php echo base_url(); ?>";
+
+$(document).ready(function() {
+  $("#stockNav").addClass('active');
+  
+  manageTable = $('#manageTable').DataTable({
+    'ajax': base_url + 'stock/fetchStockData',
+    'order': []
+  });
+
+  // Create form
+  $("#createForm").on('submit', function(e) {
+    e.preventDefault();
+    $.ajax({
+      url: $(this).attr('action'),
+      type: 'POST',
+      data: $(this).serialize(),
+      dataType: 'json',
+      success: function(response) {
+        if(response.success) {
+          $("#addModal").modal('hide');
+          manageTable.ajax.reload();
+          alert(response.messages);
+        } else {
+          alert(response.messages);
+        }
+      }
+    });
+  });
+});
+
+function editFunc(id) {
+  $.ajax({
+    url: base_url + 'stock/fetchStockDataById/' + id,
+    type: 'POST',
+    dataType: 'json',
+    success: function(data) {
+      $("#edit_stock_name").val(data.name);
+      $("#edit_description").val(data.description);
+      $("#edit_active").val(data.active);
+      
+      $("#updateForm").attr('action', base_url + 'stock/update/' + id);
+      $("#editModal").modal('show');
+    }
+  });
+  
+  $("#updateForm").on('submit', function(e) {
+    e.preventDefault();
+    $.ajax({
+      url: $(this).attr('action'),
+      type: 'POST',
+      data: $(this).serialize(),
+      dataType: 'json',
+      success: function(response) {
+        if(response.success) {
+          $("#editModal").modal('hide');
+          manageTable.ajax.reload();
+          alert(response.messages);
+        }
+      }
+    });
+  });
+}
+
+function removeFunc(id) {
+  $("#removeForm").off('submit').on('submit', function(e) {
+    e.preventDefault();
+    $.ajax({
+      url: base_url + 'stock/remove',
+      type: 'POST',
+      data: {stock_id: id},
+      dataType: 'json',
+      success: function(response) {
+        $("#removeModal").modal('hide');
+        manageTable.ajax.reload();
+        alert(response.messages);
+      }
+    });
+  });
+  $("#removeModal").modal('show');
+}
+</script>

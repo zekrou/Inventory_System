@@ -15,13 +15,9 @@ class Products extends Admin_Controller
 		$this->load->model('model_products');
         $this->load->model('model_category');
 		$this->load->model('model_brands');
-		$this->load->model('model_stores');
-		$this->load->model('model_attributes');
+		$this->load->model('model_stock'); // remplacé model_stores → model_stock
 	}
 
-    /* 
-    * It only redirects to the manage product page
-    */
 	public function index()
 	{
         if(!in_array('viewProduct', $this->permission)) {
@@ -31,10 +27,6 @@ class Products extends Admin_Controller
 		$this->render_template('products/index', $this->data);	
 	}
 
-    /*
-    * It Fetches the products data from the product table 
-    * this function is called from the datatable ajax function
-    */
 	public function fetchProductData()
 	{
 		$result = array('data' => array());
@@ -47,11 +39,11 @@ class Products extends Admin_Controller
 
 		foreach ($data as $key => $value) {
 
-			// Store name
-			$store_name = '';
-			if (!empty($value['store_id'])) {
-				$store_data = $this->model_stores->getStoresData($value['store_id']);
-				$store_name = isset($store_data['name']) ? $store_data['name'] : '';
+			// Stock name
+			$stock_name = '';
+			if (!empty($value['stock_id'])) {
+				$stock_data = $this->model_stock->getStockData($value['stock_id']);
+				$stock_name = isset($stock_data['name']) ? $stock_data['name'] : '';
 			}
 
 			// Buttons
@@ -83,7 +75,7 @@ class Products extends Admin_Controller
 				$value['qty'] = 0;
 			}
 
-			// Price display - show default/cost price
+			// Price display
 			$price_display = isset($value['price_default']) ? $value['price_default'] : (isset($value['price']) ? $value['price'] : '0.00');
 
 			$result['data'][$key] = array(
@@ -92,7 +84,7 @@ class Products extends Admin_Controller
 				isset($value['name']) ? $value['name'] : '',
 				$price_display . ' DZD',
 				$value['qty'] . ' ' . $qty_status,
-				$store_name,
+				$stock_name,
 				$availability,
 				$buttons
 			);
@@ -102,69 +94,151 @@ class Products extends Admin_Controller
 		echo json_encode($result);
 	}
 
-    /*
-    * Create new product with multi-level pricing
-    */
 	public function create()
-{
-	if(!in_array('createProduct', $this->permission)) {
-		redirect('dashboard', 'refresh');
-	}
+	{
+		if(!in_array('createProduct', $this->permission)) {
+			redirect('dashboard', 'refresh');
+		}
 
-	$this->form_validation->set_rules('product_name', 'Product name', 'trim|required');
-	$this->form_validation->set_rules('sku', 'SKU', 'trim|required');
-	$this->form_validation->set_rules('price_default', 'Cost Price', 'trim|required|numeric');
-	$this->form_validation->set_rules('price_super_wholesale', 'Super Gros Price', 'trim|required|numeric');
-	$this->form_validation->set_rules('price_wholesale', 'Gros Price', 'trim|required|numeric');
-	$this->form_validation->set_rules('price_retail', 'Détail Price', 'trim|required|numeric');
-	$this->form_validation->set_rules('qty', 'Qty', 'trim|required');
-	$this->form_validation->set_rules('store', 'Store', 'trim|required');
-	$this->form_validation->set_rules('availability', 'Availability', 'trim|required');
-	
-	if ($this->form_validation->run() == TRUE) {
-		$upload_image = $this->upload_image();
+		$this->form_validation->set_rules('product_name', 'Product name', 'trim|required');
+		$this->form_validation->set_rules('sku', 'SKU', 'trim|required');
+		$this->form_validation->set_rules('price_default', 'Cost Price', 'trim|required|numeric');
+		$this->form_validation->set_rules('price_super_wholesale', 'Super Gros Price', 'trim|required|numeric');
+		$this->form_validation->set_rules('price_wholesale', 'Gros Price', 'trim|required|numeric');
+		$this->form_validation->set_rules('price_retail', 'Détail Price', 'trim|required|numeric');
+		$this->form_validation->set_rules('qty', 'Qty', 'trim|required');
+		$this->form_validation->set_rules('stock', 'Stock', 'trim|required'); // remplacé store → stock
+		$this->form_validation->set_rules('availability', 'Availability', 'trim|required');
+		
+		if ($this->form_validation->run() == TRUE) {
+			$upload_image = $this->upload_image();
 
-		$data = array(
-			'name' => $this->input->post('product_name'),
-			'sku' => $this->input->post('sku'),
-			'price_default' => $this->input->post('price_default'),
-			'price_super_wholesale' => $this->input->post('price_super_wholesale'),
-			'price_wholesale' => $this->input->post('price_wholesale'),
-			'price_retail' => $this->input->post('price_retail'),
-			'qty' => $this->input->post('qty'),
-			'image' => $upload_image,
-			'description' => $this->input->post('description'),
-			'attribute_value_id' => json_encode($this->input->post('attributes_value_id')),
-			'brand_id' => json_encode($this->input->post('brands')),
-			'category_id' => json_encode($this->input->post('category')),
-			'store_id' => $this->input->post('store'),
-			'availability' => $this->input->post('availability'),
-		);
+			$data = array(
+				'name' => $this->input->post('product_name'),
+				'sku' => $this->input->post('sku'),
+				'price_default' => $this->input->post('price_default'),
+				'price_super_wholesale' => $this->input->post('price_super_wholesale'),
+				'price_wholesale' => $this->input->post('price_wholesale'),
+				'price_retail' => $this->input->post('price_retail'),
+				'qty' => $this->input->post('qty'),
+				'image' => $upload_image,
+				'description' => $this->input->post('description'),
+				'brand_id' => json_encode($this->input->post('brands')),
+				'category_id' => json_encode($this->input->post('category')),
+				'stock_id' => $this->input->post('stock'), // remplacé store_id → stock_id
+				'availability' => $this->input->post('availability'),
+			);
 
-		$create = $this->model_products->create($data);
-		if($create == true) {
-			$this->session->set_flashdata('success', 'Successfully created');
-			redirect('products/', 'refresh');
+			$create = $this->model_products->create($data);
+			if($create == true) {
+				$this->session->set_flashdata('success', 'Successfully created');
+				redirect('products/', 'refresh');
+			}
+			else {
+				$this->session->set_flashdata('errors', 'Error occurred!!');
+				redirect('products/create', 'refresh');
+			}
 		}
 		else {
-			$this->session->set_flashdata('errors', 'Error occurred!!');
-			redirect('products/create', 'refresh');
+			$this->data['brands'] = $this->model_brands->getActiveBrands();
+			$this->data['category'] = $this->model_category->getActiveCategroy();
+			$this->data['stocks'] = $this->model_stock->getActiveStock(); // remplacé stores → stocks
+
+			$this->render_template('products/create', $this->data);
 		}
 	}
-	else {
-		// Pass empty arrays - will be populated via AJAX based on category selection
-		$this->data['attributes'] = array();
-		$this->data['brands'] = $this->model_brands->getActiveBrands();
-		$this->data['category'] = $this->model_category->getActiveCategroy();
-		$this->data['stores'] = $this->model_stores->getActiveStore();
 
-		$this->render_template('products/create', $this->data);
+	public function update($product_id)
+	{      
+        if(!in_array('updateProduct', $this->permission)) {
+            redirect('dashboard', 'refresh');
+        }
+
+        if(!$product_id) {
+            redirect('dashboard', 'refresh');
+        }
+
+        $this->form_validation->set_rules('product_name', 'Product name', 'trim|required');
+        $this->form_validation->set_rules('sku', 'SKU', 'trim|required');
+        $this->form_validation->set_rules('price_default', 'Cost Price', 'trim|required|numeric');
+        $this->form_validation->set_rules('price_super_wholesale', 'Super Gros Price', 'trim|required|numeric');
+        $this->form_validation->set_rules('price_wholesale', 'Gros Price', 'trim|required|numeric');
+        $this->form_validation->set_rules('price_retail', 'Détail Price', 'trim|required|numeric');
+        $this->form_validation->set_rules('qty', 'Qty', 'trim|required');
+        $this->form_validation->set_rules('stock', 'Stock', 'trim|required'); // remplacé store → stock
+        $this->form_validation->set_rules('availability', 'Availability', 'trim|required');
+
+        if ($this->form_validation->run() == TRUE) {
+            $data = array(
+                'name' => $this->input->post('product_name'),
+                'sku' => $this->input->post('sku'),
+                'price_default' => $this->input->post('price_default'),
+                'price_super_wholesale' => $this->input->post('price_super_wholesale'),
+                'price_wholesale' => $this->input->post('price_wholesale'),
+                'price_retail' => $this->input->post('price_retail'),
+                'qty' => $this->input->post('qty'),
+                'description' => $this->input->post('description'),
+                'brand_id' => json_encode($this->input->post('brands')),
+                'category_id' => json_encode($this->input->post('category')),
+                'stock_id' => $this->input->post('stock'), // remplacé store_id → stock_id
+                'availability' => $this->input->post('availability'),
+            );
+
+            if($_FILES['product_image']['size'] > 0) {
+                $upload_image = $this->upload_image();
+                $upload_image = array('image' => $upload_image);
+                $this->model_products->update($upload_image, $product_id);
+            }
+
+            $update = $this->model_products->update($data, $product_id);
+            if($update == true) {
+                $this->session->set_flashdata('success', 'Successfully updated');
+                redirect('products/', 'refresh');
+            }
+            else {
+                $this->session->set_flashdata('errors', 'Error occurred!!');
+                redirect('products/update/'.$product_id, 'refresh');
+            }
+        }
+        else {
+            $this->data['brands'] = $this->model_brands->getActiveBrands();         
+            $this->data['category'] = $this->model_category->getActiveCategroy();           
+            $this->data['stocks'] = $this->model_stock->getActiveStock(); // remplacé stores → stocks
+
+            $product_data = $this->model_products->getProductData($product_id);
+            $this->data['product_data'] = $product_data;
+            $this->render_template('products/edit', $this->data); 
+        }   
 	}
-}
 
-    /*
-    * Upload product image
-    */
+	public function remove()
+	{
+        if(!in_array('deleteProduct', $this->permission)) {
+            redirect('dashboard', 'refresh');
+        }
+        
+        $product_id = $this->input->post('product_id');
+
+        $response = array();
+        if($product_id) {
+            $delete = $this->model_products->remove($product_id);
+            if($delete == true) {
+                $response['success'] = true;
+                $response['messages'] = "Successfully removed"; 
+            }
+            else {
+                $response['success'] = false;
+                $response['messages'] = "Error in the database while removing the product information";
+            }
+        }
+        else {
+            $response['success'] = false;
+            $response['messages'] = "Refresh the page again!!";
+        }
+
+        echo json_encode($response);
+	}
+
 	public function upload_image()
     {
         $config['upload_path'] = 'assets/images/product_image';
@@ -188,120 +262,4 @@ class Products extends Admin_Controller
             return ($data == true) ? $path : false;            
         }
     }
-
-    /*
-    * Update product with multi-level pricing
-    */
-	public function update($product_id)
-	{      
-        if(!in_array('updateProduct', $this->permission)) {
-            redirect('dashboard', 'refresh');
-        }
-
-        if(!$product_id) {
-            redirect('dashboard', 'refresh');
-        }
-
-        // UPDATED VALIDATION RULES FOR 4 PRICES
-        $this->form_validation->set_rules('product_name', 'Product name', 'trim|required');
-        $this->form_validation->set_rules('sku', 'SKU', 'trim|required');
-        $this->form_validation->set_rules('price_default', 'Cost Price', 'trim|required|numeric');
-        $this->form_validation->set_rules('price_super_wholesale', 'Super Gros Price', 'trim|required|numeric');
-        $this->form_validation->set_rules('price_wholesale', 'Gros Price', 'trim|required|numeric');
-        $this->form_validation->set_rules('price_retail', 'Détail Price', 'trim|required|numeric');
-        $this->form_validation->set_rules('qty', 'Qty', 'trim|required');
-        $this->form_validation->set_rules('store', 'Store', 'trim|required');
-        $this->form_validation->set_rules('availability', 'Availability', 'trim|required');
-
-        if ($this->form_validation->run() == TRUE) {
-            // Validation passed - update product
-            $data = array(
-                'name' => $this->input->post('product_name'),
-                'sku' => $this->input->post('sku'),
-                'price_default' => $this->input->post('price_default'),
-                'price_super_wholesale' => $this->input->post('price_super_wholesale'),
-                'price_wholesale' => $this->input->post('price_wholesale'),
-                'price_retail' => $this->input->post('price_retail'),
-                'qty' => $this->input->post('qty'),
-                'description' => $this->input->post('description'),
-                'attribute_value_id' => json_encode($this->input->post('attributes_value_id')),
-                'brand_id' => json_encode($this->input->post('brands')),
-                'category_id' => json_encode($this->input->post('category')),
-                'store_id' => $this->input->post('store'),
-                'availability' => $this->input->post('availability'),
-            );
-
-            // Update image if uploaded
-            if($_FILES['product_image']['size'] > 0) {
-                $upload_image = $this->upload_image();
-                $upload_image = array('image' => $upload_image);
-                
-                $this->model_products->update($upload_image, $product_id);
-            }
-
-            $update = $this->model_products->update($data, $product_id);
-            if($update == true) {
-                $this->session->set_flashdata('success', 'Successfully updated');
-                redirect('products/', 'refresh');
-            }
-            else {
-                $this->session->set_flashdata('errors', 'Error occurred!!');
-                redirect('products/update/'.$product_id, 'refresh');
-            }
-        }
-        else {
-            // Validation failed - show form
-            $attribute_data = $this->model_attributes->getActiveAttributeData();
-
-            $attributes_final_data = array();
-            foreach ($attribute_data as $k => $v) {
-                $attributes_final_data[$k]['attribute_data'] = $v;
-
-                $value = $this->model_attributes->getAttributeValueData($v['id']);
-
-                $attributes_final_data[$k]['attribute_value'] = $value;
-            }
-            
-            $this->data['attributes'] = $attributes_final_data;
-            $this->data['brands'] = $this->model_brands->getActiveBrands();         
-            $this->data['category'] = $this->model_category->getActiveCategroy();           
-            $this->data['stores'] = $this->model_stores->getActiveStore();          
-
-            $product_data = $this->model_products->getProductData($product_id);
-            $this->data['product_data'] = $product_data;
-            $this->render_template('products/edit', $this->data); 
-        }   
-	}
-
-    /*
-    * Remove product
-    */
-	public function remove()
-	{
-        if(!in_array('deleteProduct', $this->permission)) {
-            redirect('dashboard', 'refresh');
-        }
-        
-        $product_id = $this->input->post('product_id');
-
-        $response = array();
-        if($product_id) {
-            $delete = $this->model_products->remove($product_id);
-            if($delete == true) {
-                $response['success'] = true;
-                $response['messages'] = "Successfully removed"; 
-            }
-            else {
-                $response['success'] = false;
-                $response['messages'] = "Error in the database while removing the product information";
-            }
-        }
-        else {
-            $response['success'] = false;
-            $response['messages'] = "Refersh the page again!!";
-        }
-
-        echo json_encode($response);
-	}
-
 }
