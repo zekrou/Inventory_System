@@ -1,0 +1,24 @@
+body.rtl-mode {
+    direction: rtl;
+    text-align: right;
+}
+
+.rtl-mode .main-sidebar {
+    right: 0;
+    left: auto;
+}
+
+.rtl-mode .content-wrapper,
+.rtl-mode .main-footer {
+    margin-right: 230px;
+    margin-left: 0;
+}
+
+.rtl-mode .sidebar-menu li > a {
+    padding: 12px 15px 12px 5px;
+}
+
+.rtl-mode .sidebar-menu .fa {
+    margin-left: 10px;
+    margin-right: 0;
+}

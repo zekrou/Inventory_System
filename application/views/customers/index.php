@@ -33,7 +33,7 @@
           </div>
         <?php endif; ?>
 
-        <?php if(in_array('createCustomer', $user_permission)): ?>
+        <?php if(isset($user_permission['createCustomer'])): ?>
           <button class="btn btn-primary" data-toggle="modal" data-target="#addCustomerModal"><i class="fa fa-plus"></i> Add Customer</button>
           <br /> <br />
         <?php endif; ?>
@@ -54,7 +54,7 @@
                 <th>Balance</th>
                 <th>Credit Limit</th>
                 <th>Status</th>
-                <?php if(in_array('updateCustomer', $user_permission) || in_array('deleteCustomer', $user_permission)): ?>
+                <?php if(isset($user_permission['updateCustomer']) || isset($user_permission['deleteCustomer'])): ?>
                   <th>Action</th>
                 <?php endif; ?>
               </tr>
@@ -76,7 +76,7 @@
 </div>
 <!-- /.content-wrapper -->
 
-<?php if(in_array('createCustomer', $user_permission)): ?>
+<?php if(isset($user_permission['createCustomer'])): ?>
 <!-- create customer modal -->
 <div class="modal fade" tabindex="-1" role="dialog" id="addCustomerModal">
   <div class="modal-dialog modal-lg" role="document">
@@ -193,7 +193,7 @@
 </div><!-- /.modal -->
 <?php endif; ?>
 
-<?php if(in_array('updateCustomer', $user_permission)): ?>
+<?php if(isset($user_permission['updateCustomer'])): ?>
 <!-- edit customer modal -->
 <div class="modal fade" tabindex="-1" role="dialog" id="editCustomerModal">
   <div class="modal-dialog modal-lg" role="document">
@@ -319,7 +319,7 @@
 </div><!-- /.modal -->
 <?php endif; ?>
 
-<?php if(in_array('deleteCustomer', $user_permission)): ?>
+<?php if(isset($user_permission['deleteCustomer'])): ?>
 <!-- remove customer modal -->
 <div class="modal fade" tabindex="-1" role="dialog" id="removeCustomerModal">
   <div class="modal-dialog" role="document">

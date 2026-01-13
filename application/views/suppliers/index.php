@@ -1,402 +1,359 @@
 <!-- Content Wrapper -->
 <div class="content-wrapper">
-  <section class="content-header">
-    <h1>Manage <small>Suppliers / Fournisseurs</small></h1>
-    <ol class="breadcrumb">
-      <li><a href="#"><i class="fa fa-dashboard"></i> Home</a></li>
-      <li class="active">Suppliers</li>
-    </ol>
-  </section>
+    <section class="content-header">
+        <h1><i class="fa fa-truck"></i> Manage Suppliers</h1>
+        <ol class="breadcrumb">
+            <li><a href="<?php echo base_url('dashboard') ?>"><i class="fa fa-dashboard"></i> Home</a></li>
+            <li class="active">Suppliers</li>
+        </ol>
+    </section>
 
-  <section class="content">
-    <div class="row">
-      <div class="col-md-12 col-xs-12">
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12 col-xs-12">
+                <div id="messages"></div>
 
-        <div id="messages"></div>
-
-        <?php if($this->session->flashdata('success')): ?>
-          <div class="alert alert-success alert-dismissible" role="alert">
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <?php echo $this->session->flashdata('success'); ?>
-          </div>
-        <?php elseif($this->session->flashdata('error')): ?>
-          <div class="alert alert-error alert-dismissible" role="alert">
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <?php echo $this->session->flashdata('error'); ?>
-          </div>
-        <?php endif; ?>
-
-        <?php if(in_array('createSupplier', $user_permission)): ?>
-          <button class="btn btn-primary" data-toggle="modal" data-target="#addSupplierModal"><i class="fa fa-plus"></i> Add Supplier</button>
-          <br /> <br />
-        <?php endif; ?>
-
-        <div class="box">
-          <div class="box-header">
-            <h3 class="box-title">Manage Suppliers</h3>
-          </div>
-          <div class="box-body">
-            <table id="manageTable" class="table table-bordered table-striped">
-              <thead>
-              <tr>
-                <th>Code</th>
-                <th>Name</th>
-                <th>Contact Person</th>
-                <th>Phone</th>
-                <th>Email</th>
-                <th>Status</th>
-                <?php if(in_array('updateSupplier', $user_permission) || in_array('deleteSupplier', $user_permission)): ?>
-                  <th>Action</th>
+                <?php if($this->session->flashdata('success')): ?>
+                    <div class="alert alert-success alert-dismissible" role="alert">
+                        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                        <?php echo $this->session->flashdata('success'); ?>
+                    </div>
+                <?php elseif($this->session->flashdata('error')): ?>
+                    <div class="alert alert-danger alert-dismissible" role="alert">
+                        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+                        <?php echo $this->session->flashdata('error'); ?>
+                    </div>
                 <?php endif; ?>
-              </tr>
-              </thead>
-            </table>
-          </div>
+
+                <div class="box">
+                    <div class="box-header">
+                        <h3 class="box-title">Manage Suppliers</h3>
+                        <?php if(isset($user_permission['createSupplier'])): ?>
+                            <button class="btn btn-primary pull-right" data-toggle="modal" data-target="#addSupplierModal">
+                                <i class="fa fa-plus"></i> Add Supplier
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                    <div class="box-body">
+                        <table id="supplierTable" class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Contact Person</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </section>
+    </section>
 </div>
 
-<?php if(in_array('createSupplier', $user_permission)): ?>
 <!-- Add Supplier Modal -->
-<div class="modal fade" tabindex="-1" role="dialog" id="addSupplierModal">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        <h4 class="modal-title">Add Supplier</h4>
-      </div>
-
-      <form role="form" action="<?php echo base_url('suppliers/create') ?>" method="post" id="createSupplierForm">
-        <div class="modal-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="supplier_name">Supplier Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="supplier_name" name="supplier_name" placeholder="Enter supplier name" autocomplete="off" required>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="contact_person">Contact Person</label>
-                <input type="text" class="form-control" id="contact_person" name="contact_person" placeholder="Contact person name" autocomplete="off">
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="phone">Phone <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="phone" name="phone" placeholder="Phone number" autocomplete="off" required>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" class="form-control" id="email" name="email" placeholder="Email address" autocomplete="off">
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-12">
-              <div class="form-group">
-                <label for="address">Address</label>
-                <textarea class="form-control" id="address" name="address" rows="2" placeholder="Full address"></textarea>
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-4">
-              <div class="form-group">
-                <label for="country">Country</label>
-                <input type="text" class="form-control" id="country" name="country" placeholder="Country" autocomplete="off">
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label for="tax_number">Tax Number</label>
-                <input type="text" class="form-control" id="tax_number" name="tax_number" placeholder="Tax/VAT number" autocomplete="off">
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label for="payment_terms">Payment Terms</label>
-                <input type="text" class="form-control" id="payment_terms" name="payment_terms" placeholder="e.g., 30 days, COD" autocomplete="off">
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-9">
-              <div class="form-group">
-                <label for="notes">Notes</label>
-                <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Additional notes"></textarea>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label for="active">Status <span class="text-danger">*</span></label>
-                <select class="form-control" id="active" name="active" required>
-                  <option value="1">Active</option>
-                  <option value="2">Inactive</option>
-                </select>
-              </div>
-            </div>
-          </div>
+<div class="modal fade" id="addSupplierModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="addSupplierForm" method="post">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-plus"></i> Add New Supplier</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Supplier Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="supplier_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Person</label>
+                        <input type="text" class="form-control" name="contact_person">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" class="form-control" name="email">
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <textarea class="form-control" name="address" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Country</label>
+                        <input type="text" class="form-control" name="country">
+                    </div>
+                    <div class="form-group">
+                        <label>Tax Number</label>
+                        <input type="text" class="form-control" name="tax_number">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Terms</label>
+                        <input type="text" class="form-control" name="payment_terms">
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea class="form-control" name="notes" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select class="form-control" name="active">
+                            <option value="1" selected>Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
+                </div>
+            </form>
         </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Save Supplier</button>
-        </div>
-      </form>
     </div>
-  </div>
 </div>
-<?php endif; ?>
 
-<?php if(in_array('updateSupplier', $user_permission)): ?>
 <!-- Edit Supplier Modal -->
-<div class="modal fade" tabindex="-1" role="dialog" id="editModal">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        <h4 class="modal-title">Edit Supplier</h4>
-      </div>
-
-      <form role="form" action="<?php echo base_url('suppliers/update') ?>" method="post" id="updateSupplierForm">
-        <div class="modal-body">
-          <div id="edit_messages"></div>
-
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="edit_supplier_name">Supplier Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="edit_supplier_name" name="edit_supplier_name" required>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="edit_contact_person">Contact Person</label>
-                <input type="text" class="form-control" id="edit_contact_person" name="edit_contact_person">
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="edit_phone">Phone <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="edit_phone" name="edit_phone" required>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="edit_email">Email</label>
-                <input type="email" class="form-control" id="edit_email" name="edit_email">
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-12">
-              <div class="form-group">
-                <label for="edit_address">Address</label>
-                <textarea class="form-control" id="edit_address" name="edit_address" rows="2"></textarea>
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-4">
-              <div class="form-group">
-                <label for="edit_country">Country</label>
-                <input type="text" class="form-control" id="edit_country" name="edit_country">
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label for="edit_tax_number">Tax Number</label>
-                <input type="text" class="form-control" id="edit_tax_number" name="edit_tax_number">
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group">
-                <label for="edit_payment_terms">Payment Terms</label>
-                <input type="text" class="form-control" id="edit_payment_terms" name="edit_payment_terms">
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-9">
-              <div class="form-group">
-                <label for="edit_notes">Notes</label>
-                <textarea class="form-control" id="edit_notes" name="edit_notes" rows="2"></textarea>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group">
-                <label for="edit_active">Status <span class="text-danger">*</span></label>
-                <select class="form-control" id="edit_active" name="edit_active" required>
-                  <option value="1">Active</option>
-                  <option value="2">Inactive</option>
-                </select>
-              </div>
-            </div>
-          </div>
+<div class="modal fade" id="editSupplierModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="editSupplierForm" method="post">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-edit"></i> Edit Supplier</h4>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit_supplier_id" name="edit_supplier_id">
+                    <div class="form-group">
+                        <label>Supplier Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_supplier_name" name="edit_supplier_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Person</label>
+                        <input type="text" class="form-control" id="edit_contact_person" name="edit_contact_person">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_phone" name="edit_phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" class="form-control" id="edit_email" name="edit_email">
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <textarea class="form-control" id="edit_address" name="edit_address" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Country</label>
+                        <input type="text" class="form-control" id="edit_country" name="edit_country">
+                    </div>
+                    <div class="form-group">
+                        <label>Tax Number</label>
+                        <input type="text" class="form-control" id="edit_tax_number" name="edit_tax_number">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Terms</label>
+                        <input type="text" class="form-control" id="edit_payment_terms" name="edit_payment_terms">
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea class="form-control" id="edit_notes" name="edit_notes" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select class="form-control" id="edit_active" name="edit_active">
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Update</button>
+                </div>
+            </form>
         </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Update Supplier</button>
-        </div>
-      </form>
     </div>
-  </div>
 </div>
-<?php endif; ?>
 
-<?php if(in_array('deleteSupplier', $user_permission)): ?>
-<!-- Remove Supplier Modal -->
+<!-- Remove Modal -->
 <div class="modal fade" tabindex="-1" role="dialog" id="removeModal">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        <h4 class="modal-title">Remove Supplier</h4>
-      </div>
-
-      <form role="form" action="<?php echo base_url('suppliers/remove') ?>" method="post" id="removeSupplierForm">
-        <div class="modal-body">
-          <p>Do you really want to remove this supplier?</p>
-          <p class="text-warning"><strong>Note:</strong> If supplier has purchases, it will be deactivated instead of deleted.</p>
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title"><i class="fa fa-trash"></i> Supprimer le fournisseur</h4>
+            </div>
+            <div class="modal-body" id="removeModalBody">
+                <p>Êtes-vous sûr de vouloir supprimer ce fournisseur ?</p>
+            </div>
+            <div class="modal-footer" id="removeModalFooter">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-danger" onclick="confirmRemoveSupplier()">Supprimer</button>
+            </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-danger">Remove</button>
-        </div>
-      </form>
     </div>
-  </div>
 </div>
-<?php endif; ?>
 
 <script type="text/javascript">
-var manageTable;
+var baseUrl = "<?php echo base_url(); ?>";
+var removeSupplierId = null;
 
 $(document).ready(function() {
-  $("#supplierNav").addClass('active');
-
-  manageTable = $('#manageTable').DataTable({
-    'ajax': '<?php echo base_url('suppliers/fetchSuppliersData') ?>',
-    'order': [[0, 'desc']]
-  });
-
-  $("#createSupplierForm").unbind('submit').on('submit', function(e) {
-    e.preventDefault();
-    var form = $(this);
-    $(".text-danger").remove();
-
-    $.ajax({
-      url: form.attr('action'),
-      type: form.attr('method'),
-      data: form.serialize(),
-      dataType: 'json',
-      success:function(response) {
-        manageTable.ajax.reload(null, false);
-        
-        if(response.success === true) {
-          $("#messages").html('<div class="alert alert-success alert-dismissible" role="alert">'+
-            '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
-            '<strong><i class="fa fa-check"></i></strong> '+response.messages+'</div>');
-          $("#addSupplierModal").modal('hide');
-          $("#createSupplierForm")[0].reset();
-        } else {
-          if(response.messages instanceof Object) {
-            $.each(response.messages, function(index, value) {
-              var id = $("#"+index);
-              id.after(value);
-            });
-          }
-        }
-      }
+    var supplierTable = $('#supplierTable').DataTable({
+        'ajax': baseUrl + 'suppliers/fetchSuppliersData',
+        'order': []
     });
-  });
+
+    $('#addSupplierForm').on('submit', function(e) {
+        e.preventDefault();
+        $.ajax({
+            url: baseUrl + 'suppliers/create',
+            type: 'POST',
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function(response) {
+                if(response.success === true) {
+                    $('#messages').html('<div class="alert alert-success alert-dismissible"><button type="button" class="close" data-dismiss="alert">&times;</button>' + response.messages + '</div>');
+                    $('#addSupplierModal').modal('hide');
+                    $('#addSupplierForm')[0].reset();
+                    supplierTable.ajax.reload(null, false);
+                } else {
+                    $('#messages').html('<div class="alert alert-danger alert-dismissible"><button type="button" class="close" data-dismiss="alert">&times;</button>' + response.messages + '</div>');
+                }
+            }
+        });
+    });
+
+    window.editSupplier = function(id) {
+        $.ajax({
+            url: baseUrl + 'suppliers/fetchSupplierDataById/' + id,
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                $('#edit_supplier_id').val(data.id);
+                $('#edit_supplier_name').val(data.name);
+                $('#edit_contact_person').val(data.contact_person);
+                $('#edit_phone').val(data.phone);
+                $('#edit_email').val(data.email);
+                $('#edit_address').val(data.address);
+                $('#edit_country').val(data.country);
+                $('#edit_tax_number').val(data.tax_number);
+                $('#edit_payment_terms').val(data.payment_terms);
+                $('#edit_notes').val(data.notes);
+                $('#edit_active').val(data.active);
+                $('#editSupplierModal').modal('show');
+            }
+        });
+    };
+
+    $('#editSupplierForm').on('submit', function(e) {
+        e.preventDefault();
+        var id = $('#edit_supplier_id').val();
+        $.ajax({
+            url: baseUrl + 'suppliers/update/' + id,
+            type: 'POST',
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function(response) {
+                if(response.success === true) {
+                    $('#messages').html('<div class="alert alert-success alert-dismissible"><button type="button" class="close" data-dismiss="alert">&times;</button>' + response.messages + '</div>');
+                    $('#editSupplierModal').modal('hide');
+                    supplierTable.ajax.reload(null, false);
+                } else {
+                    $('#messages').html('<div class="alert alert-danger alert-dismissible"><button type="button" class="close" data-dismiss="alert">&times;</button>' + response.messages + '</div>');
+                }
+            }
+        });
+    });
+
+    $('#suppliersMainNav').addClass('active');
 });
 
-function editSupplier(id) {
+function removeSupplier(id) {
+  if(id) {
+    removeSupplierId = id;
+    $("#removeModalBody").html('<p>Êtes-vous sûr de vouloir supprimer ce fournisseur ?</p>');
+    $("#removeModalFooter").html(`
+      <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+      <button type="button" class="btn btn-danger" onclick="confirmRemoveSupplier()">Supprimer</button>
+    `);
+    $("#removeModal").modal('show');
+  }
+}
+
+function confirmRemoveSupplier() {
   $.ajax({
-    url: '<?php echo base_url('suppliers/fetchSupplierDataById/') ?>' + id,
-    type: 'post',
+    url: baseUrl + 'suppliers/remove',
+    type: 'POST',
+    data: {supplier_id: removeSupplierId},
     dataType: 'json',
-    success:function(response) {
-      $("#edit_supplier_name").val(response.name);
-      $("#edit_contact_person").val(response.contact_person);
-      $("#edit_phone").val(response.phone);
-      $("#edit_email").val(response.email);
-      $("#edit_address").val(response.address);
-      $("#edit_country").val(response.country);
-      $("#edit_tax_number").val(response.tax_number);
-      $("#edit_payment_terms").val(response.payment_terms);
-      $("#edit_notes").val(response.notes);
-      $("#edit_active").val(response.active);
-
-      $("#updateSupplierForm").unbind('submit').bind('submit', function(e) {
-        e.preventDefault();
-        var form = $(this);
-        $(".text-danger").remove();
-
-        $.ajax({
-          url: form.attr('action') + '/' + id,
-          type: form.attr('method'),
-          data: form.serialize(),
-          dataType: 'json',
-          success:function(response) {
-            manageTable.ajax.reload(null, false);
-            
-            if(response.success === true) {
-              $("#messages").html('<div class="alert alert-success alert-dismissible" role="alert">'+
-                '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
-                '<strong><i class="fa fa-check"></i></strong> '+response.messages+'</div>');
-              $("#editModal").modal('hide');
-            }
-          }
-        });
-        return false;
-      });
+    success: function(response) {
+      if(response.success === true) {
+        $('#messages').html('<div class="alert alert-success alert-dismissible"><button type="button" class="close" data-dismiss="alert">&times;</button><strong><i class="fa fa-check"></i></strong> ' + response.messages + '</div>');
+        $('#removeModal').modal('hide');
+        $('#supplierTable').DataTable().ajax.reload(null, false);
+      } else if(response.type === 'has_purchases') {
+        $("#removeModalBody").html(`
+          <div class="alert alert-warning">
+            <i class="fa fa-warning"></i> <strong>Attention!</strong><br>
+            ${response.messages}
+          </div>
+          <p><strong>Que voulez-vous faire ?</strong></p>
+          <ul>
+            <li><strong>Désactiver:</strong> Le fournisseur sera caché mais les achats seront préservés</li>
+            <li><strong>Forcer la suppression:</strong> ⚠️ SUPPRESSION PERMANENTE</li>
+          </ul>
+        `);
+        $("#removeModalFooter").html(`
+          <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+          <button type="button" class="btn btn-warning" onclick="deactivateSupplier()">
+            <i class="fa fa-ban"></i> Désactiver
+          </button>
+          <button type="button" class="btn btn-danger" onclick="forceDeleteSupplier()">
+            <i class="fa fa-trash"></i> Forcer la suppression
+          </button>
+        `);
+      } else {
+        $('#messages').html('<div class="alert alert-danger alert-dismissible"><button type="button" class="close" data-dismiss="alert">&times;</button>' + response.messages + '</div>');
+        $('#removeModal').modal('hide');
+      }
     }
   });
 }
 
-function removeSupplier(id) {
-  if(id) {
-    $("#removeSupplierForm").unbind('submit').on('submit', function(e) {
-      e.preventDefault();
-      var form = $(this);
+function deactivateSupplier() {
+  $.ajax({
+    url: baseUrl + 'suppliers/remove',
+    type: 'POST',
+    data: {supplier_id: removeSupplierId, deactivate_only: 'yes'},
+    dataType: 'json',
+    success: function(response) {
+      $('#messages').html('<div class="alert alert-success alert-dismissible"><button type="button" class="close" data-dismiss="alert">&times;</button><strong><i class="fa fa-check"></i></strong> ' + response.messages + '</div>');
+      $('#removeModal').modal('hide');
+      $('#supplierTable').DataTable().ajax.reload(null, false);
+    }
+  });
+}
 
-      $.ajax({
-        url: form.attr('action'),
-        type: form.attr('method'),
-        data: { supplier_id:id },
-        dataType: 'json',
-        success:function(response) {
-          manageTable.ajax.reload(null, false);
-          
-          if(response.success === true) {
-            $("#messages").html('<div class="alert alert-success alert-dismissible" role="alert">'+
-              '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
-              '<strong><i class="fa fa-check"></i></strong> '+response.messages+'</div>');
-            $("#removeModal").modal('hide');
-          }
-        }
-      });
-      return false;
+function forceDeleteSupplier() {
+  if(confirm("⚠️ ATTENTION! Suppression permanente!\n\nÊtes-vous sûr ?")) {
+    $.ajax({
+      url: baseUrl + 'suppliers/remove',
+      type: 'POST',
+      data: {supplier_id: removeSupplierId, force_delete: 'yes'},
+      dataType: 'json',
+      success: function(response) {
+        $('#messages').html('<div class="alert alert-success alert-dismissible"><button type="button" class="close" data-dismiss="alert">&times;</button><strong><i class="fa fa-check"></i></strong> ' + response.messages + '</div>');
+        $('#removeModal').modal('hide');
+        $('#supplierTable').DataTable().ajax.reload(null, false);
+      }
     });
   }
 }

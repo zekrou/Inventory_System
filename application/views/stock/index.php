@@ -1,347 +1,621 @@
-<!-- Content Wrapper -->
+<!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
+  <!-- Content Header (Page header) -->
   <section class="content-header">
-    <h1>Stock Management <small>Overview</small></h1>
+    <h1>
+      Stock
+      <small>Management</small>
+    </h1>
     <ol class="breadcrumb">
       <li><a href="#"><i class="fa fa-dashboard"></i> Home</a></li>
       <li class="active">Stock</li>
     </ol>
   </section>
 
+  <!-- Main content -->
   <section class="content">
-    
-    <!-- Statistics Boxes -->
+
+    <!-- Statistics Row -->
     <div class="row">
-      <div class="col-md-3 col-sm-6">
+      <div class="col-lg-3 col-xs-6">
         <div class="small-box bg-aqua">
           <div class="inner">
             <h3><?php echo $statistics['total_products']; ?></h3>
             <p>Total Products</p>
           </div>
-          <div class="icon"><i class="fa fa-cubes"></i></div>
+          <div class="icon">
+            <i class="fa fa-cubes"></i>
+          </div>
         </div>
       </div>
-      
-      <div class="col-md-3 col-sm-6">
+
+      <div class="col-lg-3 col-xs-6">
         <div class="small-box bg-green">
           <div class="inner">
             <h3><?php echo $statistics['good_stock']; ?></h3>
             <p>Good Stock</p>
           </div>
-          <div class="icon"><i class="fa fa-check"></i></div>
+          <div class="icon">
+            <i class="fa fa-check-circle"></i>
+          </div>
         </div>
       </div>
-      
-      <div class="col-md-3 col-sm-6">
+
+      <div class="col-lg-3 col-xs-6">
         <div class="small-box bg-yellow">
           <div class="inner">
             <h3><?php echo $statistics['low_stock']; ?></h3>
             <p>Low Stock</p>
           </div>
-          <div class="icon"><i class="fa fa-warning"></i></div>
+          <div class="icon">
+            <i class="fa fa-exclamation-triangle"></i>
+          </div>
         </div>
       </div>
-      
-      <div class="col-md-3 col-sm-6">
+
+      <div class="col-lg-3 col-xs-6">
         <div class="small-box bg-red">
           <div class="inner">
             <h3><?php echo $statistics['out_of_stock']; ?></h3>
             <p>Out of Stock</p>
           </div>
-          <div class="icon"><i class="fa fa-times"></i></div>
+          <div class="icon">
+            <i class="fa fa-times-circle"></i>
+          </div>
         </div>
       </div>
     </div>
 
-    <?php if(in_array('createStock', $user_permission)): ?>
-      <button class="btn btn-primary" data-toggle="modal" data-target="#addModal">
-        <i class="fa fa-plus"></i> Add Stock
-      </button>
-      <br /><br />
-    <?php endif; ?>
+    <!-- Stock Locations Table -->
+    <div class="row">
+      <div class="col-md-12 col-xs-12">
 
-    <!-- Stock Management -->
-    <div class="box">
-      <div class="box-header">
-        <h3 class="box-title">Manage Stock</h3>
+        <div id="messages"></div>
+
+        <?php if ($this->session->flashdata('success')): ?>
+          <div class="alert alert-success alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <?php echo $this->session->flashdata('success'); ?>
+          </div>
+        <?php elseif ($this->session->flashdata('error')): ?>
+          <div class="alert alert-error alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <?php echo $this->session->flashdata('error'); ?>
+          </div>
+        <?php endif; ?>
+
+        <div class="box">
+          <div class="box-header">
+            <h3 class="box-title">Manage Stock</h3>
+            <?php if (isset($user_permission['createStock'])): ?>
+              <button class="btn btn-primary pull-right" data-toggle="modal" data-target="#addModal"><i class="fa fa-plus"></i> Add Stock</button>
+            <?php endif; ?>
+          </div>
+          <!-- /.box-header -->
+          <div class="box-body">
+            <table id="stockTable" class="table table-bordered table-striped">
+              <thead>
+                <tr>
+                  <th>Stock Name</th>
+                  <th>Description</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+
+            </table>
+          </div>
+          <!-- /.box-body -->
+        </div>
+        <!-- /.box -->
       </div>
-      <div class="box-body">
-        <table id="manageTable" class="table table-bordered table-striped">
-          <thead>
-            <tr>
-              <th>Stock Name</th>
-              <th>Description</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-        </table>
-      </div>
+      <!-- col-md-12 -->
     </div>
+    <!-- /.row -->
 
-    <!-- Filters -->
-    <div class="box">
-      <div class="box-header">
-        <h3 class="box-title">Filter Products</h3>
-      </div>
-      <div class="box-body">
-        <form method="get" action="<?php echo base_url('stock'); ?>">
-          <div class="row">
-            <div class="col-md-3">
-              <select name="category" class="form-control">
-                <option value="">All Categories</option>
-                <?php foreach($categories as $cat): ?>
-                  <option value="<?php echo $cat['id']; ?>" <?php echo ($current_category == $cat['id']) ? 'selected' : ''; ?>>
-                    <?php echo $cat['name']; ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-            <div class="col-md-3">
-              <select name="stock" class="form-control">
-                <option value="">All Stocks</option>
-                <?php foreach($stocks as $stock): ?>
-                  <option value="<?php echo $stock['id']; ?>" <?php echo ($current_stock == $stock['id']) ? 'selected' : ''; ?>>
-                    <?php echo $stock['name']; ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-            <div class="col-md-3">
-              <select name="status" class="form-control">
-                <option value="">All Status</option>
-                <option value="good" <?php echo ($current_status == 'good') ? 'selected' : ''; ?>>Good Stock</option>
-                <option value="low" <?php echo ($current_status == 'low') ? 'selected' : ''; ?>>Low Stock</option>
-                <option value="critical" <?php echo ($current_status == 'critical') ? 'selected' : ''; ?>>Critical</option>
-                <option value="out_of_stock" <?php echo ($current_status == 'out_of_stock') ? 'selected' : ''; ?>>Out of Stock</option>
-              </select>
-            </div>
-            <div class="col-md-3">
-              <button type="submit" class="btn btn-primary"><i class="fa fa-filter"></i> Filter</button>
-              <a href="<?php echo base_url('stock'); ?>" class="btn btn-default">Clear</a>
+    <!-- Products Overview -->
+    <div class="row">
+      <div class="col-md-12">
+        <div class="box">
+          <div class="box-header with-border">
+            <h3 class="box-title"><i class="fa fa-cube"></i> Filter Products</h3>
+          </div>
+          <div class="box-body">
+            <form method="get" action="<?php echo base_url('stock'); ?>">
+              <div class="row">
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" class="form-control">
+                      <option value="">All Categories</option>
+                      <?php foreach ($categories as $cat): ?>
+                        <option value="<?php echo $cat['id']; ?>" <?php echo ($current_category == $cat['id']) ? 'selected' : ''; ?>>
+                          <?php echo $cat['name']; ?>
+                        </option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Stock Location</label>
+                    <select name="stock" class="form-control">
+                      <option value="">All Stocks</option>
+                      <?php foreach ($stocks as $stock): ?>
+                        <option value="<?php echo $stock['id']; ?>" <?php echo ($current_stock == $stock['id']) ? 'selected' : ''; ?>>
+                          <?php echo $stock['name']; ?>
+                        </option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>Status</label>
+                    <select name="status" class="form-control">
+                      <option value="">All Status</option>
+                      <option value="good" <?php echo ($current_status == 'good') ? 'selected' : ''; ?>>Good Stock</option>
+                      <option value="low" <?php echo ($current_status == 'low') ? 'selected' : ''; ?>>Low Stock</option>
+                      <option value="out_of_stock" <?php echo ($current_status == 'out_of_stock') ? 'selected' : ''; ?>>Out of Stock</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="col-md-3">
+                  <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary btn-block"><i class="fa fa-filter"></i> Filter</button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="box">
+          <div class="box-header with-border">
+            <h3 class="box-title"><i class="fa fa-cubes"></i> Products Overview</h3>
+          </div>
+          <div class="box-body">
+            <div class="table-responsive">
+              <table class="table table-bordered table-hover">
+                <thead>
+                  <tr style="background: #f8f9fa;">
+                    <th style="width: 80px;">Image</th>
+                    <th>Product</th>
+                    <th style="width: 120px;">SKU</th>
+                    <th style="width: 150px;">Stock</th>
+                    <th style="width: 100px;" class="text-center">Quantity</th>
+                    <th style="width: 120px;">Status</th>
+                    <th style="width: 130px;" class="text-right">Price</th>
+                    <th style="width: 100px;" class="text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php if (!empty($products)): ?>
+                    <?php foreach ($products as $product): ?>
+                      <tr>
+                        <td class="text-center">
+                          <img src="<?php echo base_url($product['image']); ?>" width="50" height="50" class="img-circle">
+                        </td>
+                        <td>
+                          <strong><?php echo $product['name']; ?></strong>
+                        </td>
+                        <td><?php echo $product['sku']; ?></td>
+                        <td><?php echo $product['stock_name']; ?></td>
+                        <td class="text-center">
+                          <strong style="font-size: 16px;"><?php echo $product['qty']; ?></strong>
+                        </td>
+                        <td>
+                          <span class="label label-<?php echo $product['stock_status_class']; ?>">
+                            <?php echo $product['stock_status_label']; ?>
+                          </span>
+                        </td>
+                        <td class="text-right">
+                          <strong><?php echo number_format($product['price_retail'], 2); ?> DZD</strong>
+                        </td>
+                        <td class="text-center">
+                          <!-- ✅ BOUTON VIEW DETAILS -->
+                          <button type="button" class="btn btn-info btn-sm"
+                            onclick="viewProductDetails(<?php echo $product['id']; ?>)"
+                            title="View Full Details">
+                            <i class="fa fa-eye"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <tr>
+                      <td colspan="8" class="text-center">
+                        <em class="text-muted">No products found</em>
+                      </td>
+                    </tr>
+                  <?php endif; ?>
+                </tbody>
+              </table>
             </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
 
-    <!-- Products Table -->
-    <div class="box">
-      <div class="box-header">
-        <h3 class="box-title">Products Overview</h3>
+  </section>
+  <!-- /.content -->
+</div>
+<!-- /.content-wrapper -->
+
+<!-- ✅ MODAL POUR AFFICHER LES DÉTAILS DU PRODUIT -->
+<div class="modal fade" id="productDetailsModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-info">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title">
+          <i class="fa fa-info-circle"></i> Product Full Details
+        </h4>
       </div>
-      <div class="box-body">
-        <table class="table table-bordered table-striped">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>SKU</th>
-              <th>Stock</th>
-              <th>Quantity</th>
-              <th>Status</th>
-              <th>Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if(!empty($products)): ?>
-              <?php foreach($products as $product): ?>
-                <tr>
-                  <td><?php echo $product['name']; ?></td>
-                  <td><?php echo $product['sku'] ?: '-'; ?></td>
-                  <td><?php echo $product['stock_name']; ?></td>
-                  <td><strong><?php echo $product['qty']; ?></strong></td>
-                  <td>
-                    <span class="label label-<?php echo $product['stock_status_class']; ?>">
-                      <?php echo $product['stock_status_label']; ?>
-                    </span>
-                  </td>
-                  <td><?php echo number_format($product['price_retail'], 2); ?> DZD</td>
-                </tr>
-              <?php endforeach; ?>
-            <?php else: ?>
-              <tr>
-                <td colspan="6" class="text-center">No products found</td>
-              </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
+      <div class="modal-body" id="productDetailsContent">
+        <!-- Contenu chargé dynamiquement -->
+        <div class="text-center">
+          <i class="fa fa-spinner fa-spin fa-3x"></i>
+          <p>Loading product details...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">
+          <i class="fa fa-times"></i> Close
+        </button>
       </div>
     </div>
-  </section>
+  </div>
 </div>
 
-<!-- Create Stock Modal -->
-<div class="modal fade" id="addModal" tabindex="-1">
-  <div class="modal-dialog">
+<!-- Add Stock Modal -->
+<div class="modal fade" tabindex="-1" role="dialog" id="addModal">
+  <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         <h4 class="modal-title">Add Stock</h4>
       </div>
-      <form id="createForm" action="<?php echo base_url('stock/create') ?>" method="post">
+
+      <form role="form" action="<?php echo base_url('stock/create') ?>" method="post" id="createForm">
+
         <div class="modal-body">
+
           <div class="form-group">
-            <label>Stock Name *</label>
-            <input type="text" class="form-control" name="stock_name" required>
+            <label for="stock_name">Stock Name</label>
+            <input type="text" class="form-control" id="stock_name" name="stock_name" placeholder="Enter stock name" autocomplete="off">
           </div>
+
           <div class="form-group">
-            <label>Description</label>
-            <textarea class="form-control" name="description" rows="3"></textarea>
+            <label for="description">Description</label>
+            <textarea class="form-control" id="description" name="description" placeholder="Enter description"></textarea>
           </div>
+
           <div class="form-group">
-            <label>Status *</label>
-            <select class="form-control" name="active" required>
+            <label for="active">Status</label>
+            <select class="form-control" id="active" name="active">
               <option value="1">Active</option>
-              <option value="0">Inactive</option>
+              <option value="2">Inactive</option>
             </select>
           </div>
         </div>
+
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Create</button>
+          <button type="submit" class="btn btn-primary">Save changes</button>
         </div>
+
       </form>
-    </div>
-  </div>
-</div>
+
+
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
 
 <!-- Edit Stock Modal -->
-<div class="modal fade" id="editModal" tabindex="-1">
-  <div class="modal-dialog">
+<div class="modal fade" tabindex="-1" role="dialog" id="editModal">
+  <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         <h4 class="modal-title">Edit Stock</h4>
       </div>
-      <form id="updateForm" method="post">
+
+      <form role="form" action="<?php echo base_url('stock/update') ?>" method="post" id="updateForm">
+
         <div class="modal-body">
+          <div id="messages"></div>
+
           <div class="form-group">
-            <label>Stock Name *</label>
-            <input type="text" class="form-control" id="edit_stock_name" name="edit_stock_name" required>
+            <label for="edit_stock_name">Stock Name</label>
+            <input type="text" class="form-control" id="edit_stock_name" name="edit_stock_name" placeholder="Enter stock name" autocomplete="off">
           </div>
+
           <div class="form-group">
-            <label>Description</label>
-            <textarea class="form-control" id="edit_description" name="edit_description" rows="3"></textarea>
+            <label for="edit_description">Description</label>
+            <textarea class="form-control" id="edit_description" name="edit_description" placeholder="Enter description"></textarea>
           </div>
+
           <div class="form-group">
-            <label>Status *</label>
-            <select class="form-control" id="edit_active" name="edit_active" required>
+            <label for="edit_active">Status</label>
+            <select class="form-control" id="edit_active" name="edit_active">
               <option value="1">Active</option>
-              <option value="0">Inactive</option>
+              <option value="2">Inactive</option>
             </select>
           </div>
         </div>
+
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Update</button>
+          <button type="submit" class="btn btn-primary">Save changes</button>
         </div>
-      </form>
-    </div>
-  </div>
-</div>
 
-<!-- Remove Modal -->
-<div class="modal fade" id="removeModal" tabindex="-1">
-  <div class="modal-dialog">
+      </form>
+
+
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+<!-- Remove Stock Modal -->
+<div class="modal fade" tabindex="-1" role="dialog" id="removeModal">
+  <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         <h4 class="modal-title">Remove Stock</h4>
       </div>
-      <form id="removeForm" method="post">
+
+      <form role="form" action="<?php echo base_url('stock/remove') ?>" method="post" id="removeForm">
         <div class="modal-body">
-          <p>Do you really want to remove this stock?</p>
+          <p>Do you really want to remove?</p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-danger">Remove</button>
+          <button type="submit" class="btn btn-primary">Save changes</button>
         </div>
       </form>
-    </div>
-  </div>
-</div>
 
-<script>
-var manageTable;
-var base_url = "<?php echo base_url(); ?>";
 
-$(document).ready(function() {
-  $("#stockNav").addClass('active');
-  
-  manageTable = $('#manageTable').DataTable({
-    'ajax': base_url + 'stock/fetchStockData',
-    'order': []
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+
+<script type="text/javascript">
+  var stockTable;
+
+  $(document).ready(function() {
+
+    $("#mainStockNav").addClass('active');
+
+    stockTable = $('#stockTable').DataTable({
+      'ajax': '<?php echo base_url('stock/fetchStockData') ?>',
+      'order': []
+    });
+
+    // submit the create from 
+    $("#createForm").unbind('submit').on('submit', function() {
+      var form = $(this);
+
+      // remove the text-danger
+      $(".text-danger").remove();
+
+      $.ajax({
+        url: form.attr('action'),
+        type: form.attr('method'),
+        data: form.serialize(),
+        dataType: 'json',
+        success: function(response) {
+
+          stockTable.ajax.reload(null, false);
+
+          if (response.success === true) {
+            $("#messages").html('<div class="alert alert-success alert-dismissible" role="alert">' +
+              '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+              '<strong> <span class="glyphicon glyphicon-ok-sign"></span> </strong>' + response.messages +
+              '</div>');
+
+            // hide the modal
+            $("#addModal").modal('hide');
+
+            // reset the form
+            $("#createForm .form-control").val('');
+
+          } else {
+
+            if (response.messages instanceof Object) {
+              $.each(response.messages, function(index, value) {
+                var id = $("#" + index);
+
+                id.closest('.form-group')
+                  .removeClass('has-error')
+                  .removeClass('has-success')
+                  .addClass(value.length > 0 ? 'has-error' : 'has-success');
+
+                id.after(value);
+
+              });
+            } else {
+              $("#messages").html('<div class="alert alert-warning alert-dismissible" role="alert">' +
+                '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                '<strong> <span class="glyphicon glyphicon-exclamation-sign"></span> </strong>' + response.messages +
+                '</div>');
+            }
+          }
+        }
+      });
+
+      return false;
+    });
+
   });
 
-  // Create form
-  $("#createForm").on('submit', function(e) {
-    e.preventDefault();
+  // edit function
+  function editFunc(id) {
     $.ajax({
-      url: $(this).attr('action'),
-      type: 'POST',
-      data: $(this).serialize(),
+      url: '<?php echo base_url('stock/fetchStockDataById') ?>/' + id,
+      type: 'post',
       dataType: 'json',
       success: function(response) {
-        if(response.success) {
-          $("#addModal").modal('hide');
-          manageTable.ajax.reload();
-          alert(response.messages);
-        } else {
-          alert(response.messages);
-        }
+
+        $("#edit_stock_name").val(response.name);
+        $("#edit_description").val(response.description);
+        $("#edit_active").val(response.active);
+
+        // submit the edit from 
+        $("#updateForm").unbind('submit').bind('submit', function() {
+          var form = $(this);
+
+          // remove the text-danger
+          $(".text-danger").remove();
+
+          $.ajax({
+            url: form.attr('action') + '/' + id,
+            type: form.attr('method'),
+            data: form.serialize(),
+            dataType: 'json',
+            success: function(response) {
+
+              stockTable.ajax.reload(null, false);
+
+              if (response.success === true) {
+                $("#messages").html('<div class="alert alert-success alert-dismissible" role="alert">' +
+                  '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                  '<strong> <span class="glyphicon glyphicon-ok-sign"></span> </strong>' + response.messages +
+                  '</div>');
+
+                // hide the modal
+                $("#editModal").modal('hide');
+                // reset the form 
+                $("#updateForm .form-control").val('');
+
+              } else {
+
+                if (response.messages instanceof Object) {
+                  $.each(response.messages, function(index, value) {
+                    var id = $("#" + index);
+
+                    id.closest('.form-group')
+                      .removeClass('has-error')
+                      .removeClass('has-success')
+                      .addClass(value.length > 0 ? 'has-error' : 'has-success');
+
+                    id.after(value);
+
+                  });
+                } else {
+                  $("#messages").html('<div class="alert alert-warning alert-dismissible" role="alert">' +
+                    '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                    '<strong> <span class="glyphicon glyphicon-exclamation-sign"></span> </strong>' + response.messages +
+                    '</div>');
+                }
+              }
+            }
+          });
+
+          return false;
+        });
+
       }
     });
-  });
-});
+  }
 
-function editFunc(id) {
-  $.ajax({
-    url: base_url + 'stock/fetchStockDataById/' + id,
-    type: 'POST',
-    dataType: 'json',
-    success: function(data) {
-      $("#edit_stock_name").val(data.name);
-      $("#edit_description").val(data.description);
-      $("#edit_active").val(data.active);
-      
-      $("#updateForm").attr('action', base_url + 'stock/update/' + id);
-      $("#editModal").modal('show');
+  // remove functions 
+  function removeFunc(id) {
+    if (id) {
+      $("#removeForm").on('submit', function() {
+
+        var form = $(this);
+
+        // remove the text-danger
+        $(".text-danger").remove();
+
+        $.ajax({
+          url: form.attr('action'),
+          type: form.attr('method'),
+          data: {
+            stock_id: id
+          },
+          dataType: 'json',
+          success: function(response) {
+
+            stockTable.ajax.reload(null, false);
+
+            if (response.success === true) {
+              $("#messages").html('<div class="alert alert-success alert-dismissible" role="alert">' +
+                '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                '<strong> <span class="glyphicon glyphicon-ok-sign"></span> </strong>' + response.messages +
+                '</div>');
+
+              // hide the modal
+              $("#removeModal").modal('hide');
+
+            } else {
+
+              $("#messages").html('<div class="alert alert-warning alert-dismissible" role="alert">' +
+                '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                '<strong> <span class="glyphicon glyphicon-exclamation-sign"></span> </strong>' + response.messages +
+                '</div>');
+            }
+          }
+        });
+
+        return false;
+      });
     }
-  });
-  
-  $("#updateForm").on('submit', function(e) {
-    e.preventDefault();
-    $.ajax({
-      url: $(this).attr('action'),
-      type: 'POST',
-      data: $(this).serialize(),
-      dataType: 'json',
-      success: function(response) {
-        if(response.success) {
-          $("#editModal").modal('hide');
-          manageTable.ajax.reload();
-          alert(response.messages);
-        }
-      }
-    });
-  });
-}
+  }
 
-function removeFunc(id) {
-  $("#removeForm").off('submit').on('submit', function(e) {
-    e.preventDefault();
+  /**
+   * ✅ NOUVELLE FONCTION: Afficher les détails complets d'un produit
+   */
+  function viewProductDetails(productId) {
+    // Ouvrir le modal
+    $('#productDetailsModal').modal('show');
+
+    // Reset le contenu
+    $('#productDetailsContent').html(
+      '<div class="text-center" style="padding: 50px;">' +
+      '<i class="fa fa-spinner fa-spin fa-3x text-info"></i>' +
+      '<p style="margin-top: 20px;">Loading product details...</p>' +
+      '</div>'
+    );
+
+    // Charger les données via AJAX
     $.ajax({
-      url: base_url + 'stock/remove',
+      url: '<?php echo base_url("stock/getProductDetails"); ?>',
       type: 'POST',
-      data: {stock_id: id},
+      data: {
+        product_id: productId
+      },
       dataType: 'json',
       success: function(response) {
-        $("#removeModal").modal('hide');
-        manageTable.ajax.reload();
-        alert(response.messages);
+        if (response.success) {
+          $('#productDetailsContent').html(response.html);
+        } else {
+          $('#productDetailsContent').html(
+            '<div class="alert alert-danger">' +
+            '<i class="fa fa-exclamation-triangle"></i> ' +
+            '<strong>Error:</strong> ' + response.message +
+            '</div>'
+          );
+        }
+      },
+      error: function(xhr, status, error) {
+        $('#productDetailsContent').html(
+          '<div class="alert alert-danger">' +
+          '<i class="fa fa-exclamation-triangle"></i> ' +
+          '<strong>Connection Error:</strong> Unable to load product details. Please try again.' +
+          '<br><small>Error: ' + error + '</small>' +
+          '</div>'
+        );
       }
     });
-  });
-  $("#removeModal").modal('show');
-}
+  }
 </script>

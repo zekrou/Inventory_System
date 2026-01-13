@@ -18,7 +18,7 @@ class Category extends Admin_Controller
 
 	public function index()
 	{
-		if(!in_array('viewCategory', $this->permission)) {
+		if(!isset($this->permission['viewCategory'])) {
 			redirect('dashboard', 'refresh');
 		}
 
@@ -48,10 +48,10 @@ class Category extends Admin_Controller
 			$status = ($value['active'] == 1) ? '<span class="label label-success">Active</span>' : '<span class="label label-warning">Inactive</span>';
 
 			$buttons = '';
-			if(in_array('updateCategory', $this->permission)) {
+			if(isset($this->permission['updateCategory'])) {
 				$buttons .= '<button type="button" class="btn btn-sm btn-info" onclick="editFunc('.$value['id'].')" data-toggle="modal" data-target="#editModal"><i class="fa fa-pencil"></i></button> ';
 			}
-			if(in_array('deleteCategory', $this->permission)) {
+			if(isset($this->permission['deleteCategory'])) {
 				$buttons .= '<button type="button" class="btn btn-sm btn-danger" onclick="removeFunc('.$value['id'].')" data-toggle="modal" data-target="#removeModal"><i class="fa fa-trash"></i></button>';
 			}
 
@@ -68,7 +68,7 @@ class Category extends Admin_Controller
 
 	public function create()
 	{
-		if(!in_array('createCategory', $this->permission)) {
+		if(!isset($this->permission['createCategory'])) {
 			redirect('dashboard', 'refresh');
 		}
 
@@ -109,7 +109,7 @@ class Category extends Admin_Controller
 
 	public function update($id)
 	{
-		if(!in_array('updateCategory', $this->permission)) {
+		if(!isset($this->permission['updateCategory'])) {
 			redirect('dashboard', 'refresh');
 		}
 
@@ -156,7 +156,7 @@ class Category extends Admin_Controller
 
 	public function remove()
 	{
-		if(!in_array('deleteCategory', $this->permission)) {
+		if(!isset($this->permission['deleteCategory'])) {
 			redirect('dashboard', 'refresh');
 		}
 		

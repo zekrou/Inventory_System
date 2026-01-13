@@ -20,7 +20,7 @@ class Customers extends Admin_Controller
 	 */
 	public function index()
 	{
-		if(!in_array('viewCustomer', $this->permission)) {
+		if(!isset($this->permission['viewCustomer'])) {
 			redirect('dashboard', 'refresh');
 		}
 
@@ -44,11 +44,11 @@ class Customers extends Admin_Controller
 			// Buttons
 			$buttons = '';
 
-			if(in_array('updateCustomer', $this->permission)) {
+			if(isset($this->permission['updateCustomer'])) {
 				$buttons .= '<button type="button" class="btn btn-default" onclick="editCustomer('.$value['id'].')" data-toggle="modal" data-target="#editCustomerModal"><i class="fa fa-pencil"></i></button>';	
 			}
 			
-			if(in_array('deleteCustomer', $this->permission)) {
+			if(isset($this->permission['deleteCustomer'])) {
 				$buttons .= ' <button type="button" class="btn btn-default" onclick="removeCustomer('.$value['id'].')" data-toggle="modal" data-target="#removeCustomerModal"><i class="fa fa-trash"></i></button>';
 			}
 
@@ -107,7 +107,7 @@ class Customers extends Admin_Controller
 	 */
 	public function create()
 	{
-		if(!in_array('createCustomer', $this->permission)) {
+		if(!isset($this->permission['createCustomer'])) {
 			redirect('dashboard', 'refresh');
 		}
 
@@ -164,7 +164,7 @@ class Customers extends Admin_Controller
 	 */
 	public function update($id)
 	{
-		if(!in_array('updateCustomer', $this->permission)) {
+		if(!isset($this->permission['updateCustomer'])) {
 			redirect('dashboard', 'refresh');
 		}
 
@@ -223,7 +223,7 @@ class Customers extends Admin_Controller
 	 */
 	public function remove()
 	{
-		if(!in_array('deleteCustomer', $this->permission)) {
+		if(!isset($this->permission['deleteCustomer'])) {
 			redirect('dashboard', 'refresh');
 		}
 		
@@ -255,7 +255,7 @@ class Customers extends Admin_Controller
 	 */
 	public function view($id = null)
 	{
-		if(!in_array('viewCustomer', $this->permission)) {
+		if(!isset($this->permission['viewCustomer'])) {
 			redirect('dashboard', 'refresh');
 		}
 

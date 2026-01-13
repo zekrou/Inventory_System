@@ -1,288 +1,785 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
+  <!-- Content Header (Page header) -->
   <section class="content-header">
     <h1>
-      Manage
-      <small>Orders</small>
+      <i class="fa fa-shopping-cart"></i> New Order
+      <small>Create a new sale</small>
     </h1>
     <ol class="breadcrumb">
-      <li><a href="#"><i class="fa fa-dashboard"></i> Home</a></li>
-      <li class="active">Orders</li>
+      <li><a href="<?php echo base_url('dashboard') ?>"><i class="fa fa-dashboard"></i> Home</a></li>
+      <li><a href="<?php echo base_url('orders/') ?>">Orders</a></li>
+      <li class="active">Create</li>
     </ol>
   </section>
 
+  <!-- Main content -->
   <section class="content">
+    <!-- Small boxes (Stat box) -->
     <div class="row">
       <div class="col-md-12 col-xs-12">
 
         <div id="messages"></div>
 
-        <?php if($this->session->flashdata('success')): ?>
+        <?php if ($this->session->flashdata('success')): ?>
           <div class="alert alert-success alert-dismissible" role="alert">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <?php echo $this->session->flashdata('success'); ?>
           </div>
-        <?php elseif($this->session->flashdata('error')): ?>
-          <div class="alert alert-error alert-dismissible" role="alert">
+        <?php elseif ($this->session->flashdata('error')): ?>
+          <div class="alert alert-danger alert-dismissible" role="alert">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <?php echo $this->session->flashdata('error'); ?>
           </div>
         <?php endif; ?>
 
-        <div class="box">
-          <div class="box-header">
-            <h3 class="box-title">Add Order</h3>
+        <?php echo form_open('orders/create', array('id' => 'createOrderForm')); ?>
+
+        <!-- Customer Information -->
+        <div class="box box-primary">
+          <div class="box-header with-border">
+            <h3 class="box-title"><i class="fa fa-user"></i> Customer Information</h3>
           </div>
-          
-          <form role="form" action="<?php echo base_url('orders/create') ?>" method="post" class="form-horizontal">
-              <div class="box-body">
+          <div class="box-body">
 
-                <?php echo validation_errors(); ?>
+            <!-- Select Customer Dropdown -->
+            <div class="form-group">
+              <label>Select Customer <span class="text-danger">*</span></label>
+              <select class="form-control select2-customer" id="customer_id" name="customer_id" style="width:100%" required>
+                <option value="">-- Select Customer or Create New --</option>
+                <?php foreach ($customers as $customer): ?>
+                  <option value="<?php echo $customer['id']; ?>"
+                    data-name="<?php echo htmlspecialchars($customer['customer_name']); ?>"
+                    data-phone="<?php echo htmlspecialchars($customer['phone']); ?>"
+                    data-address="<?php echo htmlspecialchars($customer['address']); ?>"
+                    data-type="<?php echo $customer['customer_type']; ?>">
+                    <?php echo $customer['customer_name']; ?> - <?php echo $customer['phone']; ?> (<?php echo ucfirst($customer['customer_type']); ?>)
+                  </option>
+                <?php endforeach; ?>
+                <option value="new" style="background-color:#d4edda; font-weight:bold; color:#155724;">
+                  ✚ Create New Customer
+                </option>
+              </select>
+            </div>
 
-                <div class="form-group">
-                  <label for="gross_amount" class="col-sm-12 control-label">Date: <?php echo date('Y-m-d') ?></label>
+            <!-- New Customer Form (Hidden by default) -->
+            <div id="newCustomerForm" style="display:none; margin-top:20px; padding:15px; background:#f9f9f9; border:2px solid #3c8dbc; border-radius:5px;">
+              <h4 style="margin-top:0; color:#3c8dbc;">
+                <i class="fa fa-plus-circle"></i> New Customer Details
+              </h4>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Customer Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="new_customer_name" name="new_customer_name" placeholder="Full Name">
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label for="gross_amount" class="col-sm-12 control-label">Time: <?php echo date('h:i a') ?></label>
-                </div>
-
-                <div class="col-md-6 col-xs-12 pull pull-left">
-
-                  <!-- Customer Selection -->
+                <div class="col-md-6">
                   <div class="form-group">
-                    <label for="customer_select" class="col-sm-5 control-label" style="text-align:left;">
-                      Select Customer <span class="text-danger">*</span>
-                    </label>
-                    <div class="col-sm-7">
-                      <select class="form-control select_group" id="customer_select" name="customer_id" style="width:100%;" onchange="loadCustomerData()" required>
-                        <option value="">-- Select Customer --</option>
-                        <option value="new">+ Add New Customer (Walk-in)</option>
-                        <?php if(isset($customers) && is_array($customers)): ?>
-                          <?php foreach ($customers as $customer): ?>
-                            <option value="<?php echo $customer['id'] ?>" 
-                                    data-type="<?php echo $customer['customer_type'] ?>"
-                                    data-phone="<?php echo $customer['phone'] ?>"
-                                    data-address="<?php echo $customer['address'] ?>">
-                              <?php echo $customer['customer_name'] ?> (<?php echo $customer['customer_code'] ?>)
-                              <?php if($customer['customer_type'] == 'super_wholesale'): ?>
-                                - Super Gros
-                              <?php elseif($customer['customer_type'] == 'wholesale'): ?>
-                                - Gros
-                              <?php else: ?>
-                                - Détail
-                              <?php endif; ?>
-                            </option>
-                          <?php endforeach; ?>
-                        <?php endif; ?>
-                      </select>
-                    </div>
+                    <label>Phone <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="new_customer_phone" name="new_customer_phone" placeholder="Phone Number">
                   </div>
-
-                  <!-- Hidden field for customer type -->
-                  <input type="hidden" id="customer_type" name="customer_type" value="retail">
-
-                  <div class="form-group">
-                    <label for="customer_name" class="col-sm-5 control-label" style="text-align:left;">Customer Name</label>
-                    <div class="col-sm-7">
-                      <input type="text" class="form-control" id="customer_name" name="customer_name" placeholder="Enter Customer Name" autocomplete="off" onblur="checkDuplicateCustomer()" required />
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="customer_phone" class="col-sm-5 control-label" style="text-align:left;">Customer Phone</label>
-                    <div class="col-sm-7">
-                      <input type="text" class="form-control" id="customer_phone" name="customer_phone" placeholder="Enter Customer Phone" autocomplete="off" onblur="checkDuplicateCustomer()" required>
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="customer_address" class="col-sm-5 control-label" style="text-align:left;">Customer Address</label>
-                    <div class="col-sm-7">
-                      <input type="text" class="form-control" id="customer_address" name="customer_address" placeholder="Enter Customer Address" autocomplete="off">
-                    </div>
-                  </div>
-
-                  <!-- Duplicate Warning Alert -->
-                  <div id="duplicate_warning" class="col-sm-12" style="display:none; margin-bottom: 15px;">
-                    <div class="alert alert-warning alert-dismissible">
-                      <button type="button" class="close" onclick="$('#duplicate_warning').hide()"><span>&times;</span></button>
-                      <h4><i class="fa fa-warning"></i> Similar Customer Found!</h4>
-                      <p id="duplicate_message">A customer with similar information already exists.</p>
-                      <div id="duplicate_suggestions"></div>
-                    </div>
-                  </div>
-
-                  <!-- Customer Type Display -->
-                  <div class="form-group" id="customer_type_display" style="display:none;">
-                    <label class="col-sm-5 control-label" style="text-align:left;">Customer Type</label>
-                    <div class="col-sm-7">
-                      <p class="form-control-static">
-                        <span id="customer_type_badge" class="label label-info">Détail</span>
-                        <small class="text-muted" id="pricing_info"> - Retail pricing applied</small>
-                      </p>
-                    </div>
-                  </div>
-
-                </div>
-                
-                <br /> <br/>
-                <table class="table table-bordered" id="product_info_table">
-                  <thead>
-                    <tr>
-                      <th style="width:50%">Product</th>
-                      <th style="width:15%">Qty</th>
-                      <th style="width:15%">Rate</th>
-                      <th style="width:15%">Amount</th>
-                      <th style="width:5%"><button type="button" id="add_row" class="btn btn-default"><i class="fa fa-plus"></i></button></th>
-                    </tr>
-                  </thead>
-
-                   <tbody>
-                     <tr id="row_1">
-                       <td>
-                        <select class="form-control select_group product" data-row-id="row_1" id="product_1" name="product[]" style="width:100%;" onchange="getProductData(1)" required>
-                            <option value="">Select Product</option>
-                            <?php foreach ($products as $k => $v): ?>
-                              <option value="<?php echo $v['id'] ?>"><?php echo $v['name'] ?></option>
-                            <?php endforeach ?>
-                          </select>
-                        </td>
-                        <td><input type="number" name="qty[]" id="qty_1" class="form-control" required onkeyup="getTotal(1)"></td>
-                        <td>
-                          <input type="text" name="rate[]" id="rate_1" class="form-control" disabled autocomplete="off">
-                          <input type="hidden" name="rate_value[]" id="rate_value_1" class="form-control" autocomplete="off">
-                        </td>
-                        <td>
-                          <input type="text" name="amount[]" id="amount_1" class="form-control" disabled autocomplete="off">
-                          <input type="hidden" name="amount_value[]" id="amount_value_1" class="form-control" autocomplete="off">
-                        </td>
-                        <td><button type="button" class="btn btn-default" onclick="removeRow('1')"><i class="fa fa-close"></i></button></td>
-                     </tr>
-                   </tbody>
-                </table>
-
-                <br /> <br/>
-
-                <div class="col-md-6 col-xs-12 pull pull-right">
-
-                  <div class="form-group">
-                    <label for="gross_amount" class="col-sm-5 control-label">Gross Amount</label>
-                    <div class="col-sm-7">
-                      <input type="text" class="form-control" id="gross_amount" name="gross_amount" disabled autocomplete="off">
-                      <input type="hidden" class="form-control" id="gross_amount_value" name="gross_amount_value" autocomplete="off">
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="discount" class="col-sm-5 control-label">Discount</label>
-                    <div class="col-sm-7">
-                      <input type="text" class="form-control" id="discount" name="discount" placeholder="Discount" onkeyup="subAmount()" autocomplete="off">
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="net_amount" class="col-sm-5 control-label"><strong>Net Amount</strong></label>
-                    <div class="col-sm-7">
-                      <input type="text" class="form-control input-lg" id="net_amount" name="net_amount" disabled autocomplete="off" style="font-weight:bold; font-size:18px;">
-                      <input type="hidden" class="form-control" id="net_amount_value" name="net_amount_value" autocomplete="off">
-                    </div>
-                  </div>
-
-                  <hr>
-
-                  <!-- Payment Section -->
-                  <div class="form-group">
-                    <label for="paid_amount" class="col-sm-5 control-label">Amount Paid</label>
-                    <div class="col-sm-7">
-                      <input type="number" step="0.01" class="form-control" id="paid_amount" name="paid_amount" placeholder="0.00" onkeyup="calculateDue()" autocomplete="off">
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="due_amount" class="col-sm-5 control-label">Due Amount (Remaining)</label>
-                    <div class="col-sm-7">
-                      <input type="text" class="form-control" id="due_amount" name="due_amount" disabled autocomplete="off" style="background-color: #fff3cd;">
-                      <input type="hidden" id="due_amount_value" name="due_amount_value" autocomplete="off">
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="payment_method" class="col-sm-5 control-label">Payment Method</label>
-                    <div class="col-sm-7">
-                      <select class="form-control" id="payment_method" name="payment_method">
-                        <option value="">-- Select --</option>
-                        <option value="cash">Cash</option>
-                        <option value="bank_transfer">Bank Transfer</option>
-                        <option value="cheque">Cheque</option>
-                        <option value="credit_card">Credit Card</option>
-                        <option value="mobile_payment">Mobile Payment</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="payment_notes" class="col-sm-5 control-label">Payment Notes</label>
-                    <div class="col-sm-7">
-                      <textarea class="form-control" id="payment_notes" name="payment_notes" rows="2" placeholder="Optional payment notes"></textarea>
-                    </div>
-                  </div>
-
                 </div>
               </div>
 
-              <div class="box-footer">
-                <input type="hidden" name="service_charge_rate" value="0" autocomplete="off">
-                <input type="hidden" name="service_charge_value" value="0" autocomplete="off">
-                <input type="hidden" name="vat_charge_rate" value="0" autocomplete="off">
-                <input type="hidden" name="vat_charge_value" value="0" autocomplete="off">
-                <button type="submit" class="btn btn-primary">Create Order</button>
-                <a href="<?php echo base_url('orders/') ?>" class="btn btn-warning">Back</a>
+              <div class="form-group">
+                <label>Address</label>
+                <textarea class="form-control" id="new_customer_address" name="new_customer_address" rows="2" placeholder="Full Address"></textarea>
               </div>
-            </form>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" class="form-control" id="new_customer_email" name="new_customer_email" placeholder="Email Address">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Customer Type <span class="text-danger">*</span></label>
+                    <select class="form-control" id="new_customer_type" name="new_customer_type">
+                      <option value="retail" selected>Retail (Normal Price)</option>
+                      <option value="wholesale">Wholesale</option>
+                      <option value="superwholesale">Super Wholesale</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Existing Customer Info Display -->
+            <div id="existingCustomerInfo" style="display:none; margin-top:15px; padding:15px; background:#e8f5e9; border-left:4px solid #4caf50;">
+              <h4 style="margin-top:0; color:#2e7d32;">
+                <i class="fa fa-check-circle"></i> Selected Customer
+              </h4>
+              <div class="row">
+                <div class="col-md-6">
+                  <p style="margin:5px 0;">
+                    <strong>Name:</strong> <span id="display_customer_name"></span><br>
+                    <strong>Phone:</strong> <span id="display_customer_phone"></span><br>
+                    <strong>Address:</strong> <span id="display_customer_address"></span>
+                  </p>
+                </div>
+                <div class="col-md-6">
+                  <p style="margin:5px 0;">
+                    <strong>Default Type:</strong>
+                    <span id="display_customer_type" class="label label-success"></span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Price Type Override (Show for both new and existing customers) -->
+            <div id="priceTypeSection" style="display:none; margin-top:20px; padding:15px; background:#fff3cd; border-left:4px solid #ffc107;">
+              <h4 style="margin-top:0; color:#856404;">
+                <i class="fa fa-exchange"></i> Price Type for This Order
+              </h4>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Select Price Type <span class="text-danger">*</span></label>
+                    <select class="form-control" id="customer_type_override" name="customer_type_override">
+                      <option value="retail">Retail (Normal Price)</option>
+                      <option value="wholesale">Wholesale</option>
+                      <option value="superwholesale">Super Wholesale</option>
+                    </select>
+                    <input type="hidden" id="customer_original_type" value="retail">
+                    <small class="text-muted">
+                      <i class="fa fa-info-circle"></i> You can change the price type for this specific order
+                    </small>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <!-- Reason for override (shows when changing from original) -->
+                  <div class="form-group" id="override_reason_group" style="display:none;">
+                    <label>Reason for Change</label>
+                    <input type="text" class="form-control" id="override_reason" name="override_reason" placeholder="Ex: Special promotion, VIP customer...">
+                    <small class="text-muted">Explain why you changed the price type</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
+
+
+
+        <!-- Products Section -->
+        <div class="box box-success">
+          <div class="box-header with-border">
+            <h3 class="box-title"><i class="fa fa-cubes"></i> Products</h3>
+            <div class="box-tools pull-right">
+              <button type="button" class="btn btn-success btn-sm" id="addrow">
+                <i class="fa fa-plus"></i> Add Product
+              </button>
+            </div>
+          </div>
+          <div class="box-body">
+            <div class="table-responsive">
+              <table class="table table-bordered table-hover" id="productinfotable">
+                <thead style="background:#f4f4f4;">
+                  <tr>
+                    <th style="width:40%;">Product</th>
+                    <th style="width:15%;">Available</th>
+                    <th style="width:15%;">Quantity</th>
+                    <th style="width:15%;">Unit Price</th>
+                    <th style="width:15%;">Amount</th>
+                    <th style="width:5%;"><i class="fa fa-trash"></i></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr id="row1">
+                    <td>
+                      <select class="form-control select2-product" name="product[]" id="product1" onchange="getProductData(1)" data-row-id="1" style="width:100%" required>
+                        <option value="">-- Select Product --</option>
+                        <?php foreach ($products as $product): ?>
+                          <option value="<?php echo $product['id']; ?>"
+                            data-sku="<?php echo $product['sku']; ?>"
+                            data-qty="<?php echo $product['qty']; ?>"
+                            data-name="<?php echo $product['name']; ?>"
+                            data-price-retail="<?php echo isset($product['price_retail']) ? $product['price_retail'] : $product['price_default']; ?>"
+                            data-price-wholesale="<?php echo isset($product['price_wholesale']) ? $product['price_wholesale'] : $product['price_default']; ?>"
+                            data-price-superwholesale="<?php echo isset($product['price_superwholesale']) ? $product['price_superwholesale'] : $product['price_default']; ?>">
+                            <?php echo $product['name']; ?> (<?php echo $product['sku']; ?>) - Stock: <?php echo $product['qty']; ?>
+                          </option>
+                        <?php endforeach; ?>
+                      </select>
+                    </td>
+                    <td>
+                      <span class="badge bg-green available-qty" id="availableqty1">0</span>
+                    </td>
+                    <td>
+                      <input type="number" name="qty[]" id="qty1" class="form-control" onkeyup="getTotal(1)" min="1" value="1" required>
+                    </td>
+                    <td>
+                      <input type="text" name="rate[]" id="rate1" class="form-control" readonly>
+                      <input type="hidden" name="rate_value[]" id="rate_value1" class="form-control">
+                    </td>
+                    <td>
+                      <input type="text" name="amount[]" id="amount1" class="form-control" readonly>
+                      <input type="hidden" name="amount_value[]" id="amount_value1" class="form-control">
+                    </td>
+                    <td>
+                      <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(1)" disabled>
+                        <i class="fa fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- Payment Section -->
+        <div class="box box-warning">
+          <div class="box-header with-border">
+            <h3 class="box-title"><i class="fa fa-money"></i> Payment</h3>
+          </div>
+          <div class="box-body">
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="gross_amount" class="col-sm-5 control-label">Gross Amount</label>
+                  <div class="col-sm-7">
+                    <input type="text" class="form-control" id="gross_amount" name="gross_amount"
+                      readonly>
+                    <input type="hidden" class="form-control" id="gross_amount_value" name="gross_amount_value">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="discount" class="col-sm-5 control-label">Discount</label>
+                  <div class="col-sm-7">
+                    <input type="number" class="form-control" id="discount" name="discount"
+                      onkeyup="subAmount()" min="0" step="0.01" value="0">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="net_amount" class="col-sm-5 control-label" style="font-size:16px;">
+                    <strong>Total Amount</strong>
+                  </label>
+                  <div class="col-sm-7">
+                    <input type="text" class="form-control" id="net_amount" name="net_amount"
+                      readonly style="font-size:18px; font-weight:bold; color:#00a65a;">
+                    <input type="hidden" class="form-control" id="net_amount_value" name="net_amount_value">
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="paid_amount" class="col-sm-5 control-label">Amount Paid</label>
+                  <div class="col-sm-7">
+                    <input type="number" class="form-control" id="paid_amount" name="paid_amount"
+                      min="0" step="0.01" value="0" onkeyup="calculateDue()">
+                  </div>
+                </div>
+
+                <!-- Payment Method -->
+                <div class="form-group">
+                  <label for="payment_method" class="col-sm-5 control-label">Payment Method</label>
+                  <div class="col-sm-7">
+                    <select class="form-control" id="payment_method" name="payment_method">
+                      <option value="">-- Select --</option>
+                      <option value="cash" selected>💵 Cash</option>
+                      <option value="cheque">📝 Cheque</option>
+                      <option value="credit_card">💳 Credit Card</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="due_amount" class="col-sm-5 control-label">Due Amount</label>
+                  <div class="col-sm-7">
+                    <input type="text" class="form-control" id="due_amount" name="due_amount"
+                      readonly style="color:#dd4b39;">
+                  </div>
+                </div>
+
+                <!-- AUTO: Payment Status (calculated automatically) -->
+                <div class="form-group">
+                  <label for="paid_status" class="col-sm-5 control-label">Payment Status</label>
+                  <div class="col-sm-7">
+                    <select class="form-control" id="paid_status" name="paid_status" readonly disabled style="background-color:#f4f4f4;">
+                      <option value="1">✓ Fully Paid</option>
+                      <option value="2" selected>✗ Unpaid</option>
+                      <option value="3">⚠ Partial Payment</option>
+                    </select>
+                    <input type="hidden" id="paid_status_hidden" name="paid_status" value="2">
+                    <small class="text-muted"><i class="fa fa-magic"></i> Calculated automatically</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Real-time Date and Time -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="order_date" class="col-sm-5 control-label">Order Date</label>
+                  <div class="col-sm-7">
+                    <input type="text" class="form-control" id="order_date" name="order_date" readonly
+                      style="background-color:#f9f9f9;">
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="order_time" class="col-sm-5 control-label">Order Time</label>
+                  <div class="col-sm-7">
+                    <input type="text" class="form-control" id="order_time" name="order_time" readonly
+                      style="background-color:#f9f9f9;">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="payment_notes" class="col-sm-2 control-label">Notes</label>
+              <div class="col-sm-10">
+                <textarea class="form-control" id="payment_notes" name="payment_notes"
+                  rows="3" placeholder="Payment notes (optional)"></textarea>
+              </div>
+            </div>
+
+          </div>
+          <div class="box-footer">
+            <button type="submit" class="btn btn-success btn-lg pull-right">
+              <i class="fa fa-check"></i> Create Order
+            </button>
+            <a href="<?php echo base_url('orders/') ?>" class="btn btn-default btn-lg">
+              <i class="fa fa-times"></i> Cancel
+            </a>
+          </div>
+        </div>
+
+        <?php echo form_close(); ?>
       </div>
     </div>
   </section>
 </div>
 
-<!-- Use Selected Customer Modal -->
-<div class="modal fade" id="useCustomerModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header" style="background: #f39c12; color: white;">
-        <button type="button" class="close" data-dismiss="modal" style="color: white;"><span>&times;</span></button>
-        <h4 class="modal-title"><i class="fa fa-user"></i> Use Existing Customer?</h4>
-      </div>
-      <div class="modal-body">
-        <p>Do you want to use this existing customer information?</p>
-        <div id="selected_customer_info" style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0;">
-          <!-- Customer info will be populated here -->
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">No, Create New Customer</button>
-        <button type="button" class="btn btn-success" onclick="useExistingCustomer()"><i class="fa fa-check"></i> Yes, Use This Customer</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script type="text/javascript">
-  // ... JavaScript code remains unchanged ...
-</script>
+<!-- Add Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 <style>
-#duplicate_warning .list-group-item {
-  cursor: pointer;
-  transition: all 0.3s;
-}
-#duplicate_warning .list-group-item:hover {
-  background-color: #f0f0f0;
-  border-left: 4px solid #f39c12;
-}
-#duplicate_warning .list-group-item-heading {
-  color: #333;
-  font-size: 16px;
-  margin-bottom: 5px;
-}
+  /* Custom styling for better UX */
+  .customer-info {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 5px;
+  }
+
+  .select2-container {
+    font-size: 14px;
+  }
+
+  .select2-container .select2-results__option .product-option {
+    padding: 8px 0;
+    border-bottom: 1px solid #f4f4f4;
+  }
+
+  .select2-container .select2-results__option .product-name {
+    font-size: 14px;
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+
+  .select2-container .select2-results__option .product-details {
+    font-size: 12px;
+  }
+
+  .select2-container .select2-results__option .label {
+    margin-right: 5px;
+    font-size: 11px;
+  }
+
+  .select2-container--default .select2-results__option--highlighted {
+    background-color: #3c8dbc !important;
+  }
+
+  .available-qty {
+    font-size: 16px;
+    padding: 8px 12px;
+  }
+
+  #product_info_table input[type="number"] {
+    text-align: center;
+  }
+
+  .alert-info {
+    animation: slideDown 0.3s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 </style>
+
+<!-- Add Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script type="text/javascript">
+  var rowNum = 1;
+  var baseurl = "<?php echo base_url(); ?>";
+
+  $(document).ready(function() {
+    $('#ordersMainNav').addClass('active');
+
+    // Initialize Select2
+    initCustomerSelect2();
+    initProductSelect2();
+
+    // Set paid amount to 0 by default
+    $('#paid_amount').val(0);
+
+    // Initialize real-time date and time
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+
+    // Auto-calculate payment status
+    $('#paid_amount').on('keyup change', function() {
+      calculateDue();
+      autoUpdatePaymentStatus();
+    });
+
+    // Handle customer selection
+    $('#customer_id').on('change', function() {
+      handleCustomerSelection();
+    });
+
+    // Detect price type override
+    $('#customer_type_override').on('change', function() {
+      var selectedType = $(this).val();
+      var originalType = $('#customer_original_type').val();
+
+      // Show reason field if changing from original type
+      if (originalType && selectedType != originalType) {
+        $('#override_reason_group').slideDown();
+      } else {
+        $('#override_reason_group').slideUp();
+        $('#override_reason').val('');
+      }
+
+      // Update all product prices
+      updateAllProductPrices(selectedType);
+    });
+  });
+
+  // ===== CUSTOMER SELECT2 =====
+  function initCustomerSelect2() {
+    $('.select2-customer').select2({
+      placeholder: 'Search customer by name or phone...',
+      allowClear: true,
+      width: '100%'
+    });
+  }
+
+  function handleCustomerSelection() {
+    var selectedValue = $('#customer_id').val();
+
+    if (selectedValue === 'new') {
+      // Show new customer form
+      $('#newCustomerForm').slideDown();
+      $('#existingCustomerInfo').slideUp();
+      $('#priceTypeSection').slideDown();
+
+      // Make fields required
+      $('#new_customer_name').prop('required', true);
+      $('#new_customer_phone').prop('required', true);
+      $('#new_customer_type').prop('required', true);
+
+      // Set default type for new customer
+      $('#customer_type_override').val('retail');
+      $('#customer_original_type').val('retail');
+      $('#override_reason_group').hide();
+
+    } else if (selectedValue) {
+      // Existing customer selected
+      var selectedOption = $('#customer_id option:selected');
+      var name = selectedOption.data('name');
+      var phone = selectedOption.data('phone');
+      var address = selectedOption.data('address');
+      var type = selectedOption.data('type');
+
+      // Display customer info
+      $('#display_customer_name').text(name);
+      $('#display_customer_phone').text(phone);
+      $('#display_customer_address').text(address || 'N/A');
+      $('#display_customer_type').text(type.toUpperCase());
+
+      $('#existingCustomerInfo').slideDown();
+      $('#newCustomerForm').slideUp();
+      $('#priceTypeSection').slideDown();
+
+      // Set customer type
+      $('#customer_type_override').val(type);
+      $('#customer_original_type').val(type);
+      $('#override_reason_group').hide();
+
+      // Remove required from new customer fields
+      $('#new_customer_name').prop('required', false);
+      $('#new_customer_phone').prop('required', false);
+
+      // Update product prices based on customer type
+      updateAllProductPrices(type);
+
+      // Show notification
+      $('#customer_exists_alert').remove();
+      $('#existingCustomerInfo').prepend(`
+            <div id="customer_exists_alert" class="alert alert-success alert-dismissible" style="margin-bottom:10px;">
+                <button type="button" class="close" data-dismiss="alert">×</button>
+                <i class="fa fa-check-circle"></i> <strong>Customer loaded!</strong> 
+                <span class="label label-success">${type.toUpperCase()}</span>
+                <small>You can change the price type below if needed</small>
+            </div>
+        `);
+
+    } else {
+      // Nothing selected
+      $('#newCustomerForm').slideUp();
+      $('#existingCustomerInfo').slideUp();
+      $('#priceTypeSection').slideUp();
+      $('#new_customer_name').prop('required', false);
+      $('#new_customer_phone').prop('required', false);
+    }
+  }
+
+  // ===== PRODUCT SELECT2 =====
+  function initProductSelect2() {
+    $('.select2-product').select2({
+      placeholder: 'Type to search product...',
+      allowClear: true,
+      width: '100%'
+    });
+  }
+
+  // ===== ADD/REMOVE ROWS =====
+  $('#addrow').on('click', function() {
+    addRow();
+  });
+
+  function addRow() {
+    rowNum++;
+    var html = '<tr id="row' + rowNum + '">';
+    html += '<td>';
+    html += '<select class="form-control select2-product" name="product[]" id="product' + rowNum + '" onchange="getProductData(' + rowNum + ')" data-row-id="' + rowNum + '" style="width:100%" required>';
+    html += '<option value="">-- Select Product --</option>';
+    <?php foreach ($products as $product): ?>
+      html += '<option value="<?php echo $product['id']; ?>" data-sku="<?php echo $product['sku']; ?>" data-qty="<?php echo $product['qty']; ?>" data-name="<?php echo $product['name']; ?>" data-price-retail="<?php echo isset($product['price_retail']) ? $product['price_retail'] : $product['price_default']; ?>" data-price-wholesale="<?php echo isset($product['price_wholesale']) ? $product['price_wholesale'] : $product['price_default']; ?>" data-price-superwholesale="<?php echo isset($product['price_superwholesale']) ? $product['price_superwholesale'] : $product['price_default']; ?>"><?php echo $product['name']; ?> (<?php echo $product['sku']; ?>) - Stock: <?php echo $product['qty']; ?></option>';
+    <?php endforeach; ?>
+    html += '</select>';
+    html += '</td>';
+    html += '<td><span class="badge bg-green available-qty" id="availableqty' + rowNum + '">0</span></td>';
+    html += '<td><input type="number" name="qty[]" id="qty' + rowNum + '" class="form-control" onkeyup="getTotal(' + rowNum + ')" min="1" value="1" required></td>';
+    html += '<td><input type="text" name="rate[]" id="rate' + rowNum + '" class="form-control" readonly><input type="hidden" name="rate_value[]" id="rate_value' + rowNum + '"></td>';
+    html += '<td><input type="text" name="amount[]" id="amount' + rowNum + '" class="form-control" readonly><input type="hidden" name="amount_value[]" id="amount_value' + rowNum + '"></td>';
+    html += '<td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(' + rowNum + ')"><i class="fa fa-trash"></i></button></td>';
+    html += '</tr>';
+
+    $('#productinfotable tbody').append(html);
+    initProductSelect2();
+  }
+
+  function removeRow(rowid) {
+    if ($('#productinfotable tbody tr').length > 1) {
+      $('#row' + rowid).remove();
+      subAmount();
+    } else {
+      alert('Cannot remove the last row!');
+    }
+  }
+
+  // ===== PRODUCT DATA & PRICING =====
+  function getProductData(rowid) {
+    var productid = $('#product' + rowid).val();
+    var selectedOption = $('#product' + rowid + ' option:selected');
+    var customerType = getCustomerType();
+
+    if (productid) {
+      var qty = selectedOption.data('qty');
+      var priceKey = 'price-' + customerType;
+      var price = selectedOption.data(priceKey) || selectedOption.data('price-retail') || 0;
+
+      // Display stock
+      $('#availableqty' + rowid).text(qty);
+      $('#qty' + rowid).attr('max', qty);
+
+      // Set price
+      $('#rate' + rowid).val(parseFloat(price).toFixed(2) + ' DZD');
+      $('#rate_value' + rowid).val(price);
+
+      // Calculate total
+      getTotal(rowid);
+    } else {
+      $('#rate' + rowid).val('0');
+      $('#rate_value' + rowid).val('0');
+      $('#availableqty' + rowid).text('0');
+      getTotal(rowid);
+    }
+  }
+
+  function getCustomerType() {
+    // Get the selected price type (can be overridden)
+    return $('#customer_type_override').val() || 'retail';
+  }
+
+  function updateAllProductPrices(customerType) {
+    $('#productinfotable tbody tr').each(function() {
+      var row = $(this);
+      var rowid = row.attr('id').split('row')[1];
+      var selectedOption = $('#product' + rowid + ' option:selected');
+      var productid = $('#product' + rowid).val();
+
+      if (productid) {
+        var priceKey = 'price-' + customerType;
+        var price = selectedOption.data(priceKey) || selectedOption.data('price-retail') || 0;
+
+        $('#rate' + rowid).val(parseFloat(price).toFixed(2) + ' DZD');
+        $('#rate_value' + rowid).val(price);
+
+        getTotal(rowid);
+      }
+    });
+  }
+
+  // ===== CALCULATIONS =====
+  function getTotal(rowid) {
+    var qty = parseFloat($('#qty' + rowid).val()) || 0;
+    var rate = parseFloat($('#rate_value' + rowid).val()) || 0;
+    var amount = qty * rate;
+
+    $('#amount' + rowid).val(amount.toFixed(2) + ' DZD');
+    $('#amount_value' + rowid).val(amount.toFixed(2));
+
+    subAmount();
+  }
+
+  function subAmount() {
+    var grossamount = 0;
+
+    $('input[name="amount_value[]"]').each(function() {
+      var amount = parseFloat($(this).val()) || 0;
+      grossamount += amount;
+    });
+
+    $('#gross_amount').val(grossamount.toFixed(2) + ' DZD');
+    $('#gross_amount_value').val(grossamount.toFixed(2));
+
+    var discount = parseFloat($('#discount').val()) || 0;
+    var netamount = grossamount - discount;
+
+    $('#net_amount').val(netamount.toFixed(2) + ' DZD');
+    $('#net_amount_value').val(netamount.toFixed(2));
+
+    calculateDue();
+    autoUpdatePaymentStatus();
+  }
+
+  function calculateDue() {
+    var netamount = parseFloat($('#net_amount_value').val()) || 0;
+    var paidamount = parseFloat($('#paid_amount').val()) || 0;
+    var dueamount = netamount - paidamount;
+
+    $('#due_amount').val(dueamount.toFixed(2) + ' DZD');
+  }
+
+  function autoUpdatePaymentStatus() {
+    var netamount = parseFloat($('#net_amount_value').val()) || 0;
+    var paidamount = parseFloat($('#paid_amount').val()) || 0;
+    var status;
+
+    if (paidamount == 0) {
+      status = 2; // Unpaid
+      $('#paid_status').val('2');
+      $('#payment_method').prop('required', false);
+    } else if (paidamount >= netamount) {
+      status = 1; // Fully Paid
+      $('#paid_status').val('1');
+      $('#payment_method').prop('required', true);
+    } else {
+      status = 3; // Partial
+      $('#paid_status').val('3');
+      $('#payment_method').prop('required', true);
+    }
+
+    $('#paid_status_hidden').val(status);
+  }
+
+  // ===== DATE/TIME =====
+  function updateDateTime() {
+    var now = new Date();
+    var day = String(now.getDate()).padStart(2, '0');
+    var month = String(now.getMonth() + 1).padStart(2, '0');
+    var year = now.getFullYear();
+    var dateStr = day + '/' + month + '/' + year;
+
+    var hours = now.getHours();
+    var minutes = String(now.getMinutes()).padStart(2, '0');
+    var seconds = String(now.getSeconds()).padStart(2, '0');
+    var ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    var timeStr = String(hours).padStart(2, '0') + ':' + minutes + ':' + seconds + ' ' + ampm;
+
+    $('#order_date').val(dateStr);
+    $('#order_time').val(timeStr);
+  }
+
+  // ===== FORM VALIDATION =====
+  $('#createOrderForm').on('submit', function(e) {
+    var netamount = parseFloat($('#net_amount_value').val()) || 0;
+
+    if (netamount <= 0) {
+      e.preventDefault();
+      alert('Please add at least one product!');
+      return false;
+    }
+
+    // Validate stock availability
+    var valid = true;
+    $('#productinfotable tbody tr').each(function() {
+      var row = $(this);
+      var rowid = row.attr('id').split('row')[1];
+      var qty = parseFloat($('#qty' + rowid).val()) || 0;
+      var available = parseFloat($('#availableqty' + rowid).text()) || 0;
+
+      if (qty > available) {
+        alert('Insufficient stock for product in row ' + rowid);
+        valid = false;
+        return false;
+      }
+    });
+
+    if (!valid) {
+      e.preventDefault();
+      return false;
+    }
+  });
+</script>
+
+
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    $("#ordersMainNav").addClass('active');
+  });
+</script>

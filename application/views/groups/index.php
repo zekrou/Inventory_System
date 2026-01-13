@@ -32,7 +32,7 @@
             </div>
           <?php endif; ?>
 
-          <?php if(in_array('createGroup', $user_permission)): ?>
+          <?php if(isset($user_permission['createGroup'])): ?>
             <a href="<?php echo base_url('groups/create') ?>" class="btn btn-primary">Add Group</a>
             <br /> <br />
           <?php endif; ?>
@@ -47,7 +47,7 @@
                 <thead>
                 <tr>
                   <th>Group Name</th>
-                  <?php if(in_array('updateGroup', $user_permission) || in_array('deleteGroup', $user_permission)): ?>
+                  <?php if(isset($user_permission['updateGroup']) || isset($user_permission['deleteGroup'])): ?>
                     <th>Action</th>
                   <?php endif; ?>
                 </tr>
@@ -58,12 +58,12 @@
                       <tr>
                         <td><?php echo $v['group_name']; ?></td>
 
-                        <?php if(in_array('updateGroup', $user_permission) || in_array('deleteGroup', $user_permission)): ?>
+                        <?php if(isset($user_permission['updateGroup']) || isset($user_permission['deleteGroup'])): ?>
                         <td>
-                          <?php if(in_array('updateGroup', $user_permission)): ?>
+                          <?php if(isset($user_permission['updateGroup'])): ?>
                           <a href="<?php echo base_url('groups/edit/'.$v['id']) ?>" class="btn btn-default"><i class="fa fa-edit"></i></a>  
                           <?php endif; ?>
-                          <?php if(in_array('deleteGroup', $user_permission)): ?>
+                          <?php if(isset($user_permission['deleteGroup'])): ?>
                           <a href="<?php echo base_url('groups/delete/'.$v['id']) ?>" class="btn btn-default"><i class="fa fa-trash"></i></a>
                           <?php endif; ?>
                         </td>

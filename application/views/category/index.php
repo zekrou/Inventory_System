@@ -29,7 +29,7 @@
           </div>
         <?php endif; ?>
 
-        <?php if(in_array('createCategory', $user_permission)): ?>
+        <?php if(isset($user_permission['createCategory'])): ?>
           <button class="btn btn-primary" data-toggle="modal" data-target="#addModal">Add Category</button>
           <br /> <br />
         <?php endif; ?>
@@ -45,7 +45,7 @@
                   <th>Category Name</th>
                   <th>Status</th>
                   <th>Stock</th>
-                  <?php if(in_array('updateCategory', $user_permission) || in_array('deleteCategory', $user_permission)): ?>
+                  <?php if(isset($user_permission['updateCategory']) || isset($user_permission['deleteCategory'])): ?>
                     <th>Action</th>
                   <?php endif; ?>
                 </tr>
@@ -59,7 +59,7 @@
   </section>
 </div>
 
-<?php if(in_array('createCategory', $user_permission)): ?>
+<?php if(isset($user_permission['createCategory'])): ?>
 <div class="modal fade" tabindex="-1" role="dialog" id="addModal">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -100,7 +100,7 @@
 </div>
 <?php endif; ?>
 
-<?php if(in_array('updateCategory', $user_permission)): ?>
+<?php if(isset($user_permission['updateCategory'])): ?>
 <div class="modal fade" tabindex="-1" role="dialog" id="editModal">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -142,7 +142,7 @@
 </div>
 <?php endif; ?>
 
-<?php if(in_array('deleteCategory', $user_permission)): ?>
+<?php if(isset($user_permission['deleteCategory'])): ?>
 <div class="modal fade" tabindex="-1" role="dialog" id="removeModal">
   <div class="modal-dialog" role="document">
     <div class="modal-content">

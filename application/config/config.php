@@ -23,9 +23,8 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 | a PHP script and you can easily do that on your own.
 |
 */
-$config['base_url'] = 'http://inventorysys.localhost/';
-$config['index_page'] = ''; // vide si tu utilises .htaccess
-
+$config['base_url'] = 'http://inventorysysmulti.localhost/';
+$config['index_page'] = '';  // ✅ VIDE pour supprimer index.php
 
 
 /*
@@ -37,10 +36,7 @@ $config['index_page'] = ''; // vide si tu utilises .htaccess
 | something else. If you are using mod_rewrite to remove the page set this
 | variable so that it is blank.
 |
-*/
-$config['index_page'] = '';
-
-/*
+*//*
 |--------------------------------------------------------------------------
 | URI PROTOCOL
 |--------------------------------------------------------------------------
@@ -383,7 +379,7 @@ $config['encryption_key'] = 'Go87NSzqqq96Dq2jcjnvhVUCpKPeP2ea';
 $config['sess_driver'] = 'files';
 $config['sess_cookie_name'] = 'ci_session';
 $config['sess_expiration'] = 7200;
-$config['sess_save_path'] = NULL;
+$config['sess_save_path'] = APPPATH . 'cache/';
 $config['sess_match_ip'] = FALSE;
 $config['sess_time_to_update'] = 300;
 $config['sess_regenerate_destroy'] = FALSE;

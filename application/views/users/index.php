@@ -32,7 +32,7 @@
             </div>
           <?php endif; ?>
           
-          <?php if(in_array('createUser', $user_permission)): ?>
+          <?php if(isset($user_permission['createUser'])): ?>
             <a href="<?php echo base_url('users/create') ?>" class="btn btn-primary">Add User</a>
             <br /> <br />
           <?php endif; ?>
@@ -53,7 +53,7 @@
                   <th>Phone</th>
                   <th>Group</th>
 
-                  <?php if(in_array('updateUser', $user_permission) || in_array('deleteUser', $user_permission)): ?>
+                  <?php if(isset($user_permission['updateUser']) || isset($user_permission['deleteUser'])): ?>
                   <th>Action</th>
                   <?php endif; ?>
                 </tr>
@@ -68,13 +68,13 @@
                         <td><?php echo $v['user_info']['phone']; ?></td>
                         <td><?php echo isset($v['user_group']['group_name']) ? $v['user_group']['group_name'] : 'No group'; ?></td>
 
-                        <?php if(in_array('updateUser', $user_permission) || in_array('deleteUser', $user_permission)): ?>
+                        <?php if(isset($user_permission['updateUser']) || isset($user_permission['deleteUser'])): ?>
 
                         <td>
-                          <?php if(in_array('updateUser', $user_permission)): ?>
+                          <?php if(isset($user_permission['updateUser'])): ?>
                             <a href="<?php echo base_url('users/edit/'.$v['user_info']['id']) ?>" class="btn btn-default"><i class="fa fa-edit"></i></a>
                           <?php endif; ?>
-                          <?php if(in_array('deleteUser', $user_permission)): ?>
+                          <?php if(isset($user_permission['deleteUser'])): ?>
                             <a href="<?php echo base_url('users/delete/'.$v['user_info']['id']) ?>" class="btn btn-default"><i class="fa fa-trash"></i></a>
                           <?php endif; ?>
                         </td>

@@ -1,4 +1,4 @@
-<?php 
+<?php
 class Model_stock extends CI_Model
 {
     public function __construct()
@@ -21,7 +21,7 @@ class Model_stock extends CI_Model
      */
     public function getStockData($id = null)
     {
-        if($id) {
+        if ($id) {
             $sql = "SELECT * FROM `stock` WHERE id = ?";
             $query = $this->db->query($sql, array($id));
             return $query->row_array();
@@ -51,7 +51,7 @@ class Model_stock extends CI_Model
      */
     public function getStockStatistics($stock_id = null)
     {
-        if($stock_id) {
+        if ($stock_id) {
             // Stats pour un stock spécifique
             $sql = "SELECT 
                     COUNT(DISTINCT p.id) as total_products,
@@ -81,7 +81,7 @@ class Model_stock extends CI_Model
      */
     public function create($data)
     {
-        if($data) {
+        if ($data) {
             $insert = $this->db->insert('stock', $data);
             return ($insert == true) ? $this->db->insert_id() : false;
         }
@@ -93,7 +93,7 @@ class Model_stock extends CI_Model
      */
     public function update($data, $id)
     {
-        if($data && $id) {
+        if ($data && $id) {
             $this->db->where('id', $id);
             $update = $this->db->update('stock', $data);
             return ($update == true) ? true : false;
@@ -106,13 +106,13 @@ class Model_stock extends CI_Model
      */
     public function remove($id)
     {
-        if($id) {
+        if ($id) {
             // Check if stock has categories
             $sql = "SELECT COUNT(*) as count FROM `categories` WHERE stock_id = ?";
             $query = $this->db->query($sql, array($id));
             $result = $query->row_array();
-            
-            if($result['count'] > 0) {
+
+            if ($result['count'] > 0) {
                 // Has categories, just deactivate
                 $this->db->where('id', $id);
                 return $this->db->update('stock', array('active' => 0));
@@ -134,5 +134,16 @@ class Model_stock extends CI_Model
         $query = $this->db->query($sql, array(1));
         $result = $query->row_array();
         return $result['total'];
+    }
+    public function getTodayMovements()
+    {
+        $today = date('Y-m-d');
+        $sql = "SELECT COUNT(*) as count 
+            FROM stock_history 
+            WHERE DATE(created_at) = ?";
+
+        $query = $this->db->query($sql, array($today));
+        $result = $query->row_array();
+        return $result['count'];
     }
 }

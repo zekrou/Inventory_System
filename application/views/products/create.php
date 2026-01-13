@@ -17,12 +17,12 @@
 
         <div id="messages"></div>
 
-        <?php if($this->session->flashdata('success')): ?>
+        <?php if ($this->session->flashdata('success')): ?>
           <div class="alert alert-success alert-dismissible" role="alert">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <?php echo $this->session->flashdata('success'); ?>
           </div>
-        <?php elseif($this->session->flashdata('error')): ?>
+        <?php elseif ($this->session->flashdata('error')): ?>
           <div class="alert alert-error alert-dismissible" role="alert">
             <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             <?php echo $this->session->flashdata('error'); ?>
@@ -50,7 +50,7 @@
 
               <div class="form-group">
                 <label for="product_name">Product name</label>
-                <input type="text" class="form-control" id="product_name" name="product_name" placeholder="Enter product name" autocomplete="off"/>
+                <input type="text" class="form-control" id="product_name" name="product_name" placeholder="Enter product name" autocomplete="off" />
               </div>
 
               <div class="form-group">
@@ -66,7 +66,7 @@
                 </div>
                 <div class="box-body">
                   <div class="alert alert-info">
-                    <i class="fa fa-info-circle"></i> <strong>Pricing Guide:</strong> 
+                    <i class="fa fa-info-circle"></i> <strong>Pricing Guide:</strong>
                     Enter your cost price first, then set selling prices for each customer type.
                   </div>
 
@@ -124,9 +124,13 @@
               </div>
 
               <div class="form-group">
-                <label for="qty">Qty</label>
-                <input type="text" class="form-control" id="qty" name="qty" placeholder="Enter Qty" autocomplete="off" />
+                <label for="qty">Qty <small class="text-muted">(Initial quantity is always 0 - use Purchases to add stock)</small></label>
+                <input type="number" class="form-control" id="qty" name="qty" value="0" readonly style="background-color: #f4f4f4; cursor: not-allowed;" />
+                <small class="help-block">
+                  <i class="fa fa-info-circle"></i> New products start with 0 quantity. Add stock through <a href="<?php echo base_url('purchases/create'); ?>">Purchases</a>.
+                </small>
               </div>
+
 
               <div class="form-group">
                 <label for="description">Description</label>
@@ -189,7 +193,7 @@
     $("#addProductNav").addClass('active');
 
     var btnCust = '<button type="button" class="btn btn-secondary" title="Add picture tags" onclick="alert(\'Call your custom code here.\')">' +
-                  '<i class="glyphicon glyphicon-tag"></i></button>'; 
+      '<i class="glyphicon glyphicon-tag"></i></button>';
     $("#product_image").fileinput({
       overwriteInitial: true,
       maxFileSize: 1500,
@@ -202,7 +206,9 @@
       removeTitle: 'Cancel or reset changes',
       elErrorContainer: '#kv-avatar-errors-1',
       msgErrorClass: 'alert alert-block alert-danger',
-      layoutTemplates: {main2: '{preview} ' +  btnCust + ' {remove} {browse}'},
+      layoutTemplates: {
+        main2: '{preview} ' + btnCust + ' {remove} {browse}'
+      },
       allowedFileExtensions: ["jpg", "png", "gif"]
     });
   });

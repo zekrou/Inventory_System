@@ -18,7 +18,7 @@ class Payments extends Admin_Controller
 	 */
 	public function recordPayment()
 	{
-		if(!in_array('updateOrder', $this->permission)) {
+		if(!isset($this->permission['updateOrder'])) {
 			echo json_encode(array('success' => false, 'message' => 'Permission denied'));
 			return;
 		}
@@ -59,7 +59,7 @@ class Payments extends Admin_Controller
 	 */
 	public function getOrderPayments()
 	{
-		if(!in_array('viewOrder', $this->permission)) {
+		if(!isset($this->permission['viewOrder'])) {
 			echo json_encode(array('success' => false, 'message' => 'Permission denied'));
 			return;
 		}
@@ -86,7 +86,7 @@ class Payments extends Admin_Controller
 	 */
 	public function deletePayment()
 	{
-		if(!in_array('updateOrder', $this->permission)) {
+		if(!isset($this->permission['updateOrder'])) {
 			echo json_encode(array('success' => false, 'message' => 'Permission denied'));
 			return;
 		}
@@ -110,7 +110,7 @@ class Payments extends Admin_Controller
 	 */
 	public function updatePayment()
 	{
-		if(!in_array('updateOrder', $this->permission)) {
+		if(!isset($this->permission['updateOrder'])) {
 			echo json_encode(array('success' => false, 'message' => 'Permission denied'));
 			return;
 		}
@@ -137,7 +137,7 @@ class Payments extends Admin_Controller
 	 */
 	public function printReceipt($payment_id)
 	{
-		if(!in_array('viewOrder', $this->permission)) {
+		if(!isset($this->permission['viewOrder'])) {
 			redirect('dashboard', 'refresh');
 		}
 

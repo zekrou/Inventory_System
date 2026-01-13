@@ -1,7 +1,31 @@
 <?php
-defined('BASEPATH') OR exit('No direct script access allowed');
-
-class Suppliers extends Admin_Controller 
+defined('BASEPATH') or exit('No direct script access allowed');
+/**
+ * CodeIgniter Properties
+ * @property CI_Loader $load
+ * @property CI_Input $input
+ * @property CI_DB_query_builder $db
+ * @property CI_Session $session
+ * @property CI_Form_validation $form_validation
+ * @property CI_Output $output
+ * @property CI_Email $email
+ * @property CI_Upload $upload
+ * @property CI_Security $security
+ * 
+ * Custom Models
+ * @property Model_products $model_products
+ * @property Model_orders $model_orders
+ * @property Model_users $model_users
+ * @property Model_company $model_company
+ * @property Model_groups $model_groups
+ * @property Model_categories $model_categories
+ * @property Model_brands $model_brands
+ * @property Model_stores $model_stores
+ * @property Model_attributes $model_attributes
+ * @property Model_customers $model_customers
+ * @property Model_suppliers $model_suppliers
+ */
+class Suppliers extends Admin_Controller
 {
     public function __construct()
     {
@@ -13,7 +37,7 @@ class Suppliers extends Admin_Controller
 
     public function index()
     {
-        if(!in_array('viewSupplier', $this->permission)) {
+        if (!isset($this->permission['viewSupplier'])) {
             redirect('dashboard', 'refresh');
         }
         $this->render_template('suppliers/index', $this->data);
@@ -26,14 +50,14 @@ class Suppliers extends Admin_Controller
 
         foreach ($data as $key => $value) {
             $buttons = '';
-            if(in_array('updateSupplier', $this->permission)) {
-                $buttons .= '<button type="button" class="btn btn-default" onclick="editSupplier('.$value['id'].')" data-toggle="modal" data-target="#editModal"><i class="fa fa-pencil"></i></button> ';
+            if (isset($this->permission['updateSupplier'])) {
+                $buttons .= '<button type="button" class="btn btn-default" onclick="editSupplier(' . $value['id'] . ')" data-toggle="modal" data-target="#editModal"><i class="fa fa-pencil"></i></button> ';
             }
-            if(in_array('viewSupplier', $this->permission)) {
-                $buttons .= '<a href="'.base_url('suppliers/view/'.$value['id']).'" class="btn btn-info"><i class="fa fa-eye"></i></a> ';
+            if (isset($this->permission['viewSupplier'])) {
+                $buttons .= '<a href="' . base_url('suppliers/view/' . $value['id']) . '" class="btn btn-info"><i class="fa fa-eye"></i></a> ';
             }
-            if(in_array('deleteSupplier', $this->permission)) {
-                $buttons .= '<button type="button" class="btn btn-default" onclick="removeSupplier('.$value['id'].')" data-toggle="modal" data-target="#removeModal"><i class="fa fa-trash"></i></button>';
+            if (isset($this->permission['deleteSupplier'])) {
+                $buttons .= '<button type="button" class="btn btn-danger" onclick="removeSupplier(' . $value['id'] . ')"><i class="fa fa-trash"></i></button>';
             }
 
             $status = ($value['active'] == 1) ? '<span class="label label-success">Active</span>' : '<span class="label label-default">Inactive</span>';
@@ -54,7 +78,7 @@ class Suppliers extends Admin_Controller
 
     public function fetchSupplierDataById($id)
     {
-        if($id) {
+        if ($id) {
             $data = $this->model_suppliers->getSupplierData($id);
             echo json_encode($data);
         }
@@ -62,22 +86,42 @@ class Suppliers extends Admin_Controller
 
     public function create()
     {
-        if(!in_array('createSupplier', $this->permission)) {
-            redirect('dashboard', 'refresh');
+        if (!isset($this->permission['createSupplier'])) {
+            echo json_encode(array('success' => false, 'messages' => 'Permission denied'));
+            return;
         }
 
         $response = array();
+
         $this->form_validation->set_rules('supplier_name', 'Supplier Name', 'trim|required');
         $this->form_validation->set_rules('phone', 'Phone', 'trim|required');
-        $this->form_validation->set_rules('active', 'Active', 'trim|required');
-        $this->form_validation->set_error_delimiters('<p class="text-danger">','</p>');
 
         if ($this->form_validation->run() == TRUE) {
-            // Generate supplier code
-            $last = $this->db->order_by('id', 'DESC')->limit(1)->get('suppliers')->row();
-            $number = $last ? ((int)filter_var($last->supplier_code, FILTER_SANITIZE_NUMBER_INT) + 1) : 1;
+
+            // ✅ NOUVELLE GÉNÉRATION DU CODE SUPPLIER
+            // Obtenir le dernier ID (pas le code)
+            $query = $this->db->select('id')->order_by('id', 'DESC')->limit(1)->get('suppliers');
+
+            if ($query->num_rows() > 0) {
+                $last = $query->row();
+                $number = $last->id + 1;
+            } else {
+                $number = 1;
+            }
+
             $supplier_code = 'SUP-' . str_pad($number, 4, '0', STR_PAD_LEFT);
 
+            // ✅ VÉRIFIER SI LE CODE EXISTE DÉJÀ (sécurité supplémentaire)
+            $check = $this->db->where('supplier_code', $supplier_code)->get('suppliers');
+
+            // Si le code existe, incrémenter jusqu'à trouver un code libre
+            while ($check->num_rows() > 0) {
+                $number++;
+                $supplier_code = 'SUP-' . str_pad($number, 4, '0', STR_PAD_LEFT);
+                $check = $this->db->where('supplier_code', $supplier_code)->get('suppliers');
+            }
+
+            // Préparer les données
             $data = array(
                 'supplier_code' => $supplier_code,
                 'name' => $this->input->post('supplier_name'),
@@ -89,39 +133,45 @@ class Suppliers extends Admin_Controller
                 'tax_number' => $this->input->post('tax_number'),
                 'payment_terms' => $this->input->post('payment_terms'),
                 'notes' => $this->input->post('notes'),
-                'active' => $this->input->post('active'),
+                'active' => $this->input->post('active') ? (int)$this->input->post('active') : 1,
             );
 
-            $create = $this->model_suppliers->create($data);
-            if($create) {
+            // Insérer
+            $insert = $this->db->insert('suppliers', $data);
+
+            if ($insert) {
                 $response['success'] = true;
                 $response['messages'] = 'Fournisseur créé avec succès - Code: ' . $supplier_code;
             } else {
+                $error = $this->db->error();
                 $response['success'] = false;
-                $response['messages'] = 'Erreur lors de la création';
+                $response['messages'] = 'Erreur SQL: ' . $error['message'];
             }
         } else {
             $response['success'] = false;
-            foreach ($_POST as $key => $value) {
-                $response['messages'][$key] = form_error($key);
-            }
+            $response['messages'] = strip_tags(validation_errors());
         }
 
         echo json_encode($response);
     }
 
+
+
+
+
+
     public function update($id)
     {
-        if(!in_array('updateSupplier', $this->permission)) {
+        if (!isset($this->permission['updateSupplier'])) {
             redirect('dashboard', 'refresh');
         }
 
         $response = array();
-        if($id) {
+        if ($id) {
             $this->form_validation->set_rules('edit_supplier_name', 'Supplier Name', 'trim|required');
             $this->form_validation->set_rules('edit_phone', 'Phone', 'trim|required');
             $this->form_validation->set_rules('edit_active', 'Active', 'trim|required');
-            $this->form_validation->set_error_delimiters('<p class="text-danger">','</p>');
+            $this->form_validation->set_error_delimiters('<p class="text-danger">', '</p>');
 
             if ($this->form_validation->run() == TRUE) {
                 $data = array(
@@ -138,7 +188,7 @@ class Suppliers extends Admin_Controller
                 );
 
                 $update = $this->model_suppliers->update($data, $id);
-                if($update == true) {
+                if ($update == true) {
                     $response['success'] = true;
                     $response['messages'] = 'Mis à jour avec succès';
                 } else {
@@ -161,21 +211,40 @@ class Suppliers extends Admin_Controller
 
     public function remove()
     {
-        if(!in_array('deleteSupplier', $this->permission)) {
+        if (!isset($this->permission['deleteSupplier'])) {
             redirect('dashboard', 'refresh');
         }
-        
+
         $supplier_id = $this->input->post('supplier_id');
+        $force_delete = $this->input->post('force_delete'); // NEW
+        $deactivate_only = $this->input->post('deactivate_only'); // NEW
+
         $response = array();
-        
-        if($supplier_id) {
-            $delete = $this->model_suppliers->remove($supplier_id);
-            if($delete == true) {
-                $response['success'] = true;
-                $response['messages'] = "Supprimé avec succès";
+
+        if ($supplier_id) {
+            // If user wants to deactivate only
+            if ($deactivate_only == 'yes') {
+                $deactivate = $this->model_suppliers->deactivate($supplier_id);
+                if ($deactivate) {
+                    $response['success'] = true;
+                    $response['messages'] = "Fournisseur désactivé avec succès";
+                } else {
+                    $response['success'] = false;
+                    $response['messages'] = "Erreur lors de la désactivation";
+                }
             } else {
-                $response['success'] = false;
-                $response['messages'] = "Erreur lors de la suppression";
+                // Try to delete (with force option)
+                $result = $this->model_suppliers->remove($supplier_id, $force_delete == 'yes');
+
+                if ($result['success']) {
+                    $response['success'] = true;
+                    $response['messages'] = $result['message'];
+                } else {
+                    $response['success'] = false;
+                    $response['type'] = $result['type'];
+                    $response['messages'] = $result['message'];
+                    $response['purchases_count'] = $result['purchases_count'];
+                }
             }
         } else {
             $response['success'] = false;
@@ -185,13 +254,14 @@ class Suppliers extends Admin_Controller
         echo json_encode($response);
     }
 
+
     public function view($id = null)
     {
-        if(!in_array('viewSupplier', $this->permission)) {
+        if (!isset($this->permission['viewSupplier'])) {
             redirect('dashboard', 'refresh');
         }
 
-        if($id) {
+        if ($id) {
             $supplier_data = $this->model_suppliers->getSupplierData($id);
             $supplier_stats = $this->model_suppliers->getSupplierStats($id);
             $supplier_products = $this->model_suppliers->getSupplierProducts($id);

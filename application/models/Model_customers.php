@@ -11,7 +11,27 @@ class Model_customers extends CI_Model
 
 	public function getActiveCustomers()
 	{
-		$sql = "SELECT * FROM customers WHERE active = 1 ORDER BY customer_name ASC";
+		$sql = "SELECT * FROM customers 
+            WHERE active = 1 
+            ORDER BY customer_name ASC";
+		return $this->db->query($sql)->result_array();
+	}
+
+	// Ajoutez cette méthode APRÈS getActiveCustomers() - ligne 25
+	public function getActiveCustomersForDropdown()
+	{
+		$sql = "SELECT 
+            id,
+            customer_code,
+            customer_name as name,
+            customer_type,
+            phone,
+            address,
+            email
+            FROM customers 
+            WHERE active = 1 
+            ORDER BY customer_name ASC";
+
 		return $this->db->query($sql)->result_array();
 	}
 
@@ -45,6 +65,27 @@ class Model_customers extends CI_Model
 		return $this->db
 			->get_where('customers', ['customer_code' => $code])
 			->row_array();
+	}
+	public function findCustomer($name, $phone)
+	{
+		$this->db->select('id, customer_name as name, phone, address, customer_type');
+		$this->db->from('customers');
+
+		if ($name) {
+			$this->db->where('customer_name', $name);
+		}
+		if ($phone) {
+			$this->db->or_where('phone', $phone);
+		}
+
+		$this->db->where('active', 1);
+		$query = $this->db->get();
+
+		if ($query->num_rows() > 0) {
+			return $query->row_array();
+		}
+
+		return false;
 	}
 
 	/* ===================== DUPLICATE CHECK ===================== */
@@ -114,18 +155,48 @@ class Model_customers extends CI_Model
 
 	public function generateCustomerCode()
 	{
-		$row = $this->db
-			->select('customer_code')
-			->order_by('id', 'DESC')
-			->limit(1)
-			->get('customers')
-			->row();
+		// Essayer de générer un code unique jusqu'à 10 fois
+		$attempts = 0;
+		$max_attempts = 10;
 
-		$number = $row
-			? (int) filter_var($row->customer_code, FILTER_SANITIZE_NUMBER_INT) + 1
-			: 1;
+		do {
+			// Obtenir le dernier code utilisé
+			$row = $this->db
+				->select('customer_code')
+				->order_by('id', 'DESC')
+				->limit(1)
+				->get('customers')
+				->row();
 
-		return 'CUST-' . str_pad($number, 4, '0', STR_PAD_LEFT);
+			if ($row) {
+				// Extraire le numéro du dernier code
+				$last_number = (int) filter_var($row->customer_code, FILTER_SANITIZE_NUMBER_INT);
+				$number = $last_number + 1;
+			} else {
+				$number = 1;
+			}
+
+			$code = 'CUST-' . str_pad($number, 4, '0', STR_PAD_LEFT);
+
+			// Vérifier si le code existe déjà
+			$exists = $this->customerCodeExists($code);
+
+			$attempts++;
+
+			// Si le code n'existe pas, on sort de la boucle
+			if (!$exists) {
+				return $code;
+			}
+
+			// Si le code existe, on force l'incrémentation en cherchant le max ID
+			if ($attempts >= $max_attempts) {
+				// En dernier recours, utiliser un timestamp
+				$number = time() % 10000;
+				$code = 'CUST-' . str_pad($number, 4, '0', STR_PAD_LEFT);
+			}
+		} while ($attempts < $max_attempts);
+
+		return $code;
 	}
 
 	public function customerCodeExists($code, $exclude_id = null)
@@ -217,5 +288,26 @@ class Model_customers extends CI_Model
 				GROUP BY customer_type";
 
 		return $this->db->query($sql)->result_array();
+	}
+	public function getTopCustomerThisMonth()
+	{
+		$month = date('Y-m');
+		$sql = "SELECT 
+            customer_name,
+            SUM(net_amount) as total_spent
+            FROM orders 
+            WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
+            AND paid_status = 1
+            GROUP BY customer_name
+            ORDER BY total_spent DESC
+            LIMIT 1";
+
+		$query = $this->db->query($sql, array($month));
+
+		if ($query->num_rows() > 0) {
+			return $query->row_array();
+		}
+
+		return array('customer_name' => 'N/A', 'total_spent' => 0);
 	}
 }

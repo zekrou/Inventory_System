@@ -7,7 +7,7 @@
       <small>Orders</small>
     </h1>
     <ol class="breadcrumb">
-      <li><a href="#"><i class="fa fa-dashboard"></i> Home</a></li>
+      <li><a href="<?php echo base_url('dashboard') ?>"><i class="fa fa-dashboard"></i> Home</a></li>
       <li class="active">Orders</li>
     </ol>
   </section>
@@ -37,65 +37,96 @@
           <div class="col-lg-3 col-xs-6">
             <div class="small-box bg-aqua">
               <div class="inner">
-                <h3><?php echo isset($order_stats['total_orders']) ? $order_stats['total_orders'] : 0 ?></h3>
+                <h3><?php echo isset($order_stats['total_orders']) ? $order_stats['total_orders'] : 0; ?></h3>
                 <p>Total Orders</p>
               </div>
-              <div class="icon"><i class="fa fa-shopping-cart"></i></div>
-              <a href="#" class="small-box-footer" onclick="filterOrders('all'); return false;">View All <i class="fa fa-arrow-circle-right"></i></a>
+              <div class="icon">
+                <i class="fa fa-shopping-cart"></i>
+              </div>
+              <a href="#" class="small-box-footer" onclick="filterOrders('all'); return false;">
+                View All <i class="fa fa-arrow-circle-right"></i>
+              </a>
             </div>
           </div>
 
           <div class="col-lg-3 col-xs-6">
             <div class="small-box bg-green">
               <div class="inner">
-                <h3><?php echo isset($order_stats['paid_orders']) ? $order_stats['paid_orders'] : 0 ?></h3>
+                <h3><?php echo isset($order_stats['paid_orders']) ? $order_stats['paid_orders'] : 0; ?></h3>
                 <p>Paid Orders</p>
               </div>
-              <div class="icon"><i class="fa fa-check-circle"></i></div>
-              <a href="#" class="small-box-footer" onclick="filterOrders('paid'); return false;">View Paid <i class="fa fa-arrow-circle-right"></i></a>
+              <div class="icon">
+                <i class="fa fa-check-circle"></i>
+              </div>
+              <a href="#" class="small-box-footer" onclick="filterOrders('paid'); return false;">
+                View Paid <i class="fa fa-arrow-circle-right"></i>
+              </a>
             </div>
           </div>
 
           <div class="col-lg-3 col-xs-6">
             <div class="small-box bg-yellow">
               <div class="inner">
-                <h3><?php echo isset($order_stats['partial_orders']) ? $order_stats['partial_orders'] : 0 ?></h3>
+                <h3><?php echo isset($order_stats['partial_orders']) ? $order_stats['partial_orders'] : 0; ?></h3>
                 <p>Partially Paid</p>
               </div>
-              <div class="icon"><i class="fa fa-minus-circle"></i></div>
-              <a href="#" class="small-box-footer" onclick="filterOrders('partial'); return false;">View Partial <i class="fa fa-arrow-circle-right"></i></a>
+              <div class="icon">
+                <i class="fa fa-minus-circle"></i>
+              </div>
+              <a href="#" class="small-box-footer" onclick="filterOrders('partial'); return false;">
+                View Partial <i class="fa fa-arrow-circle-right"></i>
+              </a>
             </div>
           </div>
 
           <div class="col-lg-3 col-xs-6">
             <div class="small-box bg-red">
               <div class="inner">
-                <h3><?php echo isset($order_stats['unpaid_orders']) ? $order_stats['unpaid_orders'] : 0 ?></h3>
+                <h3><?php echo isset($order_stats['unpaid_orders']) ? $order_stats['unpaid_orders'] : 0; ?></h3>
                 <p>Unpaid Orders</p>
               </div>
-              <div class="icon"><i class="fa fa-times-circle"></i></div>
-              <a href="#" class="small-box-footer" onclick="filterOrders('unpaid'); return false;">View Unpaid <i class="fa fa-arrow-circle-right"></i></a>
+              <div class="icon">
+                <i class="fa fa-times-circle"></i>
+              </div>
+              <a href="#" class="small-box-footer" onclick="filterOrders('unpaid'); return false;">
+                View Unpaid <i class="fa fa-arrow-circle-right"></i>
+              </a>
             </div>
           </div>
         </div>
 
-        <?php if(in_array('createOrder', $user_permission)): ?>
+        <?php if(isset($user_permission['createOrder'])): ?>
           <a href="<?php echo base_url('orders/create') ?>" class="btn btn-primary"><i class="fa fa-plus"></i> Add Order</a>
           <br /> <br />
         <?php endif; ?>
 
+        <!-- 🟢 SEARCH BOX - NOUVEAU -->
+        <div class="row" style="margin-bottom: 15px;">
+          <div class="col-md-4">
+            <div class="input-group">
+              <span class="input-group-addon"><i class="fa fa-search"></i></span>
+              <input type="text" class="form-control" id="searchInput" placeholder="Search by customer name, phone or bill number...">
+              <span class="input-group-btn">
+                <button class="btn btn-default" type="button" id="clearSearch" title="Clear search">
+                  <i class="fa fa-times"></i>
+                </button>
+              </span>
+            </div>
+          </div>
+        </div>
+
         <!-- Filter Buttons -->
         <div class="btn-group" role="group">
-          <button type="button" class="btn btn-default active" id="filter_all" onclick="filterOrders('all')">
+          <button type="button" class="btn btn-default active" id="filter-all" onclick="filterOrders('all')">
             <i class="fa fa-list"></i> All Orders
           </button>
-          <button type="button" class="btn btn-success" id="filter_paid" onclick="filterOrders('paid')">
+          <button type="button" class="btn btn-success" id="filter-paid" onclick="filterOrders('paid')">
             <i class="fa fa-check"></i> Paid
           </button>
-          <button type="button" class="btn btn-warning" id="filter_partial" onclick="filterOrders('partial')">
+          <button type="button" class="btn btn-warning" id="filter-partial" onclick="filterOrders('partial')">
             <i class="fa fa-clock-o"></i> Partially Paid
           </button>
-          <button type="button" class="btn btn-danger" id="filter_unpaid" onclick="filterOrders('unpaid')">
+          <button type="button" class="btn btn-danger" id="filter-unpaid" onclick="filterOrders('unpaid')">
             <i class="fa fa-times"></i> Unpaid
           </button>
         </div>
@@ -119,8 +150,8 @@
                 <th>Paid Amount</th>
                 <th>Due Amount</th>
                 <th>Status</th>
-                <?php if(in_array('updateOrder', $user_permission) || in_array('viewOrder', $user_permission) || in_array('deleteOrder', $user_permission)): ?>
-                  <th>Action</th>
+                <?php if(isset($user_permission['updateOrder']) || isset($user_permission['viewOrder']) || isset($user_permission['deleteOrder'])): ?>
+                <th>Action</th>
                 <?php endif; ?>
               </tr>
               </thead>
@@ -173,7 +204,7 @@
           <input type="hidden" name="order_id" id="modal_order_id">
           
           <div class="alert alert-info">
-            <strong><i class="fa fa-info-circle"></i> Outstanding Balance:</strong> 
+            <strong><i class="fa fa-info-circle"></i> Outstanding Balance:</strong>
             <span id="modal_current_due" style="font-size: 20px; font-weight: bold;"></span>
           </div>
 
@@ -181,14 +212,8 @@
             <label for="modal_payment_amount">Payment Amount <span class="text-danger">*</span></label>
             <div class="input-group">
               <span class="input-group-addon"><i class="fa fa-money"></i></span>
-              <input type="number" 
-                     class="form-control input-lg" 
-                     id="modal_payment_amount" 
-                     name="payment_amount" 
-                     step="0.01" 
-                     min="0.01" 
-                     placeholder="Enter payment amount" 
-                     required
+              <input type="number" class="form-control input-lg" id="modal_payment_amount" name="payment_amount" 
+                     step="0.01" min="0.01" placeholder="Enter payment amount" required 
                      style="font-size: 18px; font-weight: bold;">
               <span class="input-group-addon"><strong>DZD</strong></span>
             </div>
@@ -199,21 +224,18 @@
             <label for="modal_payment_method">Payment Method <span class="text-danger">*</span></label>
             <select class="form-control" id="modal_payment_method" name="payment_method" required>
               <option value="">-- Select Payment Method --</option>
-              <option value="cash">💵 Cash</option>
-              <option value="bank_transfer">🏦 Bank Transfer</option>
-              <option value="cheque">📝 Cheque</option>
-              <option value="credit_card">💳 Credit Card</option>
-              <option value="mobile_payment">📱 Mobile Payment</option>
+              <option value="cash">Cash</option>
+              <option value="bank_transfer">Bank Transfer</option>
+              <option value="cheque">Cheque</option>
+              <option value="credit_card">Credit Card</option>
+              <option value="mobile_payment">Mobile Payment</option>
               <option value="other">Other</option>
             </select>
           </div>
 
           <div class="form-group">
             <label for="modal_payment_notes">Payment Notes (Optional)</label>
-            <textarea class="form-control" 
-                      id="modal_payment_notes" 
-                      name="payment_notes" 
-                      rows="3" 
+            <textarea class="form-control" id="modal_payment_notes" name="payment_notes" rows="3" 
                       placeholder="Add any notes about this payment (reference number, receipt number, etc.)"></textarea>
           </div>
 
@@ -232,7 +254,7 @@
   </div>
 </div>
 
-<?php if(in_array('deleteOrder', $user_permission)): ?>
+<?php if(isset($user_permission['deleteOrder'])): ?>
 <!-- remove modal -->
 <div class="modal fade" tabindex="-1" role="dialog" id="removeModal">
   <div class="modal-dialog" role="document">
@@ -241,6 +263,7 @@
         <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
         <h4 class="modal-title">Remove Order</h4>
       </div>
+
       <form role="form" action="<?php echo base_url('orders/remove') ?>" method="post" id="removeForm">
         <div class="modal-body">
           <p>Do you really want to remove this order?</p>
@@ -260,18 +283,67 @@
 var manageTable;
 var base_url = "<?php echo base_url(); ?>";
 var currentFilter = 'all';
+var searchTerm = ''; // 🟢 Variable pour stocker le terme de recherche
 
 $(document).ready(function() {
-  $("#mainOrdersNav").addClass('active');
-  $("#manageOrdersNav").addClass('active');
+  $('.main_menu_orders').addClass('active');
+  $('.manage_orders_nav').addClass('active');
 
-  // Initialize the datatable 
+  // 🟢 Initialize the datatable
   manageTable = $('#manageTable').DataTable({
-    'ajax': base_url + 'orders/fetchOrdersData',
+    'ajax': {
+      'url': base_url + 'orders/fetchOrdersData',
+      'type': 'GET',
+      'data': function(d) {
+        d.status = currentFilter;
+        d.search_term = searchTerm; // 🟢 Envoie le terme de recherche
+      }
+    },
     'order': [[0, 'desc']],
-    'columnDefs': [
-      { 'orderable': false, 'targets': [9] }
-    ]
+    'columnDefs': [{
+      'orderable': false,
+      'targets': [9]
+    }],
+    'searching': false, // 🟢 Désactive la recherche par défaut de DataTables
+    'processing': true,
+    'language': {
+      'processing': '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i><span class="sr-only">Loading...</span> '
+    }
+  });
+
+  // 🟢 Search input handler with debounce (attendre 500ms après la dernière frappe)
+  var searchTimer;
+  $('#searchInput').on('keyup', function() {
+    clearTimeout(searchTimer);
+    var value = $(this).val().trim();
+    
+    // Ajoute un indicateur visuel pendant la recherche
+    if (value.length > 0) {
+      $(this).css('border-color', '#3c8dbc');
+    } else {
+      $(this).css('border-color', '');
+    }
+    
+    searchTimer = setTimeout(function() {
+      searchTerm = value;
+      manageTable.ajax.reload(null, false); // false = reste sur la page courante
+    }, 500); // Délai de 500ms
+  });
+
+  // 🟢 Clear search button
+  $('#clearSearch').on('click', function() {
+    $('#searchInput').val('').css('border-color', '');
+    searchTerm = '';
+    manageTable.ajax.reload(null, false);
+  });
+
+  // 🟢 Permet aussi de clear avec Escape key
+  $('#searchInput').on('keydown', function(e) {
+    if (e.key === 'Escape') {
+      $(this).val('').css('border-color', '');
+      searchTerm = '';
+      manageTable.ajax.reload(null, false);
+    }
   });
 
   // Handle Add Payment Form Submission
@@ -286,7 +358,7 @@ $(document).ready(function() {
     var paymentAmount = parseFloat($('#modal_payment_amount').val());
     var maxAmount = parseFloat($('#modal_order_id').data('max-amount'));
     
-    if(paymentAmount > maxAmount) {
+    if (paymentAmount > maxAmount) {
       messageDiv.html('<div class="alert alert-danger"><i class="fa fa-exclamation-triangle"></i> Payment amount cannot exceed the due amount!</div>');
       return false;
     }
@@ -294,14 +366,14 @@ $(document).ready(function() {
     // Disable submit button
     submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing Payment...');
     messageDiv.html('');
-
+    
     $.ajax({
       url: base_url + 'orders/addPayment',
       type: 'POST',
       data: form.serialize(),
       dataType: 'json',
       success: function(response) {
-        if(response.success) {
+        if (response.success) {
           messageDiv.html('<div class="alert alert-success"><i class="fa fa-check-circle"></i> ' + response.message + '</div>');
           
           // Reset form
@@ -316,7 +388,7 @@ $(document).ready(function() {
             messageDiv.html('');
             
             // Refresh order details if modal is open
-            if($('#orderDetailsModal').hasClass('in')) {
+            if ($('#orderDetailsModal').hasClass('in')) {
               var orderId = $('#modal_order_id').val();
               viewOrderDetails(orderId);
             }
@@ -334,16 +406,16 @@ $(document).ready(function() {
   });
 });
 
-// Filter orders by status
+// 🟢 Filter orders by status
 function filterOrders(status) {
   currentFilter = status;
   
   // Update button states
   $('.btn-group button').removeClass('active');
-  $('#filter_' + status).addClass('active');
+  $('#filter-' + status).addClass('active');
   
   // Reload table with filter
-  manageTable.ajax.url(base_url + 'orders/fetchOrdersData?status=' + status).load();
+  manageTable.ajax.reload(null, false);
 }
 
 // View order details
@@ -387,32 +459,37 @@ function openAddPaymentModal(orderId, dueAmount) {
 // Remove order
 function removeFunc(id) {
   if(id) {
-    $("#removeForm").on('submit', function() {
+    $('#removeForm').on('submit', function() {
       var form = $(this);
+
+      // remove the text-danger
       $(".text-danger").remove();
 
       $.ajax({
         url: form.attr('action'),
         type: form.attr('method'),
-        data: { order_id:id }, 
+        data: { order_id:id },
         dataType: 'json',
         success:function(response) {
-          manageTable.ajax.reload(null, false); 
+          manageTable.ajax.reload(null, false);
 
           if(response.success === true) {
             $("#messages").html('<div class="alert alert-success alert-dismissible" role="alert">'+
               '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>'+
-              '<strong><i class="fa fa-check"></i></strong> '+response.messages+
+              '<strong><i class="fa fa-check"></i></strong> '+ response.messages +
             '</div>');
+
+            // hide the modal
             $("#removeModal").modal('hide');
+
           } else {
             $("#messages").html('<div class="alert alert-warning alert-dismissible" role="alert">'+
               '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>'+
-              '<strong><i class="fa fa-warning"></i></strong> '+response.messages+
+              '<strong><i class="fa fa-warning"></i></strong> '+ response.messages +
             '</div>'); 
           }
         }
-      }); 
+      });
 
       return false;
     });
@@ -421,17 +498,36 @@ function removeFunc(id) {
 </script>
 
 <style>
+/* Modal styling */
 .modal-header {
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
 }
+
 #addPaymentModal .modal-content {
   box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
+
 #addPaymentModal .alert-info {
   background: #d9edf7;
   border-color: #bce8f1;
   padding: 15px;
   border-radius: 5px;
+}
+
+/* 🟢 Search input styling */
+#searchInput:focus {
+  border-color: #3c8dbc;
+  box-shadow: 0 0 5px rgba(60, 141, 188, 0.5);
+}
+
+#clearSearch {
+  border-left: none;
+}
+
+#clearSearch:hover {
+  background-color: #e74c3c;
+  color: white;
+  border-color: #e74c3c;
 }
 </style>

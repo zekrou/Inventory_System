@@ -20,7 +20,7 @@ class Brands extends Admin_Controller
 	*/
 	public function index()
 	{
-		if(!in_array('viewBrand', $this->permission)) {
+		if(!isset($this->permission['viewBrand'])) {
 			redirect('dashboard', 'refresh');
 		}
 
@@ -45,11 +45,11 @@ class Brands extends Admin_Controller
 			// button
 			$buttons = '';
 
-			if(in_array('viewBrand', $this->permission)) {
+			if(isset($this->permission['viewBrand'])) {
 				$buttons .= '<button type="button" class="btn btn-default" onclick="editBrand('.$value['id'].')" data-toggle="modal" data-target="#editBrandModal"><i class="fa fa-pencil"></i></button>';	
 			}
 			
-			if(in_array('deleteBrand', $this->permission)) {
+			if(isset($this->permission['deleteBrand'])) {
 				$buttons .= ' <button type="button" class="btn btn-default" onclick="removeBrand('.$value['id'].')" data-toggle="modal" data-target="#removeBrandModal"><i class="fa fa-trash"></i></button>
 				';
 			}				
@@ -90,7 +90,7 @@ class Brands extends Admin_Controller
 	public function create()
 	{
 
-		if(!in_array('createBrand', $this->permission)) {
+		if(!isset($this->permission['createBrand'])) {
 			redirect('dashboard', 'refresh');
 		}
 
@@ -135,7 +135,7 @@ class Brands extends Admin_Controller
 	*/
 	public function update($id)
 	{
-		if(!in_array('updateBrand', $this->permission)) {
+		if(!isset($this->permission['updateBrand'])) {
 			redirect('dashboard', 'refresh');
 		}
 
@@ -184,7 +184,7 @@ class Brands extends Admin_Controller
 	*/
 	public function remove()
 	{
-		if(!in_array('deleteBrand', $this->permission)) {
+		if(!isset($this->permission['deleteBrand'])) {
 			redirect('dashboard', 'refresh');
 		}
 		

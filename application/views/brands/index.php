@@ -34,7 +34,7 @@
           </div>
         <?php endif; ?>
 
-        <?php if(in_array('createBrand', $user_permission)): ?>
+        <?php if(isset($user_permission['createBrand'])): ?>
           <button class="btn btn-primary" data-toggle="modal" data-target="#addBrandModal">Add Brand</button>
           <br /> <br />
         <?php endif; ?>
@@ -50,7 +50,7 @@
               <tr>
                 <th>Brand Name</th>
                 <th>Status</th>
-                <?php if(in_array('updateBrand', $user_permission) || in_array('deleteBrand', $user_permission)): ?>
+                <?php if(isset($user_permission['updateBrand']) || isset($user_permission['deleteBrand'])): ?>
                   <th>Action</th>
                 <?php endif; ?>
               </tr>
@@ -72,7 +72,7 @@
 </div>
 <!-- /.content-wrapper -->
 
-<?php if(in_array('createBrand', $user_permission)): ?>
+<?php if(isset($user_permission['createBrand'])): ?>
 <!-- create brand modal -->
 <div class="modal fade" tabindex="-1" role="dialog" id="addBrandModal">
   <div class="modal-dialog" role="document">
@@ -112,7 +112,7 @@
 </div><!-- /.modal -->
 <?php endif; ?>
 
-<?php if(in_array('updateBrand', $user_permission)): ?>
+<?php if(isset($user_permission['updateBrand'])): ?>
 <!-- edit brand modal -->
 <div class="modal fade" tabindex="-1" role="dialog" id="editBrandModal">
   <div class="modal-dialog" role="document">
@@ -153,7 +153,7 @@
 </div><!-- /.modal -->
 <?php endif; ?>
 
-<?php if(in_array('deleteBrand', $user_permission)): ?>
+<?php if(isset($user_permission['deleteBrand'])): ?>
 <!-- remove brand modal -->
 <div class="modal fade" tabindex="-1" role="dialog" id="removeBrandModal">
   <div class="modal-dialog" role="document">
