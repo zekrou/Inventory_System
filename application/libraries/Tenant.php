@@ -252,7 +252,7 @@ class Tenant
         $tenant_db = $this->CI->load->database($tenant_config, TRUE);
 
         // Créer les tables avec backticks
-    
+
         // 1. Table users
         $tenant_db->query("
         CREATE TABLE IF NOT EXISTS `users` (
@@ -311,7 +311,52 @@ class Tenant
         // Insert default admin group
         $group_data = array(
             'group_name' => 'Administrator',
-            'permission' => '{"createUser":"1","updateUser":"1","viewUser":"1","deleteUser":"1","createGroup":"1","updateGroup":"1","viewGroup":"1","deleteGroup":"1","createBrand":"1","updateBrand":"1","viewBrand":"1","deleteBrand":"1","createCategory":"1","updateCategory":"1","viewCategory":"1","deleteCategory":"1","createProduct":"1","updateProduct":"1","viewProduct":"1","deleteProduct":"1","createOrder":"1","updateOrder":"1","viewOrder":"1","deleteOrder":"1","createReport":"1","viewReport":"1","updateCompany":"1","viewCompany":"1","viewCustomer":"1","createCustomer":"1","updateCustomer":"1","deleteCustomer":"1","viewSupplier":"1","createSupplier":"1","updateSupplier":"1","deleteSupplier":"1","viewPurchase":"1","createPurchase":"1","updatePurchase":"1","deletePurchase":"1","viewStock":"1","viewStockHistory":"1","viewProfile":"1","updateSetting":"1"}'
+            'permission' => serialize(array(
+                'createUser' => 1,
+                'updateUser' => 1,
+                'viewUser' => 1,
+                'deleteUser' => 1,
+                'createGroup' => 1,
+                'updateGroup' => 1,
+                'viewGroup' => 1,
+                'deleteGroup' => 1,
+                'createBrand' => 1,
+                'updateBrand' => 1,
+                'viewBrand' => 1,
+                'deleteBrand' => 1,
+                'createCategory' => 1,
+                'updateCategory' => 1,
+                'viewCategory' => 1,
+                'deleteCategory' => 1,
+                'createProduct' => 1,
+                'updateProduct' => 1,
+                'viewProduct' => 1,
+                'deleteProduct' => 1,
+                'createOrder' => 1,
+                'updateOrder' => 1,
+                'viewOrder' => 1,
+                'deleteOrder' => 1,
+                'createReport' => 1,
+                'viewReport' => 1,
+                'updateCompany' => 1,
+                'viewCompany' => 1,
+                'viewCustomer' => 1,
+                'createCustomer' => 1,
+                'updateCustomer' => 1,
+                'deleteCustomer' => 1,
+                'viewSupplier' => 1,
+                'createSupplier' => 1,
+                'updateSupplier' => 1,
+                'deleteSupplier' => 1,
+                'viewPurchase' => 1,
+                'createPurchase' => 1,
+                'updatePurchase' => 1,
+                'deletePurchase' => 1,
+                'viewStock' => 1,          // ✅ AJOUTÉ
+                'viewStockHistory' => 1,   // ✅ AJOUTÉ
+                'viewProfile' => 1,        // ✅ AJOUTÉ
+                'updateSetting' => 1       // ✅ AJOUTÉ
+            ))
         );
 
 
