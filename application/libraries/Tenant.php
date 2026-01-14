@@ -252,7 +252,7 @@ class Tenant
         $tenant_db = $this->CI->load->database($tenant_config, TRUE);
 
         // Créer les tables avec backticks
-
+    
         // 1. Table users
         $tenant_db->query("
         CREATE TABLE IF NOT EXISTS `users` (
