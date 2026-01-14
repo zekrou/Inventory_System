@@ -1,5 +1,4 @@
 <?php
-
 class Model_orders extends CI_Model
 {
 	public function __construct()
