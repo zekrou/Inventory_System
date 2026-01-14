@@ -245,7 +245,14 @@ class Orders extends Admin_Controller
                 $paid_status = 3; // Partial
             }
 
+            // ✅ DÉFINIR ET VALIDER user_id ICI (AVANT TOUT)
             $user_id = $this->session->userdata('id');
+            $user_check = $this->db->where('id', $user_id)->get('users');
+            if ($user_check->num_rows() == 0) {
+                $admin = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();
+                $user_id = $admin ? $admin->id : 1;
+            }
+
             $bill_no = 'BILPR-' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
 
             // Prepare order data for Model
@@ -271,12 +278,13 @@ class Orders extends Admin_Controller
                 'paid_status' => $paid_status,
                 'payment_method' => $this->input->post('payment_method'),
                 'payment_notes' => $this->input->post('payment_notes'),
-                'user_id' => $user_id
+                'user_id' => $user_id  // ✅ Maintenant $user_id existe
             );
 
             // Insert order
             $this->db->insert('orders', $data);
             $order_id = $this->db->insert_id();
+
 
             if ($order_id) {
                 // Insert order items and update stock
