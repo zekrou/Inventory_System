@@ -1,11 +1,6 @@
 <aside class="main-sidebar">
   <section class="sidebar">
     <ul class="sidebar-menu" data-widget="tree">
-      <?php
-      echo '<pre>';
-      print_r($user_permission);
-      echo '</pre>';
-      ?>
       <!-- Dashboard -->
       <li id="dashboardMainMenu">
         <a href="<?php echo base_url('dashboard') ?>">
