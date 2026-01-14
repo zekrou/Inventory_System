@@ -12,11 +12,17 @@ class Model_payments extends CI_Model
 	 */
 	public function recordPayment($order_id, $amount_paid, $payment_method = 'Cash', $notes = '', $reference_number = '')
 	{
-		if(!$order_id || !$amount_paid || $amount_paid <= 0) {
+		if (!$order_id || !$amount_paid || $amount_paid <= 0) {
 			return false;
 		}
 
 		$user_id = $this->session->userdata('id');
+
+		$user_check = $this->db->where('id', $user_id)->get('users');
+		if ($user_check->num_rows() == 0) {
+			$admin = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();
+			$user_id = $admin ? $admin->id : 1;
+		}
 
 		$data = array(
 			'order_id' => $order_id,
@@ -31,7 +37,7 @@ class Model_payments extends CI_Model
 		$insert = $this->db->insert('order_payments', $data);
 		$payment_id = $this->db->insert_id();
 
-		if($insert) {
+		if ($insert) {
 			// Update order paid_amount and status
 			$this->updateOrderPaymentStatus($order_id);
 			return $payment_id;
@@ -47,7 +53,7 @@ class Model_payments extends CI_Model
 	{
 		// Get order details
 		$order = $this->db->query("SELECT * FROM `orders` WHERE id = ?", array($order_id))->row_array();
-		if(!$order) {
+		if (!$order) {
 			return false;
 		}
 
@@ -60,12 +66,12 @@ class Model_payments extends CI_Model
 
 		// Calculate remaining
 		$due = $net - $total_paid;
-		if($due < 0) $due = 0;
+		if ($due < 0) $due = 0;
 
 		// Determine status: 1=Paid, 2=Unpaid, 3=Partial
-		if($total_paid >= $net) {
+		if ($total_paid >= $net) {
 			$status = 1; // Paid
-		} elseif($total_paid <= 0) {
+		} elseif ($total_paid <= 0) {
 			$status = 2; // Unpaid
 		} else {
 			$status = 3; // Partially Paid
@@ -113,7 +119,7 @@ class Model_payments extends CI_Model
 	public function deletePayment($payment_id)
 	{
 		$payment = $this->getPayment($payment_id);
-		if(!$payment) {
+		if (!$payment) {
 			return false;
 		}
 
@@ -122,7 +128,7 @@ class Model_payments extends CI_Model
 		$this->db->where('id', $payment_id);
 		$delete = $this->db->delete('order_payments');
 
-		if($delete) {
+		if ($delete) {
 			// Recalculate paid amount and status
 			$this->updateOrderPaymentStatus($order_id);
 			return true;
@@ -137,29 +143,29 @@ class Model_payments extends CI_Model
 	public function updatePayment($payment_id, $amount_paid = '', $payment_method = '', $notes = '')
 	{
 		$payment = $this->getPayment($payment_id);
-		if(!$payment) {
+		if (!$payment) {
 			return false;
 		}
 
 		$data = array();
-		if($amount_paid && $amount_paid > 0) {
+		if ($amount_paid && $amount_paid > 0) {
 			$data['amount_paid'] = $amount_paid;
 		}
-		if($payment_method) {
+		if ($payment_method) {
 			$data['payment_method'] = $payment_method;
 		}
-		if($notes !== '') {
+		if ($notes !== '') {
 			$data['notes'] = $notes;
 		}
 
-		if(empty($data)) {
+		if (empty($data)) {
 			return false;
 		}
 
 		$this->db->where('id', $payment_id);
 		$update = $this->db->update('order_payments', $data);
 
-		if($update) {
+		if ($update) {
 			// Recalculate order status
 			$this->updateOrderPaymentStatus($payment['order_id']);
 			return true;
@@ -200,4 +206,3 @@ class Model_payments extends CI_Model
 		return $query->row_array();
 	}
 }
-

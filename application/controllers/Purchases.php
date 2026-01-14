@@ -199,6 +199,15 @@ class Purchases extends Admin_Controller
                 'notes' => $this->input->post('notes')
             );
 
+            // ✅ VÉRIFIER USER AVANT de créer le purchase
+            $user_id = $this->session->userdata('id');
+            $user_check = $this->db->where('id', $user_id)->get('users');
+            if ($user_check->num_rows() == 0) {
+                $admin = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();
+                $user_id = $admin ? $admin->id : 1;
+            }
+
+            // ✅ UNE SEULE FOIS : Créer le purchase
             $purchase_id = $this->model_purchases->create($data, $items);
 
             if ($purchase_id) {
@@ -211,7 +220,7 @@ class Purchases extends Admin_Controller
                         'payment_method' => $this->input->post('payment_method'),
                         'reference_number' => $this->input->post('reference_number'),
                         'notes' => 'Initial payment',
-                        'created_by' => $this->session->userdata('id')
+                        'created_by' => $user_id
                     );
                     $this->db->insert('purchase_payments', $payment_data);
                 }
@@ -229,6 +238,7 @@ class Purchases extends Admin_Controller
             $this->render_template('purchases/create', $this->data);
         }
     }
+
 
     public function view($id = null)
     {

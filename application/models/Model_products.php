@@ -654,6 +654,11 @@ class Model_products extends CI_Model
 		if ($this->db->table_exists('product_price_history')) {
 			$user_id = $this->session->userdata('id');
 
+			$user_check = $this->db->where('id', $user_id)->get('users');
+			if ($user_check->num_rows() == 0) {
+				$admin = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();
+				$user_id = $admin ? $admin->id : 1;
+			}
 			$data = array(
 				'product_id' => $product_id,
 				'old_price' => $old_price,
