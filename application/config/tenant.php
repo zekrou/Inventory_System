@@ -10,9 +10,9 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 $config['master_db'] = array(
     'dsn'      => '',
-    'hostname' => 'localhost',
-    'username' => 'root',
-    'password' => '',
+    'hostname' => 'tasks.inventorysystem-mysqlinventory-ydsxph',
+    'username' => 'mysql',
+    'password' => 'Zakaria1304@',
     'database' => 'stock_master',
     'dbdriver' => 'mysqli',
     'dbprefix' => '',
@@ -39,9 +39,9 @@ $config['master_db'] = array(
 
 $config['tenant_db_template'] = array(
     'dsn'      => '',
-    'hostname' => 'localhost',
-    'username' => 'root',
-    'password' => '',
+    'hostname' => 'tasks.inventorysystem-mysqlinventory-ydsxph',
+    'username' => 'mysql',
+    'password' => 'Zakaria1304@',
     'database' => '', // Will be set dynamically
     'dbdriver' => 'mysqli',
     'dbprefix' => '',

@@ -3,7 +3,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Model_auth extends CI_Model
 {
-    public function login($email, $password)
+    public function login($email, $password, $is_admin_domain = false)
     {
         $this->load->library('tenant');
         $master_db = $this->tenant->init_master_db();
@@ -29,6 +29,12 @@ class Model_auth extends CI_Model
                 
                 if($tenant_query->num_rows() > 0) {
                     // ====== MERCHANT USER (has tenant) ======
+                    
+                    // VALIDATION : Les merchants ne peuvent pas se connecter sur admin.taqseet.shop
+                    if($is_admin_domain) {
+                        return "Accès refusé. Utilisez inventory.taqseet.shop pour vous connecter.";
+                    }
+                    
                     $tenant_data = $tenant_query->row_array();
                     
                     // Set session data for MERCHANT
@@ -44,19 +50,23 @@ class Model_auth extends CI_Model
                         'tenant_name' => $tenant_data['tenant_name'],
                         'tenant_db' => $tenant_data['database_name'],
                         'tenant_role' => $tenant_data['role'],
-                        'group_id' => 1, // Default group
+                        'group_id' => 1,
                         'group_name' => 'Administrator'
                     );
                     
                     $this->session->set_userdata($session_data);
-                    
-                    // Switch to tenant database for future queries
                     $this->tenant->switch_tenant_db($tenant_data['tenant_id']);
                     
                     return TRUE;
                     
                 } else {
                     // ====== SYSTEM ADMIN (no tenant) ======
+                    
+                    // VALIDATION : Les admins système ne peuvent se connecter QUE sur admin.taqseet.shop
+                    if(!$is_admin_domain) {
+                        return "Accès refusé. Utilisez admin.taqseet.shop pour vous connecter.";
+                    }
+                    
                     $session_data = array(
                         'id' => $result['id'],
                         'username' => $result['username'],
@@ -78,6 +88,6 @@ class Model_auth extends CI_Model
             }
         }
         
-        return FALSE;
+        return "Email ou mot de passe incorrect";
     }
 }
