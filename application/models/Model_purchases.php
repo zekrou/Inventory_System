@@ -137,6 +137,17 @@ class Model_purchases extends CI_Model
     {
         if ($purchase_id) {
             $user_id = $this->session->userdata('id');
+
+            // ✅ AJOUTE CES 7 LIGNES ICI
+            $user_check = $this->db->where('id', $user_id)->get('users');
+
+            if ($user_check->num_rows() == 0) {
+                // L'utilisateur n'existe pas dans ce tenant, utiliser l'admin du tenant
+                $admin = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();
+                $user_id = $admin ? $admin->id : 1;
+            }
+            // ✅ FIN DE L'AJOUT
+
             $items = $this->getPurchaseItems($purchase_id);
 
             if ($items) {
@@ -177,7 +188,7 @@ class Model_purchases extends CI_Model
                 $update_purchase = array(
                     'status' => 'received',
                     'received_date' => date('Y-m-d H:i:s'),
-                    'received_by' => $user_id
+                    'received_by' => $user_id  // ✅ Maintenant c'est l'ID correct
                 );
 
                 $this->db->where('id', $purchase_id);
@@ -187,6 +198,7 @@ class Model_purchases extends CI_Model
 
         return false;
     }
+
 
 
 
