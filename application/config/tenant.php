@@ -1,5 +1,5 @@
 <?php
-defined('BASEPATH') OR exit('No direct script access allowed');
+defined('BASEPATH') or exit('No direct script access allowed');
 
 /*
 |--------------------------------------------------------------------------
@@ -10,7 +10,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 $config['master_db'] = array(
     'dsn'      => '',
-    'hostname' => 'tasks.inventorysystem-mysqlinventory-ydsxph',
+    'hostname' => 'inventorysystem-mysqlinventory-ydsxph',
     'username' => 'mysql',
     'password' => 'Zakaria1304@',
     'database' => 'stock_master',
@@ -39,7 +39,7 @@ $config['master_db'] = array(
 
 $config['tenant_db_template'] = array(
     'dsn'      => '',
-    'hostname' => 'tasks.inventorysystem-mysqlinventory-ydsxph',
+    'hostname' => 'inventorysystem-mysqlinventory-ydsxph',
     'username' => 'mysql',
     'password' => 'Zakaria1304@',
     'database' => '', // Will be set dynamically
