@@ -312,52 +312,74 @@ class Tenant
         $group_data = array(
             'group_name' => 'Administrator',
             'permission' => serialize(array(
-                'createUser' => 1,
-                'updateUser' => 1,
-                'viewUser' => 1,
-                'deleteUser' => 1,
-                'createGroup' => 1,
-                'updateGroup' => 1,
-                'viewGroup' => 1,
-                'deleteGroup' => 1,
-                'createBrand' => 1,
-                'updateBrand' => 1,
-                'viewBrand' => 1,
-                'deleteBrand' => 1,
-                'createCategory' => 1,
-                'updateCategory' => 1,
-                'viewCategory' => 1,
-                'deleteCategory' => 1,
+                // Products
                 'createProduct' => 1,
                 'updateProduct' => 1,
                 'viewProduct' => 1,
                 'deleteProduct' => 1,
+
+                // Brands
+                'createBrand' => 1,
+                'updateBrand' => 1,
+                'viewBrand' => 1,
+                'deleteBrand' => 1,
+
+                // Categories
+                'createCategory' => 1,
+                'updateCategory' => 1,
+                'viewCategory' => 1,
+                'deleteCategory' => 1,
+
+                // Stock ✅
+                'createStock' => 1,
+                'updateStock' => 1,
+                'viewStock' => 1,
+                'deleteStock' => 1,
+
+                // Purchase
+                'createPurchase' => 1,
+                'updatePurchase' => 1,
+                'viewPurchase' => 1,
+                'deletePurchase' => 1,
+
+                // Orders
                 'createOrder' => 1,
                 'updateOrder' => 1,
                 'viewOrder' => 1,
                 'deleteOrder' => 1,
-                'createReport' => 1,
-                'viewReport' => 1,
-                'updateCompany' => 1,
-                'viewCompany' => 1,
-                'viewCustomer' => 1,
+
+                // Customers
                 'createCustomer' => 1,
                 'updateCustomer' => 1,
+                'viewCustomer' => 1,
                 'deleteCustomer' => 1,
-                'viewSupplier' => 1,
+
+                // Suppliers
                 'createSupplier' => 1,
                 'updateSupplier' => 1,
+                'viewSupplier' => 1,
                 'deleteSupplier' => 1,
-                'viewPurchase' => 1,
-                'createPurchase' => 1,
-                'updatePurchase' => 1,
-                'deletePurchase' => 1,
-                'viewStock' => 1,          // ✅ AJOUTÉ
-                'viewStockHistory' => 1,   // ✅ AJOUTÉ
-                'viewProfile' => 1,        // ✅ AJOUTÉ
-                'updateSetting' => 1       // ✅ AJOUTÉ
+
+                // Users
+                'createUser' => 1,
+                'updateUser' => 1,
+                'viewUser' => 1,
+                'deleteUser' => 1,
+
+                // Groups
+                'createGroup' => 1,
+                'updateGroup' => 1,
+                'viewGroup' => 1,
+                'deleteGroup' => 1,
+
+                // Company & Reports
+                'createCompany' => 1,
+                'updateCompany' => 1,
+                'viewCompany' => 1,
+                'viewReports' => 1
             ))
         );
+
 
 
         $tenant_db->insert('groups', $group_data);
