@@ -30,60 +30,60 @@ class Tenant
      * @param int $tenant_id ID du tenant
      * @return object|bool Retourne l'objet de connexion DB ou FALSE en cas d'erreur
      */
-  public function switch_tenant_db($tenant_id)
-{
-    // Get tenant info from master DB
-    if (!$this->master_db) {
-        $this->init_master_db();
-    }
+    public function switch_tenant_db($tenant_id)
+    {
+        // Get tenant info from master DB
+        if (!$this->master_db) {
+            $this->init_master_db();
+        }
 
-    $query = $this->master_db->query("SELECT * FROM tenants WHERE id = ? AND status = 'active'", array($tenant_id));
+        $query = $this->master_db->query("SELECT * FROM tenants WHERE id = ? AND status = 'active'", array($tenant_id));
 
-    if ($query->num_rows() == 0) {
-        log_message('error', 'Tenant not found or inactive: ' . $tenant_id);
-        
-        // ✅ NOUVEAU : Déconnecter l'utilisateur si le tenant n'existe plus
-        $this->CI->session->sess_destroy();
-        show_error('Unable to connect to tenant database. Your account may have been deleted or suspended. Please contact support.', 403, 'Tenant Not Available');
-        return FALSE;
-    }
+        if ($query->num_rows() == 0) {
+            log_message('error', 'Tenant not found or inactive: ' . $tenant_id);
 
-    $tenant = $query->row_array();
-    $this->current_tenant = $tenant;
+            // ✅ NOUVEAU : Déconnecter l'utilisateur si le tenant n'existe plus
+            $this->CI->session->sess_destroy();
+            show_error('Unable to connect to tenant database. Your account may have been deleted or suspended. Please contact support.', 403, 'Tenant Not Available');
+            return FALSE;
+        }
 
-    // Load tenant database configuration
-    $tenant_config = $this->CI->config->item('tenant_db_template');
-    $tenant_config['database'] = $tenant['database_name'];
+        $tenant = $query->row_array();
+        $this->current_tenant = $tenant;
 
-    try {
-        // Create new connection to tenant database
-        $this->tenant_db = $this->CI->load->database($tenant_config, TRUE);
+        // Load tenant database configuration
+        $tenant_config = $this->CI->config->item('tenant_db_template');
+        $tenant_config['database'] = $tenant['database_name'];
 
-        // Verify connection
-        if (!$this->tenant_db) {
-            log_message('error', 'Failed to connect to tenant database: ' . $tenant['database_name']);
+        try {
+            // Create new connection to tenant database
+            $this->tenant_db = $this->CI->load->database($tenant_config, TRUE);
+
+            // Verify connection
+            if (!$this->tenant_db) {
+                log_message('error', 'Failed to connect to tenant database: ' . $tenant['database_name']);
+                $this->CI->session->sess_destroy();
+                show_error('Unable to connect to tenant database', 500, 'Database Connection Error');
+                return FALSE;
+            }
+
+            // Test the connection
+            if (!$this->tenant_db->conn_id) {
+                log_message('error', 'Tenant database connection failed: ' . $tenant['database_name']);
+                $this->CI->session->sess_destroy();
+                show_error('Unable to connect to tenant database', 500, 'Database Connection Error');
+                return FALSE;
+            }
+
+            // Return the database connection object
+            return $this->tenant_db;
+        } catch (Exception $e) {
+            log_message('error', 'Exception while connecting to tenant DB: ' . $e->getMessage());
             $this->CI->session->sess_destroy();
             show_error('Unable to connect to tenant database', 500, 'Database Connection Error');
             return FALSE;
         }
-
-        // Test the connection
-        if (!$this->tenant_db->conn_id) {
-            log_message('error', 'Tenant database connection failed: ' . $tenant['database_name']);
-            $this->CI->session->sess_destroy();
-            show_error('Unable to connect to tenant database', 500, 'Database Connection Error');
-            return FALSE;
-        }
-
-        // Return the database connection object
-        return $this->tenant_db;
-    } catch (Exception $e) {
-        log_message('error', 'Exception while connecting to tenant DB: ' . $e->getMessage());
-        $this->CI->session->sess_destroy();
-        show_error('Unable to connect to tenant database', 500, 'Database Connection Error');
-        return FALSE;
     }
-}
 
 
 
@@ -311,49 +311,9 @@ class Tenant
         // Insert default admin group
         $group_data = array(
             'group_name' => 'Administrator',
-            'permission' => serialize(array(
-                'createUser' => 1,
-                'updateUser' => 1,
-                'viewUser' => 1,
-                'deleteUser' => 1,
-                'createGroup' => 1,
-                'updateGroup' => 1,
-                'viewGroup' => 1,
-                'deleteGroup' => 1,
-                'createBrand' => 1,
-                'updateBrand' => 1,
-                'viewBrand' => 1,
-                'deleteBrand' => 1,
-                'createCategory' => 1,
-                'updateCategory' => 1,
-                'viewCategory' => 1,
-                'deleteCategory' => 1,
-                'createProduct' => 1,
-                'updateProduct' => 1,
-                'viewProduct' => 1,
-                'deleteProduct' => 1,
-                'createOrder' => 1,
-                'updateOrder' => 1,
-                'viewOrder' => 1,
-                'deleteOrder' => 1,
-                'createReport' => 1,
-                'viewReport' => 1,
-                'updateCompany' => 1,
-                'viewCompany' => 1,
-                'viewCustomer' => 1,
-                'createCustomer' => 1,
-                'updateCustomer' => 1,
-                'deleteCustomer' => 1,
-                'viewSupplier' => 1,
-                'createSupplier' => 1,
-                'updateSupplier' => 1,
-                'deleteSupplier' => 1,
-                'viewPurchase' => 1,
-                'createPurchase' => 1,
-                'updatePurchase' => 1,
-                'deletePurchase' => 1
-            ))
+            'permission' => '{"createUser":"1","updateUser":"1","viewUser":"1","deleteUser":"1","createGroup":"1","updateGroup":"1","viewGroup":"1","deleteGroup":"1","createBrand":"1","updateBrand":"1","viewBrand":"1","deleteBrand":"1","createCategory":"1","updateCategory":"1","viewCategory":"1","deleteCategory":"1","createProduct":"1","updateProduct":"1","viewProduct":"1","deleteProduct":"1","createOrder":"1","updateOrder":"1","viewOrder":"1","deleteOrder":"1","createReport":"1","viewReport":"1","updateCompany":"1","viewCompany":"1","viewCustomer":"1","createCustomer":"1","updateCustomer":"1","deleteCustomer":"1","viewSupplier":"1","createSupplier":"1","updateSupplier":"1","deleteSupplier":"1","viewPurchase":"1","createPurchase":"1","updatePurchase":"1","deletePurchase":"1","viewStock":"1","viewStockHistory":"1","viewProfile":"1","updateSetting":"1"}'
         );
+
 
         $tenant_db->insert('groups', $group_data);
         $admin_group_id = $tenant_db->insert_id();
