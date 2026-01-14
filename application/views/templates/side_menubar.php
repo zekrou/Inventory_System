@@ -67,9 +67,6 @@
               <?php if (isset($user_permission['viewStock'])): ?>
                 <li id="viewStockNav"><a href="<?php echo base_url('stock') ?>"><i class="fa fa-circle-o"></i> Stock Overview</a></li>
               <?php endif; ?>
-              <?php if (isset($user_permission['viewStockHistory'])): ?>
-                <li id="stockHistoryNav"><a href="<?php echo base_url('stock/history') ?>"><i class="fa fa-circle-o"></i> Stock History</a></li>
-              <?php endif; ?>
             </ul>
           </li>
         <?php endif; ?>
