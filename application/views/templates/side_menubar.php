@@ -139,7 +139,7 @@
             </span>
           </a>
           <ul class="treeview-menu">
-            <?php if (isset($user_permission['viewReport'])): ?> <!-- ✅ SANS S -->
+            <?php if (isset($user_permission['viewReports'])): ?> <!-- ✅ SANS S -->
               <li id="reportSubMenu">
                 <a href="<?php echo base_url('reports/') ?>">
                   <i class="fa fa-line-chart"></i> Sales Reports
