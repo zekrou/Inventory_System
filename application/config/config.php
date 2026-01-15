@@ -24,7 +24,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 |
 */
 // Configuration dynamique selon le domaine
-$config['base_url'] = 'http://' . $_SERVER['HTTP_HOST'] . '/';
+$config['base_url'] = 'https://' . $_SERVER['HTTP_HOST'] . '/';
 $config['index_page'] = '';  // ✅ VIDE pour supprimer index.php
 
 
