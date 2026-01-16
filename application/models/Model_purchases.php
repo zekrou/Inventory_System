@@ -46,10 +46,20 @@ class Model_purchases extends CI_Model
     public function create($data, $items)
     {
         if ($data && $items) {
+            // ✅ valider user_id pour le tenant
             $user_id = $this->session->userdata('id');
+            $user_check = $this->db->where('id', $user_id)->get('users');
+            if ($user_check->num_rows() == 0) {
+                $admin   = $this->db->select('id')
+                    ->order_by('id', 'ASC')
+                    ->limit(1)
+                    ->get('users')
+                    ->row();
+                $user_id = $admin ? $admin->id : 1;
+            }
 
             // Generate unique purchase number
-            $last = $this->db->select('id')->order_by('id', 'DESC')->limit(1)->get('purchases')->row();
+            $last   = $this->db->select('id')->order_by('id', 'DESC')->limit(1)->get('purchases')->row();
             $number = $last ? ($last->id + 1) : 1;
             $purchase_no = 'PUR-' . str_pad($number, 4, '0', STR_PAD_LEFT);
 
@@ -62,33 +72,32 @@ class Model_purchases extends CI_Model
             }
 
             $purchase_data = array(
-                'purchase_no' => $purchase_no,
-                'supplier_id' => $data['supplier_id'],
-                'purchase_date' => date('Y-m-d H:i:s'),
+                'purchase_no'            => $purchase_no,
+                'supplier_id'            => $data['supplier_id'],
+                'purchase_date'          => date('Y-m-d H:i:s'),
                 'expected_delivery_date' => isset($data['expected_delivery_date']) ? $data['expected_delivery_date'] : NULL,
-                'total_amount' => $data['total_amount'],
-                'paid_amount' => isset($data['paid_amount']) ? $data['paid_amount'] : 0,
-                'due_amount' => isset($data['due_amount']) ? $data['due_amount'] : $data['total_amount'],
-                'payment_status' => isset($data['payment_status']) ? $data['payment_status'] : 'unpaid',
-                'payment_method' => isset($data['payment_method']) ? $data['payment_method'] : NULL,
-                'status' => 'pending',
-                'notes' => isset($data['notes']) ? $data['notes'] : NULL,
-                'created_by' => $user_id
+                'total_amount'           => $data['total_amount'],
+                'paid_amount'            => isset($data['paid_amount']) ? $data['paid_amount'] : 0,
+                'due_amount'             => isset($data['due_amount']) ? $data['due_amount'] : $data['total_amount'],
+                'payment_status'         => isset($data['payment_status']) ? $data['payment_status'] : 'unpaid',
+                'payment_method'         => isset($data['payment_method']) ? $data['payment_method'] : NULL,
+                'status'                 => 'pending',
+                'notes'                  => isset($data['notes']) ? $data['notes'] : NULL,
+                'created_by'             => $user_id,   // ✅ id valide dans ce tenant
             );
 
-            $insert = $this->db->insert('purchases', $purchase_data);
+            $insert      = $this->db->insert('purchases', $purchase_data);
             $purchase_id = $this->db->insert_id();
 
             if ($insert && $purchase_id) {
-                // Insert purchase items
                 foreach ($items as $item) {
                     $itemdata = array(
                         'purchase_id' => $purchase_id,
-                        'product_id' => $item['product_id'],
-                        'quantity' => $item['quantity'],
-                        'unit_price' => $item['unit_price'],
+                        'product_id'  => $item['product_id'],
+                        'quantity'    => $item['quantity'],
+                        'unit_price'  => $item['unit_price'],
                         'total_price' => $item['quantity'] * $item['unit_price'],
-                        'stock_id' => isset($item['stock_id']) && !empty($item['stock_id']) ? $item['stock_id'] : NULL,
+                        'stock_id'    => isset($item['stock_id']) && !empty($item['stock_id']) ? $item['stock_id'] : NULL,
                     );
                     $this->db->insert('purchase_items', $itemdata);
                 }
@@ -96,6 +105,7 @@ class Model_purchases extends CI_Model
                 return $purchase_id;
             }
         }
+
 
         return false;
     }
@@ -259,11 +269,21 @@ class Model_purchases extends CI_Model
             $items = $this->getPurchaseItems($purchase_id);
 
             if (!empty($items)) {
+                // ✅ valider user_id pour le tenant
                 $user_id = $this->session->userdata('id');
+                $user_check = $this->db->where('id', $user_id)->get('users');
+                if ($user_check->num_rows() == 0) {
+                    $admin   = $this->db->select('id')
+                        ->order_by('id', 'ASC')
+                        ->limit(1)
+                        ->get('users')
+                        ->row();
+                    $user_id = $admin ? $admin->id : 1;
+                }
 
                 foreach ($items as $item) {
                     // Get current product stock
-                    $sql = "SELECT qty FROM products WHERE id = ?";
+                    $sql   = "SELECT qty FROM products WHERE id = ?";
                     $query = $this->db->query($sql, array($item['product_id']));
                     $product = $query->row_array();
 
@@ -284,16 +304,16 @@ class Model_purchases extends CI_Model
 
                         // ✅ ENREGISTRER dans stock_history avec la bonne structure
                         $stock_history_data = array(
-                            'product_id' => $item['product_id'],
-                            'purchase_id' => $purchase_id,
-                            'movement_type' => 'adjustment', // ou 'return' selon votre logique
-                            'quantity' => -$item['quantity'], // Négatif car on retire
+                            'product_id'      => $item['product_id'],
+                            'purchase_id'     => $purchase_id,
+                            'movement_type'   => 'adjustment', // ou 'return' selon ta logique
+                            'quantity'        => -$item['quantity'], // Négatif car on retire
                             'quantity_before' => $quantity_before,
-                            'quantity_after' => $new_qty,
-                            'unit_price' => $item['unit_price'],
-                            'user_id' => $user_id ? $user_id : 1,
-                            'notes' => 'Purchase ' . $purchase['purchase_no'] . ' deleted - Stock restored',
-                            'created_at' => date('Y-m-d H:i:s')
+                            'quantity_after'  => $new_qty,
+                            'unit_price'      => $item['unit_price'],
+                            'user_id'         => $user_id, // ✅ déjà validé
+                            'notes'           => 'Purchase ' . $purchase['purchase_no'] . ' deleted - Stock restored',
+                            'created_at'      => date('Y-m-d H:i:s'),
                         );
 
                         $this->db->insert('stock_history', $stock_history_data);
@@ -301,6 +321,7 @@ class Model_purchases extends CI_Model
                 }
             }
         }
+
 
         // Delete purchase_items
         $this->db->where('purchase_id', $purchase_id);

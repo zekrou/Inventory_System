@@ -461,33 +461,42 @@ class Purchases extends Admin_Controller
         }
 
         if ($this->input->post()) {
-            $purchase_id = $this->input->post('purchase_id');
-            $amount_paid = floatval($this->input->post('amount_paid'));
-            $payment_date = $this->input->post('payment_date');
-            $payment_method = $this->input->post('payment_method');
+            $purchase_id      = $this->input->post('purchase_id');
+            $amount_paid      = floatval($this->input->post('amount_paid'));
+            $payment_date     = $this->input->post('payment_date');
+            $payment_method   = $this->input->post('payment_method');
             $reference_number = $this->input->post('reference_number');
-            $notes = $this->input->post('payment_notes');
+            $notes            = $this->input->post('payment_notes');
 
+            // ✅ VALIDER user_id POUR LE TENANT
             $user_id = $this->session->userdata('id');
+            $user_check = $this->db->where('id', $user_id)->get('users');
+            if ($user_check->num_rows() == 0) {
+                $admin   = $this->db->select('id')
+                    ->order_by('id', 'ASC')
+                    ->limit(1)
+                    ->get('users')
+                    ->row();
+                $user_id = $admin ? $admin->id : 1;
+            }
 
             // Get current purchase data
             $purchase = $this->model_purchases->getPurchaseData($purchase_id);
-
             if (!$purchase) {
                 $this->session->set_flashdata('error', 'Purchase not found!');
                 redirect('purchases', 'refresh');
             }
 
             // Calculate new totals
-            $current_paid = isset($purchase['paid_amount']) ? floatval($purchase['paid_amount']) : 0;
+            $current_paid    = isset($purchase['paid_amount']) ? floatval($purchase['paid_amount']) : 0;
             $new_paid_amount = $current_paid + $amount_paid;
-            $new_due_amount = $purchase['total_amount'] - $new_paid_amount;
+            $new_due_amount  = $purchase['total_amount'] - $new_paid_amount;
 
             // Determine payment status
             if ($new_due_amount <= 0) {
-                $payment_status = 'paid';
+                $payment_status  = 'paid';
                 $new_paid_amount = $purchase['total_amount'];
-                $new_due_amount = 0;
+                $new_due_amount  = 0;
             } elseif ($new_paid_amount > 0) {
                 $payment_status = 'partial';
             } else {
@@ -496,24 +505,22 @@ class Purchases extends Admin_Controller
 
             // Insert payment record
             $payment_data = array(
-                'purchase_id' => $purchase_id,
-                'payment_date' => date('Y-m-d H:i:s', strtotime($payment_date)),
-                'amount_paid' => $amount_paid,
-                'payment_method' => $payment_method,
+                'purchase_id'      => $purchase_id,
+                'payment_date'     => date('Y-m-d H:i:s', strtotime($payment_date)),
+                'amount_paid'      => $amount_paid,
+                'payment_method'   => $payment_method,
                 'reference_number' => $reference_number,
-                'notes' => $notes,
-                'created_by' => $user_id
+                'notes'            => $notes,
+                'created_by'       => $user_id, // ✅ validé tenant
             );
-
             $this->db->insert('purchase_payments', $payment_data);
 
             // Update purchase totals
             $update_data = array(
-                'paid_amount' => $new_paid_amount,
-                'due_amount' => $new_due_amount,
-                'payment_status' => $payment_status
+                'paid_amount'     => $new_paid_amount,
+                'due_amount'      => $new_due_amount,
+                'payment_status'  => $payment_status,
             );
-
             $this->db->where('id', $purchase_id);
             $this->db->update('purchases', $update_data);
 

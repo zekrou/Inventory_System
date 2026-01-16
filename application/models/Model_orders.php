@@ -229,7 +229,11 @@ class Model_orders extends CI_Model
 	{
 		if ($id) {
 			$user_id = $this->session->userdata('id');
-
+			$user_check = $this->db->where('id', $user_id)->get('users');
+			if ($user_check->num_rows() == 0) {
+				$admin = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();
+				$user_id = $admin ? $admin->id : 1;
+			}
 			$old_order = $this->getOrdersData($id);
 			$old_net_amount = $old_order['net_amount'];
 			$old_paid_amount = $old_order['paid_amount'];
@@ -363,7 +367,17 @@ class Model_orders extends CI_Model
 	public function remove($id)
 	{
 		if ($id) {
+			// ✅ valider user_id pour le tenant
 			$user_id = $this->session->userdata('id');
+			$user_check = $this->db->where('id', $user_id)->get('users');
+			if ($user_check->num_rows() == 0) {
+				$admin   = $this->db->select('id')
+					->order_by('id', 'ASC')
+					->limit(1)
+					->get('users')
+					->row();
+				$user_id = $admin ? $admin->id : 1;
+			}
 
 			$order_data = $this->getOrdersData($id);
 
@@ -372,11 +386,11 @@ class Model_orders extends CI_Model
 
 			foreach ($order_items as $item) {
 				$product_id = $item['product_id'];
-				$qty = $item['qty'];
+				$qty        = $item['qty'];
 
 				$product_data = $this->model_products->getProductData($product_id);
-				$qty_before = $product_data['qty'];
-				$qty_after = $qty_before + $qty;
+				$qty_before   = $product_data['qty'];
+				$qty_after    = $qty_before + $qty;
 
 				$update_product = array('qty' => $qty_after);
 				$this->model_products->update($update_product, $product_id);
@@ -408,9 +422,19 @@ class Model_orders extends CI_Model
 	 */
 	public function addPaymentInstallment($order_id, $payment_amount, $payment_method, $payment_notes)
 	{
+		// ✅ valider user_id pour le tenant
 		$user_id = $this->session->userdata('id');
-		$order = $this->getOrdersData($order_id);
+		$user_check = $this->db->where('id', $user_id)->get('users');
+		if ($user_check->num_rows() == 0) {
+			$admin   = $this->db->select('id')
+				->order_by('id', 'ASC')
+				->limit(1)
+				->get('users')
+				->row();
+			$user_id = $admin ? $admin->id : 1;
+		}
 
+		$order = $this->getOrdersData($order_id);
 		if (!$order) {
 			return array('success' => false, 'message' => 'Order not found');
 		}
@@ -422,7 +446,7 @@ class Model_orders extends CI_Model
 
 		// Calculate new balances
 		$new_paid_amount = $order['paid_amount'] + $payment_amount;
-		$new_due_amount = $order['net_amount'] - $new_paid_amount;
+		$new_due_amount  = $order['net_amount'] - $new_paid_amount;
 
 		// Determine new payment status
 		if ($new_due_amount == 0) {
@@ -437,17 +461,24 @@ class Model_orders extends CI_Model
 		$installment_number = $this->getNextInstallmentNumber($order_id);
 
 		// Record payment installment
-		$this->recordPaymentInstallment($order_id, $payment_amount, $payment_method, $payment_notes, $new_due_amount, $user_id, $installment_number);
+		$this->recordPaymentInstallment(
+			$order_id,
+			$payment_amount,
+			$payment_method,
+			$payment_notes,
+			$new_due_amount,
+			$user_id,            // ✅ user valide du tenant
+			$installment_number
+		);
 
 		// Update order totals
 		$update_data = array(
-			'paid_amount' => $new_paid_amount,
-			'due_amount' => $new_due_amount,
-			'paid_status' => $new_paid_status,
-			'payment_method' => $payment_method,
-			'payment_notes' => $payment_notes
+			'paid_amount'     => $new_paid_amount,
+			'due_amount'      => $new_due_amount,
+			'paid_status'     => $new_paid_status,
+			'payment_method'  => $payment_method,
+			'payment_notes'   => $payment_notes,
 		);
-
 		$this->db->where('id', $order_id);
 		$this->db->update('orders', $update_data);
 
@@ -458,13 +489,14 @@ class Model_orders extends CI_Model
 		}
 
 		return array(
-			'success' => true,
-			'message' => 'Payment installment recorded successfully',
-			'new_due_amount' => $new_due_amount,
-			'paid_status' => $new_paid_status,
-			'installment_number' => $installment_number
+			'success'            => true,
+			'message'            => 'Payment installment recorded successfully',
+			'new_due_amount'     => $new_due_amount,
+			'paid_status'        => $new_paid_status,
+			'installment_number' => $installment_number,
 		);
 	}
+
 
 	/**
 	 * Get next installment number

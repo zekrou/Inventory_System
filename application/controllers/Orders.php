@@ -231,10 +231,10 @@ class Orders extends Admin_Controller
 
             // Calculate totals
             $gross_amount = floatval($this->input->post('gross_amount_value'));
-            $discount = $this->input->post('discount') ? floatval($this->input->post('discount')) : 0;
-            $net_amount = floatval($this->input->post('net_amount_value'));
-            $paid_amount = $this->input->post('paid_amount') ? floatval($this->input->post('paid_amount')) : 0;
-            $due_amount = $net_amount - $paid_amount;
+            $discount     = $this->input->post('discount') ? floatval($this->input->post('discount')) : 0;
+            $net_amount   = floatval($this->input->post('net_amount_value'));
+            $paid_amount  = $this->input->post('paid_amount') ? floatval($this->input->post('paid_amount')) : 0;
+            $due_amount   = $net_amount - $paid_amount;
 
             // Payment status
             if ($paid_amount == 0) {
@@ -245,46 +245,47 @@ class Orders extends Admin_Controller
                 $paid_status = 3; // Partial
             }
 
-            // ✅ DÉFINIR ET VALIDER user_id ICI (AVANT TOUT)
+            // ✅ DÉFINIR ET VALIDER user_id ICI (UNE SEULE FOIS)
             $user_id = $this->session->userdata('id');
+
             $user_check = $this->db->where('id', $user_id)->get('users');
             if ($user_check->num_rows() == 0) {
-                $admin = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();
+                $admin   = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();
                 $user_id = $admin ? $admin->id : 1;
             }
 
             $bill_no = 'BILPR-' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
 
-            // Prepare order data for Model
+            // Prepare order data
             $data = array(
-                'bill_no' => $bill_no,
-                'customer_id' => $customer_id,
-                'customer_type' => $original_type,
+                'bill_no'            => $bill_no,
+                'customer_id'        => $customer_id,
+                'customer_type'      => $original_type,
                 'price_type_override' => ($price_type_override && $price_type_override != $original_type) ? $price_type_override : '',
-                'override_reason' => ($price_type_override && $price_type_override != $original_type) ? $override_reason : '',
-                'customer_name' => $customer['customer_name'],
-                'customer_address' => $customer['address'],
-                'customer_phone' => $customer['phone'],
-                'date_time' => date('Y-m-d H:i:s'),
-                'gross_amount' => $gross_amount,
+                'override_reason'    => ($price_type_override && $price_type_override != $original_type) ? $override_reason : '',
+                'customer_name'      => $customer['customer_name'],
+                'customer_address'   => $customer['address'],
+                'customer_phone'     => $customer['phone'],
+                'date_time'          => date('Y-m-d H:i:s'),
+                'gross_amount'       => $gross_amount,
                 'service_charge_rate' => 0,
-                'service_charge' => 0,
-                'vat_charge_rate' => 0,
-                'vat_charge' => 0,
-                'net_amount' => $net_amount,
-                'paid_amount' => $paid_amount,
-                'due_amount' => $due_amount,
-                'discount' => $discount,  // ✅ Fixed: removed the $company_info line
-                'paid_status' => $paid_status,
-                'payment_method' => $this->input->post('payment_method'),
-                'payment_notes' => $this->input->post('payment_notes'),
-                'user_id' => $user_id
+                'service_charge'     => 0,
+                'vat_charge_rate'    => 0,
+                'vat_charge'         => 0,
+                'net_amount'         => $net_amount,
+                'paid_amount'        => $paid_amount,
+                'due_amount'         => $due_amount,
+                'discount'           => $discount,
+                'paid_status'        => $paid_status,
+                'payment_method'     => $this->input->post('payment_method'),
+                'payment_notes'      => $this->input->post('payment_notes'),
+                'user_id'            => $user_id, // ✅ validé tenant
             );
-
 
             // Insert order
             $this->db->insert('orders', $data);
             $order_id = $this->db->insert_id();
+
 
 
             if ($order_id) {
