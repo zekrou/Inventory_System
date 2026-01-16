@@ -274,12 +274,13 @@ class Orders extends Admin_Controller
                 'net_amount' => $net_amount,
                 'paid_amount' => $paid_amount,
                 'due_amount' => $due_amount,
-                'discount' => $discount,$company_info = $this->model_company
+                'discount' => $discount,  // ✅ Fixed: removed the $company_info line
                 'paid_status' => $paid_status,
                 'payment_method' => $this->input->post('payment_method'),
                 'payment_notes' => $this->input->post('payment_notes'),
-                'user_id' => $user_id  // ✅ Maintenant $user_id existe
+                'user_id' => $user_id
             );
+
 
             // Insert order
             $this->db->insert('orders', $data);
@@ -683,62 +684,62 @@ class Orders extends Admin_Controller
      * Professional Black & White Invoice Design
      */
     public function invoice($id)
-{
-    if (!isset($this->permission['viewOrder'])) {
-        redirect('dashboard', 'refresh');
-    }
-
-    if ($id) {
-        $order_data = $this->model_orders->getOrdersData($id);
-        $orders_items = $this->model_orders->getOrdersItemData($id);
-        $company_info = $this->model_company->getCompanyData(1);
-        
-        // ✅ ADD NULL CHECK FOR COMPANY INFO
-        if (!$company_info || !is_array($company_info)) {
-            $company_info = array(
-                'company_name' => 'Your Company',
-                'address' => 'Your Address Here',
-                'phone' => 'N/A',
-                'email' => 'email@example.com'
-            );
+    {
+        if (!isset($this->permission['viewOrder'])) {
+            redirect('dashboard', 'refresh');
         }
-        
-        $payments = $this->model_orders->getOrderPayments($id);
 
-        // Convert order date
-        if (is_numeric($order_data['date_time'])) {
-            $order_timestamp = $order_data['date_time'];
-        } else {
-            $datetime_obj = DateTime::createFromFormat('Y-m-d H:i:s', $order_data['date_time']);
-            if ($datetime_obj) {
-                $order_timestamp = $datetime_obj->getTimestamp();
+        if ($id) {
+            $order_data = $this->model_orders->getOrdersData($id);
+            $orders_items = $this->model_orders->getOrdersItemData($id);
+            $company_info = $this->model_company->getCompanyData(1);
+
+            // ✅ ADD NULL CHECK FOR COMPANY INFO
+            if (!$company_info || !is_array($company_info)) {
+                $company_info = array(
+                    'company_name' => 'Your Company',
+                    'address' => 'Your Address Here',
+                    'phone' => 'N/A',
+                    'email' => 'email@example.com'
+                );
+            }
+
+            $payments = $this->model_orders->getOrderPayments($id);
+
+            // Convert order date
+            if (is_numeric($order_data['date_time'])) {
+                $order_timestamp = $order_data['date_time'];
             } else {
-                $order_timestamp = strtotime($order_data['date_time']);
-                if ($order_timestamp === false || $order_timestamp === 0) {
-                    $order_timestamp = time();
+                $datetime_obj = DateTime::createFromFormat('Y-m-d H:i:s', $order_data['date_time']);
+                if ($datetime_obj) {
+                    $order_timestamp = $datetime_obj->getTimestamp();
+                } else {
+                    $order_timestamp = strtotime($order_data['date_time']);
+                    if ($order_timestamp === false || $order_timestamp === 0) {
+                        $order_timestamp = time();
+                    }
                 }
             }
-        }
 
-        $order_date = date('d/m/Y', $order_timestamp);
-        $order_time = date('h:i A', $order_timestamp);
+            $order_date = date('d/m/Y', $order_timestamp);
+            $order_time = date('h:i A', $order_timestamp);
 
-        // Payment status
-        if ($order_data['paid_status'] == 1) {
-            $paid_status = 'PAID';
-            $status_class = 'status-received';
-        } elseif ($order_data['paid_status'] == 3) {
-            $paid_status = 'PARTIALLY PAID';
-            $status_class = 'status-pending';
-        } else {
-            $paid_status = 'UNPAID';
-            $status_class = 'status-cancelled';
-        }
+            // Payment status
+            if ($order_data['paid_status'] == 1) {
+                $paid_status = 'PAID';
+                $status_class = 'status-received';
+            } elseif ($order_data['paid_status'] == 3) {
+                $paid_status = 'PARTIALLY PAID';
+                $status_class = 'status-pending';
+            } else {
+                $paid_status = 'UNPAID';
+                $status_class = 'status-cancelled';
+            }
 
-        // ========================================
-        // NOUVEAU DESIGN HTML (COMME PURCHASE)
-        // ========================================
-        $html = '<!DOCTYPE html>
+            // ========================================
+            // NOUVEAU DESIGN HTML (COMME PURCHASE)
+            // ========================================
+            $html = '<!DOCTYPE html>
             <html lang="en">
             <head>
             <meta charset="UTF-8">
@@ -1074,14 +1075,14 @@ class Orders extends Admin_Controller
                             <div class="info-value">' . htmlspecialchars($order_data['customer_phone']) . '</div>
                         </div>';
 
-                    if (!empty($order_data['customer_address'])) {
-                        $html .= '<div class="info-row">
+            if (!empty($order_data['customer_address'])) {
+                $html .= '<div class="info-row">
                             <div class="info-label">Address:</div>
                             <div class="info-value">' . htmlspecialchars($order_data['customer_address']) . '</div>
                         </div>';
-                    }
+            }
 
-                    $html .= '</div>
+            $html .= '</div>
                     
                     <!-- Order Details -->
                     <div class="info-box">
@@ -1115,19 +1116,19 @@ class Orders extends Admin_Controller
                         </thead>
                         <tbody>';
 
-                    $no = 1;
-                    foreach ($orders_items as $item) {
-                        $product_data = $this->model_products->getProductData($item['product_id']);
-                        $html .= '<tr>
+            $no = 1;
+            foreach ($orders_items as $item) {
+                $product_data = $this->model_products->getProductData($item['product_id']);
+                $html .= '<tr>
                                 <td class="text-center text-bold">' . $no++ . '</td>
                                 <td class="text-bold">' . htmlspecialchars($product_data['name']) . '</td>
                                 <td class="text-center"><strong>' . $item['qty'] . '</strong></td>
                                 <td class="text-right">' . number_format($item['rate'], 2) . ' DZD</td>
                                 <td class="text-right text-bold">' . number_format($item['amount'], 2) . ' DZD</td>
                             </tr>';
-                    }
+            }
 
-                    $html .= '</tbody>
+            $html .= '</tbody>
                     </table>
                 </div>
                 
@@ -1138,14 +1139,14 @@ class Orders extends Admin_Controller
                         <span>' . number_format($order_data['gross_amount'], 2) . ' DZD</span>
                     </div>';
 
-                    if ($order_data['discount'] > 0) {
-                        $html .= '<div class="payment-row">
+            if ($order_data['discount'] > 0) {
+                $html .= '<div class="payment-row">
                             <span>Discount:</span>
                             <span>- ' . number_format($order_data['discount'], 2) . ' DZD</span>
                         </div>';
-                    }
+            }
 
-                    $html .= '<div class="payment-row total">
+            $html .= '<div class="payment-row total">
                         <span>TOTAL AMOUNT</span>
                         <span>' . number_format($order_data['net_amount'], 2) . ' DZD</span>
                     </div>
@@ -1155,18 +1156,18 @@ class Orders extends Admin_Controller
                         <span><strong>' . number_format($order_data['paid_amount'], 2) . ' DZD</strong></span>
                     </div>';
 
-                    if ($order_data['due_amount'] > 0) {
-                        $html .= '<div class="payment-row due">
+            if ($order_data['due_amount'] > 0) {
+                $html .= '<div class="payment-row due">
                             <span>Amount Due:</span>
                             <span><strong>' . number_format($order_data['due_amount'], 2) . ' DZD</strong></span>
                         </div>';
-                    }
+            }
 
-                    $html .= '</div>';
+            $html .= '</div>';
 
-                    // Payment History
-                    if (!empty($payments) && count($payments) > 0) {
-                        $html .= '<div class="payment-history">
+            // Payment History
+            if (!empty($payments) && count($payments) > 0) {
+                $html .= '<div class="payment-history">
                         <div class="history-title">💳 Payment History (' . count($payments) . ' installments)</div>
                         
                         <table>
@@ -1182,53 +1183,53 @@ class Orders extends Admin_Controller
                             </thead>
                             <tbody>';
 
-                        foreach ($payments as $payment) {
-                            $is_final = ($payment['remaining_balance'] == 0);
+                foreach ($payments as $payment) {
+                    $is_final = ($payment['remaining_balance'] == 0);
 
-                            // Convert payment date
-                            if (is_numeric($payment['payment_date'])) {
-                                $payment_timestamp = $payment['payment_date'];
-                            } else {
-                                $datetime_obj = DateTime::createFromFormat('Y-m-d H:i:s', $payment['payment_date']);
-                                if ($datetime_obj) {
-                                    $payment_timestamp = $datetime_obj->getTimestamp();
-                                } else {
-                                    $payment_timestamp = strtotime($payment['payment_date']);
-                                    if ($payment_timestamp === false) {
-                                        $payment_timestamp = time();
-                                    }
-                                }
+                    // Convert payment date
+                    if (is_numeric($payment['payment_date'])) {
+                        $payment_timestamp = $payment['payment_date'];
+                    } else {
+                        $datetime_obj = DateTime::createFromFormat('Y-m-d H:i:s', $payment['payment_date']);
+                        if ($datetime_obj) {
+                            $payment_timestamp = $datetime_obj->getTimestamp();
+                        } else {
+                            $payment_timestamp = strtotime($payment['payment_date']);
+                            if ($payment_timestamp === false) {
+                                $payment_timestamp = time();
                             }
+                        }
+                    }
 
-                            $row_style = $is_final ? 'background: #d4edda;' : '';
+                    $row_style = $is_final ? 'background: #d4edda;' : '';
 
-                            $html .= '<tr style="' . $row_style . '">
+                    $html .= '<tr style="' . $row_style . '">
                                     <td class="text-center text-bold">#' . $payment['installment_number'] . '</td>
                                     <td>' . date('d/m/Y H:i', $payment_timestamp) . '</td>
                                     <td class="text-right text-bold" style="color: #27ae60;">' . number_format($payment['payment_amount'], 2) . ' DZD</td>
                                     <td class="text-right">';
 
-                            if ($is_final) {
-                                $html .= '<strong style="color: #27ae60;">PAID ✓</strong>';
-                            } else {
-                                $html .= number_format($payment['remaining_balance'], 2) . ' DZD';
-                            }
+                    if ($is_final) {
+                        $html .= '<strong style="color: #27ae60;">PAID ✓</strong>';
+                    } else {
+                        $html .= number_format($payment['remaining_balance'], 2) . ' DZD';
+                    }
 
-                            $method_display = ucfirst(str_replace('_', ' ', $payment['payment_method']));
-                            $notes_display = !empty($payment['notes']) ? htmlspecialchars($payment['notes']) : '-';
+                    $method_display = ucfirst(str_replace('_', ' ', $payment['payment_method']));
+                    $notes_display = !empty($payment['notes']) ? htmlspecialchars($payment['notes']) : '-';
 
-                            $html .= '</td>
+                    $html .= '</td>
                                     <td>' . $method_display . '</td>
                                     <td style="font-size: 9pt;">' . $notes_display . '</td>
                                 </tr>';
-                        }
+                }
 
-                        $html .= '</tbody>
+                $html .= '</tbody>
                         </table>
                     </div>';
-                    }
+            }
 
-                    $html .= '
+            $html .= '
                 <!-- Print Button -->
                 <div class="print-button">
                     <button class="btn-print" onclick="printInvoice()">
@@ -1250,9 +1251,9 @@ class Orders extends Admin_Controller
         </body>
         </html>';
 
-                    echo $html;
-                }
-}
+            echo $html;
+        }
+    }
 
 
 
