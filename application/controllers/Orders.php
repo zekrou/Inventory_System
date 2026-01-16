@@ -642,6 +642,7 @@ class Orders extends Admin_Controller
 
     public function addPayment()
     {
+        log_message('error', 'addPayment POST: order_id='.print_r($order_id,true).' amount='.print_r($payment_amount,true));
         if (!isset($this->permission['updateOrder'])) {
             echo json_encode(array('success' => false, 'message' => 'Permission denied'));
             return;
