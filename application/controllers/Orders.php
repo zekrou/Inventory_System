@@ -683,573 +683,577 @@ class Orders extends Admin_Controller
      * Professional Black & White Invoice Design
      */
     public function invoice($id)
-    {
-        if (!isset($this->permission['viewOrder'])) {
-            redirect('dashboard', 'refresh');
+{
+    if (!isset($this->permission['viewOrder'])) {
+        redirect('dashboard', 'refresh');
+    }
+
+    if ($id) {
+        $order_data = $this->model_orders->getOrdersData($id);
+        $orders_items = $this->model_orders->getOrdersItemData($id);
+        $company_info = $this->model_company->getCompanyData(1);
+        
+        // ✅ ADD NULL CHECK FOR COMPANY INFO
+        if (!$company_info || !is_array($company_info)) {
+            $company_info = array(
+                'company_name' => 'Your Company',
+                'address' => 'Your Address Here',
+                'phone' => 'N/A',
+                'email' => 'email@example.com'
+            );
         }
+        
+        $payments = $this->model_orders->getOrderPayments($id);
 
-        if ($id) {
-            $order_data = $this->model_orders->getOrdersData($id);
-            $orders_items = $this->model_orders->getOrdersItemData($id);
-            $company_info = $this->model_company->getCompanyData(1);
-            if (!$company_info || !is_array($company_info)) {
-    $company_info = array(
-        'company_name' => 'Your Company',
-        'address' => '',
-        'phone' => '',
-        'email' => ''
-    );
-}
-            $payments = $this->model_orders->getOrderPayments($id);
-
-            // Convert order date
-            if (is_numeric($order_data['date_time'])) {
-                $order_timestamp = $order_data['date_time'];
+        // Convert order date
+        if (is_numeric($order_data['date_time'])) {
+            $order_timestamp = $order_data['date_time'];
+        } else {
+            $datetime_obj = DateTime::createFromFormat('Y-m-d H:i:s', $order_data['date_time']);
+            if ($datetime_obj) {
+                $order_timestamp = $datetime_obj->getTimestamp();
             } else {
-                $datetime_obj = DateTime::createFromFormat('Y-m-d H:i:s', $order_data['date_time']);
-                if ($datetime_obj) {
-                    $order_timestamp = $datetime_obj->getTimestamp();
-                } else {
-                    $order_timestamp = strtotime($order_data['date_time']);
-                    if ($order_timestamp === false || $order_timestamp === 0) {
-                        $order_timestamp = time();
-                    }
+                $order_timestamp = strtotime($order_data['date_time']);
+                if ($order_timestamp === false || $order_timestamp === 0) {
+                    $order_timestamp = time();
                 }
             }
+        }
 
-            $order_date = date('d/m/Y', $order_timestamp);
-            $order_time = date('h:i A', $order_timestamp);
+        $order_date = date('d/m/Y', $order_timestamp);
+        $order_time = date('h:i A', $order_timestamp);
 
-            // Payment status
-            if ($order_data['paid_status'] == 1) {
-                $paid_status = 'PAID';
-                $status_class = 'status-received';
-            } elseif ($order_data['paid_status'] == 3) {
-                $paid_status = 'PARTIALLY PAID';
-                $status_class = 'status-pending';
-            } else {
-                $paid_status = 'UNPAID';
-                $status_class = 'status-cancelled';
-            }
+        // Payment status
+        if ($order_data['paid_status'] == 1) {
+            $paid_status = 'PAID';
+            $status_class = 'status-received';
+        } elseif ($order_data['paid_status'] == 3) {
+            $paid_status = 'PARTIALLY PAID';
+            $status_class = 'status-pending';
+        } else {
+            $paid_status = 'UNPAID';
+            $status_class = 'status-cancelled';
+        }
 
-            // ========================================
-            // NOUVEAU DESIGN HTML (COMME PURCHASE)
-            // ========================================
-            $html = '<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales Invoice - ' . $order_data['bill_no'] . '</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: \'Segoe UI\', Arial, sans-serif;
-            font-size: 11pt;
-            line-height: 1.6;
-            color: #2c3e50;
-            background: #fff;
-            padding: 20mm;
-        }
-        
-        .container {
-            max-width: 210mm;
-            margin: 0 auto;
-            background: white;
-        }
-        
-        /* Header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 4px solid #2c3e50;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .company-section {
-            flex: 1;
-        }
-        
-        .company-name {
-            font-size: 26pt;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 8px;
-        }
-        
-        .company-details {
-            font-size: 10pt;
-            color: #555;
-            line-height: 1.5;
-        }
-        
-        .invoice-section {
-            text-align: right;
-        }
-        
-        .invoice-title {
-            font-size: 32pt;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-        
-        .invoice-number {
-            font-size: 13pt;
-            font-weight: bold;
-            color: #e74c3c;
-            background: #fff3cd;
-            padding: 5px 15px;
-            display: inline-block;
-            border-radius: 4px;
-        }
-        
-        /* Info Grid */
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin: 30px 0;
-        }
-        
-        .info-box {
-            background: #f8f9fa;
-            border-left: 4px solid #3498db;
-            padding: 15px;
-            border-radius: 4px;
-        }
-        
-        .info-box.customer {
-            border-left-color: #9b59b6;
-        }
-        
-        .info-title {
-            font-size: 11pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #2c3e50;
-            margin-bottom: 10px;
-            letter-spacing: 1px;
-        }
-        
-        .info-row {
-            display: flex;
-            padding: 5px 0;
-            font-size: 10pt;
-        }
-        
-        .info-label {
-            font-weight: 600;
-            width: 140px;
-            color: #555;
-        }
-        
-        .info-value {
-            flex: 1;
-            color: #2c3e50;
-        }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 9pt;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        
-        .status-received {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .status-pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .status-cancelled {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        /* Table */
-        .items-section {
-            margin: 30px 0;
-        }
-        
-        .section-title {
-            font-size: 14pt;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #3498db;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        
-        thead {
-            background: #34495e;
-            color: white;
-        }
-        
-        th {
-            padding: 12px 10px;
-            text-align: left;
-            font-size: 10pt;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        tbody tr {
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        tbody tr:hover {
-            background: #f8f9fa;
-        }
-        
-        tbody tr:last-child {
-            border-bottom: 3px solid #34495e;
-        }
-        
-        td {
-            padding: 12px 10px;
-            font-size: 10pt;
-        }
-        
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .text-bold { font-weight: bold; }
-        
-        /* Payment Summary Box */
-        .payment-summary {
-            background: #f8f9fa;
-            padding: 20px;
-            border-left: 4px solid #27ae60;
-            margin-top: 30px;
-            border-radius: 4px;
-        }
-        
-        .payment-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            font-size: 11pt;
-        }
-        
-        .payment-row.total {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 20px;
-            margin: 10px -10px;
-            border-radius: 8px;
-            font-size: 14pt;
-            font-weight: bold;
-        }
-        
-        .payment-row.paid {
-            color: #27ae60;
-            font-weight: 600;
-        }
-        
-        .payment-row.due {
-            color: #e74c3c;
-            font-weight: 600;
-        }
-        
-        /* Payment History */
-        .payment-history {
-            margin-top: 30px;
-        }
-        
-        .history-title {
-            font-size: 12pt;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #27ae60;
-        }
-        
-        /* Print Button */
-        .print-button {
-            text-align: center;
-            margin: 30px 0;
-        }
-        
-        .btn-print {
-            background: #2c3e50;
-            color: white;
-            border: none;
-            padding: 15px 50px;
-            font-size: 14pt;
-            font-weight: bold;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .btn-print:hover {
-            background: #34495e;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        
-        /* Print Styles */
-        @media print {
-            @page {
-                margin: 10mm;
-                size: A4;
-            }
-            
-            body {
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            
-            .print-button {
-                display: none !important;
-            }
-            
-            .container {
-                max-width: 100%;
-                padding: 0;
-                margin: 0;
-            }
-            
-            html, body {
-                height: 100%;
-                overflow: visible;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        
-        <!-- Header -->
-        <div class="header">
-            <div class="company-section">
-                <div class="company-name">' . htmlspecialchars($company_info['company_name']) . '</div>
-                <div class="company-details">
-                    ' . nl2br(htmlspecialchars($company_info['address'])) . '<br>
-                    <strong>Phone:</strong> ' . htmlspecialchars($company_info['phone']) . '
-                </div>
-            </div>
-            
-            <div class="invoice-section">
-                <div class="invoice-title">SALES INVOICE</div>
-                <div class="invoice-number">' . htmlspecialchars($order_data['bill_no']) . '</div>
-            </div>
-        </div>
-        
-        <!-- Info Grid -->
-        <div class="info-grid">
-            <!-- Customer Info -->
-            <div class="info-box customer">
-                <div class="info-title">👤 Customer Information</div>
-                <div class="info-row">
-                    <div class="info-label">Name:</div>
-                    <div class="info-value"><strong>' . htmlspecialchars($order_data['customer_name']) . '</strong></div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label">Phone:</div>
-                    <div class="info-value">' . htmlspecialchars($order_data['customer_phone']) . '</div>
-                </div>';
-
-            if (!empty($order_data['customer_address'])) {
-                $html .= '<div class="info-row">
-                    <div class="info-label">Address:</div>
-                    <div class="info-value">' . htmlspecialchars($order_data['customer_address']) . '</div>
-                </div>';
-            }
-
-            $html .= '</div>
-            
-            <!-- Order Details -->
-            <div class="info-box">
-                <div class="info-title">📋 Order Details</div>
-                <div class="info-row">
-                    <div class="info-label">Date:</div>
-                    <div class="info-value"><strong>' . $order_date . ' ' . $order_time . '</strong></div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label">Payment Status:</div>
-                    <div class="info-value">
-                        <span class="status-badge ' . $status_class . '">' . $paid_status . '</span>
+        // ========================================
+        // NOUVEAU DESIGN HTML (COMME PURCHASE)
+        // ========================================
+        $html = '<!DOCTYPE html>
+            <html lang="en">
+            <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Sales Invoice - ' . htmlspecialchars($order_data['bill_no']) . '</title>
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    font-family: \'Segoe UI\', Arial, sans-serif;
+                    font-size: 11pt;
+                    line-height: 1.6;
+                    color: #2c3e50;
+                    background: #fff;
+                    padding: 20mm;
+                }
+                
+                .container {
+                    max-width: 210mm;
+                    margin: 0 auto;
+                    background: white;
+                }
+                
+                /* Header */
+                .header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    border-bottom: 4px solid #2c3e50;
+                    padding-bottom: 20px;
+                    margin-bottom: 30px;
+                }
+                
+                .company-section {
+                    flex: 1;
+                }
+                
+                .company-name {
+                    font-size: 26pt;
+                    font-weight: bold;
+                    color: #2c3e50;
+                    margin-bottom: 8px;
+                }
+                
+                .company-details {
+                    font-size: 10pt;
+                    color: #555;
+                    line-height: 1.5;
+                }
+                
+                .invoice-section {
+                    text-align: right;
+                }
+                
+                .invoice-title {
+                    font-size: 32pt;
+                    font-weight: bold;
+                    color: #2c3e50;
+                    margin-bottom: 5px;
+                }
+                
+                .invoice-number {
+                    font-size: 13pt;
+                    font-weight: bold;
+                    color: #e74c3c;
+                    background: #fff3cd;
+                    padding: 5px 15px;
+                    display: inline-block;
+                    border-radius: 4px;
+                }
+                
+                /* Info Grid */
+                .info-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 20px;
+                    margin: 30px 0;
+                }
+                
+                .info-box {
+                    background: #f8f9fa;
+                    border-left: 4px solid #3498db;
+                    padding: 15px;
+                    border-radius: 4px;
+                }
+                
+                .info-box.customer {
+                    border-left-color: #9b59b6;
+                }
+                
+                .info-title {
+                    font-size: 11pt;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    color: #2c3e50;
+                    margin-bottom: 10px;
+                    letter-spacing: 1px;
+                }
+                
+                .info-row {
+                    display: flex;
+                    padding: 5px 0;
+                    font-size: 10pt;
+                }
+                
+                .info-label {
+                    font-weight: 600;
+                    width: 140px;
+                    color: #555;
+                }
+                
+                .info-value {
+                    flex: 1;
+                    color: #2c3e50;
+                }
+                
+                .status-badge {
+                    display: inline-block;
+                    padding: 4px 12px;
+                    border-radius: 20px;
+                    font-size: 9pt;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                }
+                
+                .status-received {
+                    background: #d4edda;
+                    color: #155724;
+                }
+                
+                .status-pending {
+                    background: #fff3cd;
+                    color: #856404;
+                }
+                
+                .status-cancelled {
+                    background: #f8d7da;
+                    color: #721c24;
+                }
+                
+                /* Table */
+                .items-section {
+                    margin: 30px 0;
+                }
+                
+                .section-title {
+                    font-size: 14pt;
+                    font-weight: bold;
+                    color: #2c3e50;
+                    margin-bottom: 15px;
+                    padding-bottom: 8px;
+                    border-bottom: 2px solid #3498db;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 15px;
+                }
+                
+                thead {
+                    background: #34495e;
+                    color: white;
+                }
+                
+                th {
+                    padding: 12px 10px;
+                    text-align: left;
+                    font-size: 10pt;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                
+                tbody tr {
+                    border-bottom: 1px solid #e0e0e0;
+                }
+                
+                tbody tr:hover {
+                    background: #f8f9fa;
+                }
+                
+                tbody tr:last-child {
+                    border-bottom: 3px solid #34495e;
+                }
+                
+                td {
+                    padding: 12px 10px;
+                    font-size: 10pt;
+                }
+                
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .text-bold { font-weight: bold; }
+                
+                /* Payment Summary Box */
+                .payment-summary {
+                    background: #f8f9fa;
+                    padding: 20px;
+                    border-left: 4px solid #27ae60;
+                    margin-top: 30px;
+                    border-radius: 4px;
+                }
+                
+                .payment-row {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 8px 0;
+                    font-size: 11pt;
+                }
+                
+                .payment-row.total {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 15px 20px;
+                    margin: 10px -10px;
+                    border-radius: 8px;
+                    font-size: 14pt;
+                    font-weight: bold;
+                }
+                
+                .payment-row.paid {
+                    color: #27ae60;
+                    font-weight: 600;
+                }
+                
+                .payment-row.due {
+                    color: #e74c3c;
+                    font-weight: 600;
+                }
+                
+                /* Payment History */
+                .payment-history {
+                    margin-top: 30px;
+                }
+                
+                .history-title {
+                    font-size: 12pt;
+                    font-weight: bold;
+                    color: #2c3e50;
+                    margin-bottom: 15px;
+                    padding-bottom: 8px;
+                    border-bottom: 2px solid #27ae60;
+                }
+                
+                /* Print Button */
+                .print-button {
+                    text-align: center;
+                    margin: 30px 0;
+                }
+                
+                .btn-print {
+                    background: #2c3e50;
+                    color: white;
+                    border: none;
+                    padding: 15px 50px;
+                    font-size: 14pt;
+                    font-weight: bold;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                }
+                
+                .btn-print:hover {
+                    background: #34495e;
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                }
+                
+                /* Print Styles */
+                @media print {
+                    @page {
+                        margin: 10mm;
+                        size: A4;
+                    }
+                    
+                    body {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                    }
+                    
+                    .print-button {
+                        display: none !important;
+                    }
+                    
+                    .container {
+                        max-width: 100%;
+                        padding: 0;
+                        margin: 0;
+                    }
+                    
+                    html, body {
+                        height: 100%;
+                        overflow: visible;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                
+                <!-- Header -->
+                <div class="header">
+                    <div class="company-section">
+                        <div class="company-name">' . htmlspecialchars($company_info['company_name'] ?? 'Your Company') . '</div>
+                        <div class="company-details">
+                            ' . nl2br(htmlspecialchars($company_info['address'] ?? '')) . '<br>
+                            <strong>Phone:</strong> ' . htmlspecialchars($company_info['phone'] ?? 'N/A') . '
+                        </div>
+                    </div>
+                    
+                    <div class="invoice-section">
+                        <div class="invoice-title">SALES INVOICE</div>
+                        <div class="invoice-number">' . htmlspecialchars($order_data['bill_no']) . '</div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Items Section -->
-        <div class="items-section">
-            <div class="section-title">🛒 Order Items</div>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 5%;">#</th>
-                        <th style="width: 45%;">Product</th>
-                        <th style="width: 12%;" class="text-center">Quantity</th>
-                        <th style="width: 19%;" class="text-right">Unit Price</th>
-                        <th style="width: 19%;" class="text-right">Total</th>
-                    </tr>
-                </thead>
-                <tbody>';
-
-            $no = 1;
-            foreach ($orders_items as $item) {
-                $product_data = $this->model_products->getProductData($item['product_id']);
-                $html .= '<tr>
-                        <td class="text-center text-bold">' . $no++ . '</td>
-                        <td class="text-bold">' . htmlspecialchars($product_data['name']) . '</td>
-                        <td class="text-center"><strong>' . $item['qty'] . '</strong></td>
-                        <td class="text-right">' . number_format($item['rate'], 2) . ' DZD</td>
-                        <td class="text-right text-bold">' . number_format($item['amount'], 2) . ' DZD</td>
-                    </tr>';
-            }
-
-            $html .= '</tbody>
-            </table>
-        </div>
-        
-        <!-- Payment Summary -->
-        <div class="payment-summary">
-            <div class="payment-row">
-                <span>Gross Amount:</span>
-                <span>' . number_format($order_data['gross_amount'], 2) . ' DZD</span>
-            </div>';
-
-            if ($order_data['discount'] > 0) {
-                $html .= '<div class="payment-row">
-                    <span>Discount:</span>
-                    <span>- ' . number_format($order_data['discount'], 2) . ' DZD</span>
-                </div>';
-            }
-
-            $html .= '<div class="payment-row total">
-                <span>TOTAL AMOUNT</span>
-                <span>' . number_format($order_data['net_amount'], 2) . ' DZD</span>
-            </div>
-            
-            <div class="payment-row paid">
-                <span>Amount Paid:</span>
-                <span><strong>' . number_format($order_data['paid_amount'], 2) . ' DZD</strong></span>
-            </div>';
-
-            if ($order_data['due_amount'] > 0) {
-                $html .= '<div class="payment-row due">
-                    <span>Amount Due:</span>
-                    <span><strong>' . number_format($order_data['due_amount'], 2) . ' DZD</strong></span>
-                </div>';
-            }
-
-            $html .= '</div>';
-
-            // Payment History
-            if (!empty($payments) && count($payments) > 0) {
-                $html .= '<div class="payment-history">
-                <div class="history-title">💳 Payment History (' . count($payments) . ' installments)</div>
                 
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 8%;">#</th>
-                            <th style="width: 22%;">Date & Time</th>
-                            <th style="width: 18%;" class="text-right">Amount</th>
-                            <th style="width: 18%;" class="text-right">Balance</th>
-                            <th style="width: 17%;">Method</th>
-                            <th style="width: 17%;">Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody>';
+                <!-- Info Grid -->
+                <div class="info-grid">
+                    <!-- Customer Info -->
+                    <div class="info-box customer">
+                        <div class="info-title">👤 Customer Information</div>
+                        <div class="info-row">
+                            <div class="info-label">Name:</div>
+                            <div class="info-value"><strong>' . htmlspecialchars($order_data['customer_name']) . '</strong></div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">Phone:</div>
+                            <div class="info-value">' . htmlspecialchars($order_data['customer_phone']) . '</div>
+                        </div>';
 
-                foreach ($payments as $payment) {
-                    $is_final = ($payment['remaining_balance'] == 0);
+                    if (!empty($order_data['customer_address'])) {
+                        $html .= '<div class="info-row">
+                            <div class="info-label">Address:</div>
+                            <div class="info-value">' . htmlspecialchars($order_data['customer_address']) . '</div>
+                        </div>';
+                    }
 
-                    // Convert payment date
-                    if (is_numeric($payment['payment_date'])) {
-                        $payment_timestamp = $payment['payment_date'];
-                    } else {
-                        $datetime_obj = DateTime::createFromFormat('Y-m-d H:i:s', $payment['payment_date']);
-                        if ($datetime_obj) {
-                            $payment_timestamp = $datetime_obj->getTimestamp();
-                        } else {
-                            $payment_timestamp = strtotime($payment['payment_date']);
-                            if ($payment_timestamp === false) {
-                                $payment_timestamp = time();
+                    $html .= '</div>
+                    
+                    <!-- Order Details -->
+                    <div class="info-box">
+                        <div class="info-title">📋 Order Details</div>
+                        <div class="info-row">
+                            <div class="info-label">Date:</div>
+                            <div class="info-value"><strong>' . $order_date . ' ' . $order_time . '</strong></div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">Payment Status:</div>
+                            <div class="info-value">
+                                <span class="status-badge ' . $status_class . '">' . $paid_status . '</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Items Section -->
+                <div class="items-section">
+                    <div class="section-title">🛒 Order Items</div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 5%;">#</th>
+                                <th style="width: 45%;">Product</th>
+                                <th style="width: 12%;" class="text-center">Quantity</th>
+                                <th style="width: 19%;" class="text-right">Unit Price</th>
+                                <th style="width: 19%;" class="text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>';
+
+                    $no = 1;
+                    foreach ($orders_items as $item) {
+                        $product_data = $this->model_products->getProductData($item['product_id']);
+                        $html .= '<tr>
+                                <td class="text-center text-bold">' . $no++ . '</td>
+                                <td class="text-bold">' . htmlspecialchars($product_data['name']) . '</td>
+                                <td class="text-center"><strong>' . $item['qty'] . '</strong></td>
+                                <td class="text-right">' . number_format($item['rate'], 2) . ' DZD</td>
+                                <td class="text-right text-bold">' . number_format($item['amount'], 2) . ' DZD</td>
+                            </tr>';
+                    }
+
+                    $html .= '</tbody>
+                    </table>
+                </div>
+                
+                <!-- Payment Summary -->
+                <div class="payment-summary">
+                    <div class="payment-row">
+                        <span>Gross Amount:</span>
+                        <span>' . number_format($order_data['gross_amount'], 2) . ' DZD</span>
+                    </div>';
+
+                    if ($order_data['discount'] > 0) {
+                        $html .= '<div class="payment-row">
+                            <span>Discount:</span>
+                            <span>- ' . number_format($order_data['discount'], 2) . ' DZD</span>
+                        </div>';
+                    }
+
+                    $html .= '<div class="payment-row total">
+                        <span>TOTAL AMOUNT</span>
+                        <span>' . number_format($order_data['net_amount'], 2) . ' DZD</span>
+                    </div>
+                    
+                    <div class="payment-row paid">
+                        <span>Amount Paid:</span>
+                        <span><strong>' . number_format($order_data['paid_amount'], 2) . ' DZD</strong></span>
+                    </div>';
+
+                    if ($order_data['due_amount'] > 0) {
+                        $html .= '<div class="payment-row due">
+                            <span>Amount Due:</span>
+                            <span><strong>' . number_format($order_data['due_amount'], 2) . ' DZD</strong></span>
+                        </div>';
+                    }
+
+                    $html .= '</div>';
+
+                    // Payment History
+                    if (!empty($payments) && count($payments) > 0) {
+                        $html .= '<div class="payment-history">
+                        <div class="history-title">💳 Payment History (' . count($payments) . ' installments)</div>
+                        
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 8%;">#</th>
+                                    <th style="width: 22%;">Date & Time</th>
+                                    <th style="width: 18%;" class="text-right">Amount</th>
+                                    <th style="width: 18%;" class="text-right">Balance</th>
+                                    <th style="width: 17%;">Method</th>
+                                    <th style="width: 17%;">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>';
+
+                        foreach ($payments as $payment) {
+                            $is_final = ($payment['remaining_balance'] == 0);
+
+                            // Convert payment date
+                            if (is_numeric($payment['payment_date'])) {
+                                $payment_timestamp = $payment['payment_date'];
+                            } else {
+                                $datetime_obj = DateTime::createFromFormat('Y-m-d H:i:s', $payment['payment_date']);
+                                if ($datetime_obj) {
+                                    $payment_timestamp = $datetime_obj->getTimestamp();
+                                } else {
+                                    $payment_timestamp = strtotime($payment['payment_date']);
+                                    if ($payment_timestamp === false) {
+                                        $payment_timestamp = time();
+                                    }
+                                }
                             }
+
+                            $row_style = $is_final ? 'background: #d4edda;' : '';
+
+                            $html .= '<tr style="' . $row_style . '">
+                                    <td class="text-center text-bold">#' . $payment['installment_number'] . '</td>
+                                    <td>' . date('d/m/Y H:i', $payment_timestamp) . '</td>
+                                    <td class="text-right text-bold" style="color: #27ae60;">' . number_format($payment['payment_amount'], 2) . ' DZD</td>
+                                    <td class="text-right">';
+
+                            if ($is_final) {
+                                $html .= '<strong style="color: #27ae60;">PAID ✓</strong>';
+                            } else {
+                                $html .= number_format($payment['remaining_balance'], 2) . ' DZD';
+                            }
+
+                            $method_display = ucfirst(str_replace('_', ' ', $payment['payment_method']));
+                            $notes_display = !empty($payment['notes']) ? htmlspecialchars($payment['notes']) : '-';
+
+                            $html .= '</td>
+                                    <td>' . $method_display . '</td>
+                                    <td style="font-size: 9pt;">' . $notes_display . '</td>
+                                </tr>';
                         }
+
+                        $html .= '</tbody>
+                        </table>
+                    </div>';
                     }
 
-                    $row_style = $is_final ? 'background: #d4edda;' : '';
+                    $html .= '
+                <!-- Print Button -->
+                <div class="print-button">
+                    <button class="btn-print" onclick="printInvoice()">
+                        🖨️ PRINT
+                    </button>
+                </div>
+                
+            </div>
 
-                    $html .= '<tr style="' . $row_style . '">
-                            <td class="text-center text-bold">#' . $payment['installment_number'] . '</td>
-                            <td>' . date('d/m/Y H:i', $payment_timestamp) . '</td>
-                            <td class="text-right text-bold" style="color: #27ae60;">' . number_format($payment['payment_amount'], 2) . ' DZD</td>
-                            <td class="text-right">';
-
-                    if ($is_final) {
-                        $html .= '<strong style="color: #27ae60;">PAID ✓</strong>';
-                    } else {
-                        $html .= number_format($payment['remaining_balance'], 2) . ' DZD';
-                    }
-
-                    $method_display = ucfirst(str_replace('_', ' ', $payment['payment_method']));
-                    $notes_display = !empty($payment['notes']) ? htmlspecialchars($payment['notes']) : '-';
-
-                    $html .= '</td>
-                            <td>' . $method_display . '</td>
-                            <td style="font-size: 9pt;">' . $notes_display . '</td>
-                        </tr>';
-                }
-
-                $html .= '</tbody>
-                </table>
-            </div>';
+            <script>
+            function printInvoice() {
+                document.querySelector(\'.print-button\').style.display = \'none\';
+                window.print();
+                setTimeout(function() {
+                    document.querySelector(\'.print-button\').style.display = \'block\';
+                }, 100);
             }
+            </script>
+        </body>
+        </html>';
 
-            $html .= '
-        <!-- Print Button -->
-        <div class="print-button">
-            <button class="btn-print" onclick="printInvoice()">
-                🖨️ PRINT
-            </button>
-        </div>
-        
-    </div>
+                    echo $html;
+                }
+}
 
-    <script>
-    function printInvoice() {
-        document.querySelector(\'.print-button\').style.display = \'none\';
-        window.print();
-        setTimeout(function() {
-            document.querySelector(\'.print-button\').style.display = \'block\';
-        }, 100);
-    }
-    </script>
-</body>
-</html>';
-
-            echo $html;
-        }
-    }
 
 
 
