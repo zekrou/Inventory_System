@@ -539,9 +539,9 @@ class Purchases extends Admin_Controller
             redirect('purchases', 'refresh');
         }
 
-        $purchase_data = $this->model_purchases->getPurchaseData($id);
-        $purchase_items = $this->model_purchases->getPurchaseItems($id);
-        $payment_history = $this->model_purchases->getPaymentHistory($id);
+        $purchase_data    = $this->model_purchases->getPurchaseData($id);
+        $purchase_items   = $this->model_purchases->getPurchaseItems($id);
+        $payment_history  = $this->model_purchases->getPaymentHistory($id);
 
         if (!$purchase_data) {
             show_404();
@@ -550,11 +550,21 @@ class Purchases extends Admin_Controller
         $this->load->model('model_company');
         $company = $this->model_company->getCompanyData(1);
 
+        // 🔴 AJOUT IMPORTANT (même logique que Orders::invoice)
+        if (!$company || !is_array($company)) {
+            $company = array(
+                'company_name' => 'Your Company',
+                'address'      => 'Your Address Here',
+                'phone'        => 'N/A',
+                'email'        => 'email@example.com',
+            );
+        }
+
         $data = array(
-            'purchase_data' => $purchase_data,
-            'purchase_items' => $purchase_items,
-            'payment_history' => $payment_history,
-            'company' => $company
+            'purchase_data'    => $purchase_data,
+            'purchase_items'   => $purchase_items,
+            'payment_history'  => $payment_history,
+            'company'          => $company,
         );
 
         // ✅ Load view WITHOUT template
