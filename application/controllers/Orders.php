@@ -642,33 +642,38 @@ class Orders extends Admin_Controller
 
     public function addPayment()
     {
-        log_message('error', 'addPayment POST: order_id='.print_r($order_id,true).' amount='.print_r($payment_amount,true));
         if (!isset($this->permission['updateOrder'])) {
             echo json_encode(array('success' => false, 'message' => 'Permission denied'));
             return;
         }
 
-        $order_id = $this->input->post('order_id');
+        // 1) Récupérer d’abord les valeurs POST
+        $order_id       = $this->input->post('order_id');
         $payment_amount = $this->input->post('payment_amount');
         $payment_method = $this->input->post('payment_method');
-        $payment_notes = $this->input->post('payment_notes');
+        $payment_notes  = $this->input->post('payment_notes');
+
+        // 2) Puis seulement après, logger pour debug (optionnel)
+        log_message('error', 'addPayment POST: order_id=' . print_r($order_id, true) . ' amount=' . print_r($payment_amount, true));
 
         $response = array();
 
-        if (!$order_id || !$payment_amount || $payment_amount <= 0) {
+        // 3) Validation robuste
+        if ($order_id === null || $payment_amount === null || $payment_amount === '' || !is_numeric($payment_amount) || $payment_amount <= 0) {
             $response['success'] = false;
             $response['message'] = 'Invalid payment amount';
             echo json_encode($response);
             return;
         }
 
+        // 4) Appel du modèle
         $result = $this->model_orders->addPaymentInstallment($order_id, $payment_amount, $payment_method, $payment_notes);
 
         if ($result['success']) {
-            $response['success'] = true;
-            $response['message'] = 'Payment recorded successfully!';
+            $response['success']        = true;
+            $response['message']        = 'Payment recorded successfully!';
             $response['new_due_amount'] = $result['new_due_amount'];
-            $response['paid_status'] = $result['paid_status'];
+            $response['paid_status']    = $result['paid_status'];
         } else {
             $response['success'] = false;
             $response['message'] = $result['message'];
@@ -676,6 +681,7 @@ class Orders extends Admin_Controller
 
         echo json_encode($response);
     }
+
 
     /**
      * Invoice with Payment Installments
