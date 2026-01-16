@@ -274,7 +274,7 @@ class Orders extends Admin_Controller
                 'net_amount' => $net_amount,
                 'paid_amount' => $paid_amount,
                 'due_amount' => $due_amount,
-                'discount' => $discount,
+                'discount' => $discount,$company_info = $this->model_company
                 'paid_status' => $paid_status,
                 'payment_method' => $this->input->post('payment_method'),
                 'payment_notes' => $this->input->post('payment_notes'),
@@ -692,6 +692,14 @@ class Orders extends Admin_Controller
             $order_data = $this->model_orders->getOrdersData($id);
             $orders_items = $this->model_orders->getOrdersItemData($id);
             $company_info = $this->model_company->getCompanyData(1);
+            if (!$company_info || !is_array($company_info)) {
+    $company_info = array(
+        'company_name' => 'Your Company',
+        'address' => '',
+        'phone' => '',
+        'email' => ''
+    );
+}
             $payments = $this->model_orders->getOrderPayments($id);
 
             // Convert order date
