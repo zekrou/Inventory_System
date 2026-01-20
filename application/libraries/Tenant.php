@@ -251,8 +251,6 @@ class Tenant
         $tenant_config['database'] = $database_name;
         $tenant_db = $this->CI->load->database($tenant_config, TRUE);
 
-        // Créer les tables avec backticks
-
         // 1. Table users
         $tenant_db->query("
         CREATE TABLE IF NOT EXISTS `users` (
@@ -268,7 +266,7 @@ class Tenant
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
     ");
 
-        // 2. Table groups (avec backticks!)
+        // 2. Table groups
         $tenant_db->query("
         CREATE TABLE IF NOT EXISTS `groups` (
             `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -288,6 +286,43 @@ class Tenant
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
     ");
 
+        // ✅ NOUVEAU: 4. Table pre_orders
+        $tenant_db->query("
+        CREATE TABLE IF NOT EXISTS `pre_orders` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `order_number` varchar(50) NOT NULL,
+            `customer_name` varchar(255) NOT NULL,
+            `customer_phone` varchar(50) NOT NULL,
+            `customer_address` text DEFAULT NULL,
+            `total_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+            `status` varchar(50) NOT NULL DEFAULT 'pending',
+            `user_id` int(11) DEFAULT NULL,
+            `notes` text DEFAULT NULL,
+            `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `order_number` (`order_number`),
+            KEY `user_id` (`user_id`),
+            KEY `status` (`status`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ");
+
+        // ✅ NOUVEAU: 5. Table pre_order_items
+        $tenant_db->query("
+        CREATE TABLE IF NOT EXISTS `pre_order_items` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `pre_order_id` int(11) NOT NULL,
+            `product_id` int(11) NOT NULL,
+            `product_name` varchar(255) NOT NULL,
+            `qty` int(11) NOT NULL,
+            `price` decimal(10,2) NOT NULL,
+            `subtotal` decimal(10,2) NOT NULL,
+            PRIMARY KEY (`id`),
+            KEY `pre_order_id` (`pre_order_id`),
+            KEY `product_id` (`product_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ");
+
         // ✅ Si pas d'email fourni, utiliser l'ancien format auto-généré
         if (empty($admin_email)) {
             $admin_email = $admin_username . '@' . $database_name . '.com';
@@ -297,7 +332,7 @@ class Tenant
         $password = password_hash('admin123', PASSWORD_DEFAULT);
         $user_data = array(
             'username' => $admin_username,
-            'email' => $admin_email, // ✅ Utiliser l'email fourni ou généré
+            'email' => $admin_email,
             'password' => $password,
             'firstname' => 'Admin',
             'lastname' => 'User',
@@ -378,15 +413,12 @@ class Tenant
                 'viewCompany' => 1,
                 'viewReports' => 1,
 
-                // ✅ PRE-ORDERS MOBILE (AJOUTE CES 3 LIGNES)
+                // ✅ PRE-ORDERS MOBILE
                 'viewPreOrder' => 1,
                 'updatePreOrder' => 1,
                 'deletePreOrder' => 1
             ))
         );
-
-
-
 
         $tenant_db->insert('groups', $group_data);
         $admin_group_id = $tenant_db->insert_id();
