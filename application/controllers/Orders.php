@@ -76,14 +76,14 @@ class Orders extends Admin_Controller
                 $date_time = $date . ' ' . $time;
 
                 $buttons = '';
-                if (in_array('viewOrder', $this->permission)) {
+                if (isset($this->permission['viewOrder'])) {
                     $buttons .= '<button class="btn btn-info btn-sm" onclick="viewOrderDetails(' . $value['id'] . ')"><i class="fa fa-eye"></i></button> ';
                     $buttons .= '<a target="__blank" href="' . base_url('orders/invoice/' . $value['id']) . '" class="btn btn-default btn-sm"><i class="fa fa-print"></i></a> ';
                 }
-                if (in_array('updateOrder', $this->permission)) {
+                if (isset($this->permission['updateOrder'])) {
                     $buttons .= '<a href="' . base_url('orders/update/' . $value['id']) . '" class="btn btn-warning btn-sm"><i class="fa fa-pencil"></i></a> ';
                 }
-                if (in_array('deleteOrder', $this->permission)) {
+                if (isset($this->permission['deleteOrder'])) {
                     $buttons .= '<button type="button" class="btn btn-danger btn-sm" onclick="removeFunc(' . $value['id'] . ')" data-toggle="modal" data-target="#removeModal"><i class="fa fa-trash"></i></button>';
                 }
 
@@ -154,7 +154,7 @@ class Orders extends Admin_Controller
 
     public function create()
     {
-        if (!in_array('createOrder', $this->permission)) {
+        if (!isset($this->permission['createOrder'])) {
             redirect('dashboard', 'refresh');
         }
 
@@ -373,7 +373,7 @@ class Orders extends Admin_Controller
 
     public function update($id)
     {
-        if (!in_array('updateOrder', $this->permission)) {
+        if (!isset($this->permission['updateOrder'])) {
             redirect('dashboard', 'refresh');
         }
         if (!$id) {
@@ -416,7 +416,7 @@ class Orders extends Admin_Controller
 
     public function remove()
     {
-        if (!in_array('deleteOrder', $this->permission)) {
+        if (!isset($this->permission['deleteOrder'])) {
             redirect('dashboard', 'refresh');
         }
         $order_id = $this->input->post('order_id');
@@ -623,7 +623,7 @@ class Orders extends Admin_Controller
             echo '</div>';
         }
 
-        if ($order['due_amount'] > 0 && in_array('updateOrder', $this->permission)) {
+        if ($order['due_amount'] > 0 && isset($this->permission['updateOrder'])) {
             echo '<div class="text-center" style="margin-top: 20px;">';
             echo '<button type="button" class="btn btn-success btn-lg" onclick="openAddPaymentModal(' . $order['id'] . ', ' . $order['due_amount'] . ')">';
             echo '<i class="fa fa-plus-circle"></i> Add Payment Installment';
@@ -634,7 +634,7 @@ class Orders extends Admin_Controller
 
     public function addPayment()
     {
-        if (!in_array('updateOrder', $this->permission)) {
+        if (!isset($this->permission['updateOrder'])) {
             echo json_encode(array('success' => false, 'message' => 'Permission denied'));
             return;
         }
