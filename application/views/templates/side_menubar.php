@@ -13,9 +13,20 @@
           <a href="<?php echo base_url('preorders'); ?>">
             <i class="fa fa-mobile"></i>
             <span>Pre-Orders Mobile</span>
+            <?php
+            // Badge count (optionnel)
+            $this->load->model('model_preorders');
+            $pending_count = $this->db->where('status', 'pending')->count_all_results('pre_orders');
+            if ($pending_count > 0):
+            ?>
+              <span class="pull-right-container">
+                <small class="label pull-right bg-yellow"><?php echo $pending_count; ?></small>
+              </span>
+            <?php endif; ?>
           </a>
         </li>
       <?php endif; ?>
+
       <?php if (!empty($user_permission) && is_array($user_permission)): ?>
 
         <!-- ========== 📦 INVENTORY MANAGEMENT ========== -->

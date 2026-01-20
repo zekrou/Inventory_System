@@ -330,7 +330,7 @@ class Tenant
                 'viewCategory' => 1,
                 'deleteCategory' => 1,
 
-                // Stock ✅
+                // Stock
                 'createStock' => 1,
                 'updateStock' => 1,
                 'viewStock' => 1,
@@ -376,9 +376,15 @@ class Tenant
                 'createCompany' => 1,
                 'updateCompany' => 1,
                 'viewCompany' => 1,
-                'viewReports' => 1
+                'viewReports' => 1,
+
+                // ✅ PRE-ORDERS MOBILE (AJOUTE CES 3 LIGNES)
+                'viewPreOrder' => 1,
+                'updatePreOrder' => 1,
+                'deletePreOrder' => 1
             ))
         );
+
 
 
 
