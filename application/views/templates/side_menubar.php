@@ -14,23 +14,23 @@
         <li class="header">MOBILE ORDERS</li>
 
         <!-- Pre-Orders Menu -->
-        <?php if (in_array('viewPreOrder', $user_permission)): ?>
+        <?php if (isset($user_permission['viewPreOrder'])): ?>
           <li class="treeview <?php echo $this->uri->segment(1) == 'preorders' ? 'active' : ''; ?>">
             <a href="<?php echo base_url('preorders'); ?>">
               <i class="fa fa-mobile"></i>
               <span>Pre-Orders Mobile</span>
               <?php
               // Badge count (optionnel - avec vérification)
-              if(class_exists('Model_preorders')) {
+              if (class_exists('Model_preorders')) {
                 $this->load->model('model_preorders');
-                if($this->db->table_exists('pre_orders')) {
+                if ($this->db->table_exists('pre_orders')) {
                   $pending_count = $this->db->where('status', 'pending')->count_all_results('pre_orders');
                   if ($pending_count > 0):
               ?>
-                <span class="pull-right-container">
-                  <small class="label pull-right bg-yellow"><?php echo $pending_count; ?></small>
-                </span>
-              <?php 
+                    <span class="pull-right-container">
+                      <small class="label pull-right bg-yellow"><?php echo $pending_count; ?></small>
+                    </span>
+              <?php
                   endif;
                 }
               }
