@@ -154,7 +154,7 @@ class Model_reports extends CI_Model
 		if ($month) {
 			$sql = "SELECT 
                     DATE(o.date_time) as date,
-                    SUM(oi.amount) as total_ventes,
+					SUM(oi.amount * (o.net_amount / o.gross_amount)) as total_ventes,
                     SUM(p.price_default * oi.qty) as total_couts,
                     SUM((oi.rate - p.price_default) * oi.qty) as profit_net
                 FROM orders o
@@ -168,7 +168,7 @@ class Model_reports extends CI_Model
 		} else {
 			$sql = "SELECT 
                     MONTH(o.date_time) as mois,
-                    SUM(oi.amount) as total_ventes,
+					SUM(oi.amount * (o.net_amount / o.gross_amount)) as total_ventes,
                     SUM(p.price_default * oi.qty) as total_couts,
                     SUM((oi.rate - p.price_default) * oi.qty) as profit_net
                 FROM orders o
@@ -194,7 +194,7 @@ class Model_reports extends CI_Model
                 p.price_default as prix_achat,
                 COUNT(DISTINCT o.id) as nb_commandes,
                 SUM(oi.qty) as quantite_vendue,
-                SUM(oi.amount) as total_ventes,
+                SUM(oi.amount * (o.net_amount / NULLIF(o.gross_amount, 0))) as total_ventes,
                 SUM(p.price_default * oi.qty) as total_couts,
                 SUM((oi.rate - p.price_default) * oi.qty) as profit_total,
                 ROUND(AVG((oi.rate - p.price_default) / p.price_default * 100), 2) as marge_moyenne_pct
@@ -225,7 +225,7 @@ class Model_reports extends CI_Model
                     END as type_client,
                     COUNT(DISTINCT o.id) as nb_commandes,
                     SUM(oi.qty) as quantite_totale,
-                    SUM(oi.amount) as total_ventes,
+                    SUM(oi.amount * (o.net_amount / NULLIF(o.gross_amount, 0))) as total_ventes,
                     SUM((oi.rate - p.price_default) * oi.qty) as profit_total
                 FROM orders o
                 JOIN orders_item oi ON o.id = oi.order_id
@@ -245,7 +245,7 @@ class Model_reports extends CI_Model
                     END as type_client,
                     COUNT(DISTINCT o.id) as nb_commandes,
                     SUM(oi.qty) as quantite_totale,
-                    SUM(oi.amount) as total_ventes,
+                    SUM(oi.amount * (o.net_amount / NULLIF(o.gross_amount, 0))) as total_ventes,
                     SUM((oi.rate - p.price_default) * oi.qty) as profit_total
                 FROM orders o
                 JOIN orders_item oi ON o.id = oi.order_id
