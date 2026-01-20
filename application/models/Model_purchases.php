@@ -55,7 +55,9 @@ class Model_purchases extends CI_Model
     {
         if ($data && $items) {
             // ✅ valider user_id pour le tenant
-            $user_id = $this->get_tenant_user_id();
+            if ($user_id === null) {
+                $user_id = 1;
+            }
             $user_check = $this->db->where('id', $user_id)->get('users');
             if ($user_check->num_rows() == 0) {
                 $admin   = $this->db->select('id')
@@ -154,8 +156,9 @@ class Model_purchases extends CI_Model
     public function receivePurchase($purchase_id)
     {
         if ($purchase_id) {
-            $user_id = $this->get_tenant_user_id();
-            // ✅ AJOUTE CES 7 LIGNES ICI
+            if ($user_id === null) {
+                $user_id = 1;
+            }            // ✅ AJOUTE CES 7 LIGNES ICI
             $user_check = $this->db->where('id', $user_id)->get('users');
 
             if ($user_check->num_rows() == 0) {
@@ -277,7 +280,9 @@ class Model_purchases extends CI_Model
 
             if (!empty($items)) {
                 // ✅ valider user_id pour le tenant
-                $user_id = $this->get_tenant_user_id();
+                if ($user_id === null) {
+                    $user_id = 1;
+                }
                 $user_check = $this->db->where('id', $user_id)->get('users');
                 if ($user_check->num_rows() == 0) {
                     $admin   = $this->db->select('id')

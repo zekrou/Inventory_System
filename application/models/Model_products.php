@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @property CI_DB_query_builder $db
  * @property CI_Session $session
@@ -660,7 +661,9 @@ class Model_products extends CI_Model
 	public function recordPriceChange($product_id, $old_price, $new_price, $purchase_id = null, $reason = null)
 	{
 		if ($this->db->table_exists('product_price_history')) {
-			$user_id = $this->get_tenant_user_id();
+			if ($user_id === null) {
+				$user_id = 1;
+			}
 			$user_check = $this->db->where('id', $user_id)->get('users');
 			if ($user_check->num_rows() == 0) {
 				$admin = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();

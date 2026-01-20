@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @property CI_DB_query_builder $db
  * @property CI_Session $session
@@ -24,7 +25,9 @@ class Model_payments extends CI_Model
 			return false;
 		}
 
-		$user_id = $this->get_tenant_user_id();
+		if ($user_id === null) {
+			$user_id = 1;
+		}
 		$user_check = $this->db->where('id', $user_id)->get('users');
 		if ($user_check->num_rows() == 0) {
 			$admin = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();
