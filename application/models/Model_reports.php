@@ -153,35 +153,36 @@ class Model_reports extends CI_Model
 	{
 		if ($month) {
 			$sql = "SELECT 
-                    DATE(o.date_time) as date,
-					SUM(oi.amount * (o.net_amount / o.gross_amount)) as total_ventes,
-                    SUM(p.price_default * oi.qty) as total_couts,
-					SUM(oi.amount - (p.price_default * oi.qty)) as profit_net
-                FROM orders o
-                JOIN orders_item oi ON o.id = oi.order_id
-                JOIN products p ON oi.product_id = p.id
-                WHERE YEAR(o.date_time) = ? 
-                AND MONTH(o.date_time) = ?
-                GROUP BY DATE(o.date_time)
-                ORDER BY date ASC";
+                DATE(o.date_time) as date,
+                SUM(oi.net_amount) as total_ventes,
+                SUM(p.price_default * oi.qty) as total_couts,
+                SUM(oi.net_amount - (p.price_default * oi.qty)) as profit_net
+            FROM orders o
+            JOIN orders_item oi ON o.id = oi.order_id
+            JOIN products p ON oi.product_id = p.id
+            WHERE YEAR(o.date_time) = ? 
+            AND MONTH(o.date_time) = ?
+            GROUP BY DATE(o.date_time)
+            ORDER BY date ASC";
 			$query = $this->db->query($sql, array($year, $month));
 		} else {
 			$sql = "SELECT 
-                    MONTH(o.date_time) as mois,
-					SUM(oi.amount * (o.net_amount / o.gross_amount)) as total_ventes,
-                    SUM(p.price_default * oi.qty) as total_couts,
-					SUM(oi.amount - (p.price_default * oi.qty)) as profit_net
-                FROM orders o
-                JOIN orders_item oi ON o.id = oi.order_id
-                JOIN products p ON oi.product_id = p.id
-                WHERE YEAR(o.date_time) = ?
-                GROUP BY MONTH(o.date_time)
-                ORDER BY mois ASC";
+                MONTH(o.date_time) as mois,
+                SUM(oi.net_amount) as total_ventes,
+                SUM(p.price_default * oi.qty) as total_couts,
+                SUM(oi.net_amount - (p.price_default * oi.qty)) as profit_net
+            FROM orders o
+            JOIN orders_item oi ON o.id = oi.order_id
+            JOIN products p ON oi.product_id = p.id
+            WHERE YEAR(o.date_time) = ?
+            GROUP BY MONTH(o.date_time)
+            ORDER BY mois ASC";
 			$query = $this->db->query($sql, array($year));
 		}
 
 		return $query->result_array();
 	}
+
 
 	/**
 	 * Top Produits par Profit et Quantité
