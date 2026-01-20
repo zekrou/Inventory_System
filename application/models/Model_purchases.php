@@ -51,7 +51,7 @@ class Model_purchases extends CI_Model
         return $query->result_array();
     }
 
-    public function create($data, $items)
+    public function create($data, $items, $user_id = null)
     {
         if ($data && $items) {
             // ✅ valider user_id pour le tenant
@@ -153,7 +153,7 @@ class Model_purchases extends CI_Model
     }
 
 
-    public function receivePurchase($purchase_id)
+    public function receivePurchase($purchase_id, $user_id = null)
     {
         if ($purchase_id) {
             if ($user_id === null) {
@@ -253,7 +253,7 @@ class Model_purchases extends CI_Model
         return array();
     }
 
-    public function remove($purchase_id, $force_delete = false)
+    public function remove($purchase_id, $force_delete = false, $user_id = null)
     {
         if (!$purchase_id) {
             return array('success' => false, 'message' => 'ID invalide');

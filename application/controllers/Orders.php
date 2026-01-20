@@ -384,7 +384,8 @@ class Orders extends Admin_Controller
 
         if ($this->form_validation->run() == TRUE) {
 
-            $update = $this->model_orders->update($id);
+            $user_id = $this->get_tenant_user_id();
+            $update = $this->model_orders->update($id, $user_id);
             if ($update == true) {
                 $this->session->set_flashdata('success', 'Successfully updated');
                 redirect('orders/update/' . $id, 'refresh');
@@ -422,7 +423,8 @@ class Orders extends Admin_Controller
         $order_id = $this->input->post('order_id');
         $response = array();
         if ($order_id) {
-            $delete = $this->model_orders->remove($order_id);
+            $user_id = $this->get_tenant_user_id();
+            $delete = $this->model_orders->remove($order_id, $user_id);
             if ($delete == true) {
                 $response['success'] = true;
                 $response['messages'] = "Successfully removed. Stock has been restored.";
@@ -653,8 +655,8 @@ class Orders extends Admin_Controller
             return;
         }
 
-        $result = $this->model_orders->addPaymentInstallment($order_id, $payment_amount, $payment_method, $payment_notes);
-
+        $user_id = $this->get_tenant_user_id();
+        $result = $this->model_orders->addPaymentInstallment($order_id, $payment_amount, $payment_method, $payment_notes, $user_id);
         if ($result['success']) {
             $response['success'] = true;
             $response['message'] = 'Payment recorded successfully!';

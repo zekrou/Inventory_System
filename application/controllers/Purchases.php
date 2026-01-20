@@ -208,8 +208,8 @@ class Purchases extends Admin_Controller
             }
 
             // ✅ UNE SEULE FOIS : Créer le purchase
-            $purchase_id = $this->model_purchases->create($data, $items);
-
+            $user_id = $this->get_tenant_user_id();
+            $purchase_id = $this->model_purchases->create($data, $items, $user_id);
             if ($purchase_id) {
                 // Record initial payment if any
                 if ($paid_amount > 0) {
@@ -276,8 +276,8 @@ class Purchases extends Admin_Controller
         }
 
         if ($id) {
-            $receive = $this->model_purchases->receivePurchase($id);
-
+            $user_id = $this->get_tenant_user_id();
+            $receive = $this->model_purchases->receivePurchase($id, $user_id);
             if ($receive) {
                 // ✅ AJOUTEZ: Recalculate average cost for all products in this purchase
                 $items = $this->model_purchases->getPurchaseItems($id);
@@ -389,8 +389,8 @@ class Purchases extends Admin_Controller
                 log_message('debug', 'Attempting to delete purchase: ' . $purchase_id);
                 log_message('debug', 'Force delete: ' . ($force_delete == 'yes' ? 'YES' : 'NO'));
 
-                $result = $this->model_purchases->remove($purchase_id, ($force_delete == 'yes'));
-
+                $user_id = $this->get_tenant_user_id();
+                $result = $this->model_purchases->remove($purchase_id, ($force_delete == 'yes'), $user_id);
                 $response['success'] = $result['success'];
                 $response['messages'] = $result['message'];
 

@@ -60,7 +60,7 @@ class Model_orders extends CI_Model
 		return $query->result_array();
 	}
 
-	public function create()
+	public function create($user_id = null)
 	{
 		// Validation - Noms de champs corrects
 		$customer_name = $this->input->post('customername');
@@ -227,7 +227,7 @@ class Model_orders extends CI_Model
 		}
 	}
 
-	public function update($id)
+	public function update($id, $user_id = null)
 	{
 		if ($id) {
 			if ($user_id === null) {
@@ -395,7 +395,7 @@ class Model_orders extends CI_Model
 
 
 
-	public function remove($id)
+	public function remove($id, $user_id = null)
 	{
 		if ($id) {
 			if ($user_id === null) {
@@ -442,7 +442,7 @@ class Model_orders extends CI_Model
 	/**
 	 * Add payment installment
 	 */
-	public function addPaymentInstallment($order_id, $payment_amount, $payment_method, $payment_notes)
+	public function addPaymentInstallment($order_id, $payment_amount, $payment_method, $payment_notes, $user_id = null)
 	{
 		if ($user_id === null) {
 			$user_id = 1;
