@@ -31,7 +31,7 @@ class Orders extends Admin_Controller
 
     public function index()
     {
-        if (!in_array('viewOrder', $this->permission)) {
+        if (!isset($this->permission['viewOrder'])) {
             redirect('dashboard', 'refresh');
         }
 
@@ -383,7 +383,7 @@ class Orders extends Admin_Controller
         $this->form_validation->set_rules('product[]', 'Product name', 'trim|required');
 
         if ($this->form_validation->run() == TRUE) {
-            
+
             $update = $this->model_orders->update($id);
             if ($update == true) {
                 $this->session->set_flashdata('success', 'Successfully updated');
@@ -677,7 +677,7 @@ class Orders extends Admin_Controller
      */
     public function invoice($id)
     {
-        if (!in_array('viewOrder', $this->permission)) {
+        if (!isset($this->permission['viewOrder'])) {
             redirect('dashboard', 'refresh');
         }
 
@@ -1248,10 +1248,10 @@ class Orders extends Admin_Controller
         ini_set('display_errors', 0);
         ob_clean(); // Nettoyer le buffer de sortie
 
-        if (!in_array('viewOrder', $this->permission)) {
+        if (!isset($this->permission['viewOrder'])) {
             redirect('dashboard', 'refresh');
         }
-        if (!in_array('viewOrder', $this->permission)) {
+        if (!isset($this->permission['viewOrder'])) {
             redirect('dashboard', 'refresh');
         }
 
