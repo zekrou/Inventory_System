@@ -75,7 +75,7 @@ class Reports extends Admin_Controller
 				$total_amount_earned = 0;
 				foreach ($v as $v2) {
 					if (is_array($v2) && isset($v2['gross_amount'])) {
-						$total_amount_earned += floatval($v2['gross_amount']);
+						$total_amount_earned += floatval($v2['net_amount']);
 					}
 				}
 				$final_parking_data[$k] = $total_amount_earned;
@@ -121,7 +121,7 @@ class Reports extends Admin_Controller
 				$total_amount_earned = 0;
 				foreach ($v as $v2) {
 					if (is_array($v2) && isset($v2['gross_amount'])) {
-						$total_amount_earned += floatval($v2['gross_amount']);
+						$total_amount_earned += floatval($v2['net_amount']);
 					}
 				}
 				$final_data[$k] = $total_amount_earned;
