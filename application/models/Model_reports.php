@@ -430,35 +430,36 @@ class Model_reports extends CI_Model
 
 	/**
 	 * État Paiements Fournisseurs
+	 * CORRIGÉ: Utilise paid_amount et due_amount réels de la table purchases
 	 */
 	public function getSupplierPaymentStatus($year, $month = null)
 	{
 		if ($month) {
 			$sql = "SELECT 
-                DATE(purchase_date) as date,
-                COUNT(*) as nb_achats,
-                SUM(total_amount) as montant_total,
-                0 as montant_paye,
-                SUM(total_amount) as montant_du,
-                0 as taux_paiement
-            FROM purchases
-            WHERE YEAR(purchase_date) = ? 
-            AND MONTH(purchase_date) = ?
-            GROUP BY DATE(purchase_date)
-            ORDER BY date ASC";
+            DATE(purchase_date) as date,
+            COUNT(*) as nb_achats,
+            SUM(total_amount) as montant_total,
+            SUM(COALESCE(paid_amount, 0)) as montant_paye,
+            SUM(COALESCE(due_amount, total_amount)) as montant_du,
+            ROUND((SUM(COALESCE(paid_amount, 0)) / NULLIF(SUM(total_amount), 0)) * 100, 2) as taux_paiement
+        FROM purchases
+        WHERE YEAR(purchase_date) = ?
+        AND MONTH(purchase_date) = ?
+        GROUP BY DATE(purchase_date)
+        ORDER BY date ASC";
 			$query = $this->db->query($sql, array($year, $month));
 		} else {
 			$sql = "SELECT 
-                MONTH(purchase_date) as mois,
-                COUNT(*) as nb_achats,
-                SUM(total_amount) as montant_total,
-                0 as montant_paye,
-                SUM(total_amount) as montant_du,
-                0 as taux_paiement
-            FROM purchases
-            WHERE YEAR(purchase_date) = ?
-            GROUP BY MONTH(purchase_date)
-            ORDER BY mois ASC";
+            MONTH(purchase_date) as mois,
+            COUNT(*) as nb_achats,
+            SUM(total_amount) as montant_total,
+            SUM(COALESCE(paid_amount, 0)) as montant_paye,
+            SUM(COALESCE(due_amount, total_amount)) as montant_du,
+            ROUND((SUM(COALESCE(paid_amount, 0)) / NULLIF(SUM(total_amount), 0)) * 100, 2) as taux_paiement
+        FROM purchases
+        WHERE YEAR(purchase_date) = ?
+        GROUP BY MONTH(purchase_date)
+        ORDER BY mois ASC";
 			$query = $this->db->query($sql, array($year));
 		}
 
@@ -467,25 +468,41 @@ class Model_reports extends CI_Model
 
 	/**
 	 * Statistiques Globales Achats
+	 * CORRIGÉ: Utilise paid_amount et due_amount réels de la table purchases
 	 */
 	public function getPurchaseGlobalStats($year)
 	{
 		$sql = "SELECT 
-            COUNT(DISTINCT p.id) as total_achats,
-            COUNT(DISTINCT s.id) as nb_fournisseurs,
-            SUM(pi.quantity) as quantite_totale,
-            SUM(p.total_amount) as total_depenses,
-            0 as total_paye,
-            SUM(p.total_amount) as total_du
-        FROM purchases p
-        JOIN purchase_items pi ON p.id = pi.purchase_id
-        LEFT JOIN suppliers s ON p.supplier_id = s.id
-        WHERE YEAR(p.purchase_date) = ?";
+        COUNT(DISTINCT p.id) as total_achats,
+        COUNT(DISTINCT s.id) as nb_fournisseurs,
+        SUM(pi.quantity) as quantite_totale,
+        SUM(p.total_amount) as total_depenses,
+        SUM(COALESCE(p.paid_amount, 0)) as total_paye,
+        SUM(COALESCE(p.due_amount, p.total_amount)) as total_du
+    FROM purchases p
+    JOIN purchase_items pi ON p.id = pi.purchase_id
+    LEFT JOIN suppliers s ON p.supplier_id = s.id
+    WHERE YEAR(p.purchase_date) = ?";
 
 		$query = $this->db->query($sql, array($year));
 		$result = $query->row_array();
 
-		$result['taux_paiement'] = 0;
+		// Calculer le taux de paiement
+		if ($result && $result['total_depenses'] > 0) {
+			$result['taux_paiement'] = round(($result['total_paye'] / $result['total_depenses']) * 100, 2);
+		} else {
+			if (!$result) {
+				$result = array(
+					'total_achats' => 0,
+					'nb_fournisseurs' => 0,
+					'quantite_totale' => 0,
+					'total_depenses' => 0,
+					'total_paye' => 0,
+					'total_du' => 0
+				);
+			}
+			$result['taux_paiement'] = 0;
+		}
 
 		return $result;
 	}
