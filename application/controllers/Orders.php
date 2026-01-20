@@ -473,6 +473,17 @@ class Orders extends Admin_Controller
     public function getOrderDetails($id)
     {
         $order = $this->model_orders->getOrdersData($id);
+
+        // ✅ CHECK si order existe
+        if (!$order || empty($order)) {
+            echo '<div class="alert alert-danger text-center">';
+            echo '<i class="fa fa-exclamation-triangle fa-3x"></i>';
+            echo '<h4>Order Not Found</h4>';
+            echo '<p>The requested order does not exist or has been deleted.</p>';
+            echo '</div>';
+            return;
+        }
+
         $items = $this->model_orders->getOrdersItemData($id);
         $payments = $this->model_orders->getOrderPayments($id);
 
@@ -487,7 +498,6 @@ class Orders extends Admin_Controller
         $timestamp = is_numeric($order['date_time']) ? $order['date_time'] : strtotime($order['date_time']);
         $formatted_date = date('d-m-Y h:i a', $timestamp);
         echo '<tr><th>Date:</th><td>' . date('d-m-Y h:i a', $timestamp) . '</td></tr>';
-
 
         // 🔴 AFFICHER PRIX MANUEL SI OVERRIDE
         if (!empty($order['price_type_override']) && $order['price_type_override'] != $order['customer_type']) {
@@ -527,15 +537,20 @@ class Orders extends Admin_Controller
         echo '<table class="table table-bordered table-striped">';
         echo '<thead><tr style="background: #f8f9fa;"><th>Product</th><th width="15%" class="text-center">Quantity</th><th width="20%" class="text-right">Rate</th><th width="20%" class="text-right">Amount</th></tr></thead>';
         echo '<tbody>';
-        foreach ($items as $item) {
-            $product = $this->model_products->getProductData($item['product_id']);
-            echo '<tr>';
-            echo '<td>' . $product['name'] . '</td>';
-            echo '<td class="text-center">' . $item['qty'] . '</td>';
-            echo '<td class="text-right">' . number_format($item['rate'], 2) . ' DZD</td>';
-            echo '<td class="text-right"><strong>' . number_format($item['amount'], 2) . ' DZD</strong></td>';
-            echo '</tr>';
+
+        // ✅ AJOUTE AUSSI UN CHECK pour $items
+        if (!empty($items)) {
+            foreach ($items as $item) {
+                $product = $this->model_products->getProductData($item['product_id']);
+                echo '<tr>';
+                echo '<td>' . $product['name'] . '</td>';
+                echo '<td class="text-center">' . $item['qty'] . '</td>';
+                echo '<td class="text-right">' . number_format($item['rate'], 2) . ' DZD</td>';
+                echo '<td class="text-right"><strong>' . number_format($item['amount'], 2) . ' DZD</strong></td>';
+                echo '</tr>';
+            }
         }
+
         echo '</tbody>';
         echo '</table>';
         echo '</div>';
@@ -635,6 +650,7 @@ class Orders extends Admin_Controller
             echo '</div>';
         }
     }
+
 
     public function addPayment()
     {
