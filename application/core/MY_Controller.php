@@ -48,6 +48,7 @@ class Admin_Controller extends MY_Controller
 {
     public $permission = array();
     public $user_permission = array();
+    private $tenant_user_id = null; // ✅ Cache pour éviter les requêtes multiples
 
     public function __construct()
     {
@@ -81,18 +82,13 @@ class Admin_Controller extends MY_Controller
                 }
             }
 
+            // ✅ Get and cache tenant user ID
+            $this->tenant_user_id = $this->resolve_tenant_user_id($user_data['email']);
+
             // Get user permissions from tenant DB
-            $user_email = $user_data['email'];
-
-            // Find user in tenant DB by email
-            $tenant_user_query = $this->db->query("SELECT id FROM users WHERE email = ?", array($user_email));
-
-            if ($tenant_user_query->num_rows() > 0) {
-                $tenant_user = $tenant_user_query->row_array();
-                $tenant_user_id = $tenant_user['id'];
-
+            if ($this->tenant_user_id) {
                 // Get user's group
-                $user_group_query = $this->db->query("SELECT group_id FROM user_group WHERE user_id = ?", array($tenant_user_id));
+                $user_group_query = $this->db->query("SELECT group_id FROM user_group WHERE user_id = ?", array($this->tenant_user_id));
 
                 if ($user_group_query->num_rows() > 0) {
                     $user_group_data = $user_group_query->row_array();
@@ -107,7 +103,7 @@ class Admin_Controller extends MY_Controller
                         if (!empty($group_data['permission'])) {
                             $this->permission = @unserialize($group_data['permission']);
 
-                            if ($this->permission === false) {
+                            if ($this->permission === false || !is_array($this->permission)) {
                                 $this->permission = array();
                             }
                         }
@@ -129,6 +125,73 @@ class Admin_Controller extends MY_Controller
         }
     }
 
+    /**
+     * ✅ Resolve tenant user ID from master user email
+     * Called once during __construct and cached
+     * 
+     * @param string $email Master user email
+     * @return int Tenant user ID
+     */
+    private function resolve_tenant_user_id($email)
+    {
+        if (empty($email)) {
+            log_message('error', 'Cannot resolve tenant user ID: email is empty');
+            return 1; // Default to admin
+        }
+
+        // Try to find user by email in tenant DB
+        $tenant_user_query = $this->db->query("SELECT id FROM users WHERE email = ? LIMIT 1", array($email));
+
+        if ($tenant_user_query->num_rows() > 0) {
+            $tenant_user = $tenant_user_query->row_array();
+            return (int)$tenant_user['id'];
+        }
+
+        // If not found, log and return first user (admin)
+        log_message('warning', 'User with email ' . $email . ' not found in tenant DB. Using default admin user.');
+        
+        $first_user_query = $this->db->query("SELECT id FROM users ORDER BY id ASC LIMIT 1");
+        
+        if ($first_user_query->num_rows() > 0) {
+            $first_user = $first_user_query->row_array();
+            return (int)$first_user['id'];
+        }
+
+        // Last resort
+        return 1;
+    }
+
+    /**
+     * ✅ Get current tenant user ID
+     * Returns cached value from __construct
+     * 
+     * @return int Tenant user ID
+     */
+    public function get_tenant_user_id()
+    {
+        // If cached, return it
+        if ($this->tenant_user_id !== null) {
+            return $this->tenant_user_id;
+        }
+
+        // If not cached (shouldn't happen), resolve it now
+        $user_data = $this->session->userdata();
+
+        if (isset($user_data['user_type']) && $user_data['user_type'] == 'merchant') {
+            $email = isset($user_data['email']) ? $user_data['email'] : '';
+            $this->tenant_user_id = $this->resolve_tenant_user_id($email);
+            return $this->tenant_user_id;
+        }
+
+        // For system admin or fallback
+        return 1;
+    }
+
+    /**
+     * Get company currency from tenant database
+     * 
+     * @return string Currency code (default: DZD)
+     */
     public function company_currency()
     {
         $user_data = $this->session->userdata();
@@ -145,6 +208,11 @@ class Admin_Controller extends MY_Controller
         return 'DZD';
     }
 
+    /**
+     * Get list of available currencies
+     * 
+     * @return array Currency codes and names
+     */
     public function currency()
     {
         return array(

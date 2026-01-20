@@ -1,5 +1,13 @@
 <?php
-
+/**
+ * @property CI_DB_query_builder $db
+ * @property CI_Session $session
+ * @property CI_Input $input
+ * @property CI_Form_validation $form_validation
+ * @property Model_orders $model_orders
+ * @property Model_products $model_products
+ * @method int get_tenant_user_id() Get tenant user ID
+ */
 class Model_payments extends CI_Model
 {
 	public function __construct()
@@ -16,8 +24,7 @@ class Model_payments extends CI_Model
 			return false;
 		}
 
-		$user_id = $this->session->userdata('id');
-
+		$user_id = $this->get_tenant_user_id();
 		$user_check = $this->db->where('id', $user_id)->get('users');
 		if ($user_check->num_rows() == 0) {
 			$admin = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();

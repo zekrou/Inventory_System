@@ -1,5 +1,13 @@
 <?php
-
+/**
+ * @property CI_DB_query_builder $db
+ * @property CI_Session $session
+ * @property CI_Input $input
+ * @property CI_Form_validation $form_validation
+ * @property Model_orders $model_orders
+ * @property Model_products $model_products
+ * @method int get_tenant_user_id() Get tenant user ID
+ */
 class Model_orders extends CI_Model
 {
 	public function __construct()
@@ -61,7 +69,7 @@ class Model_orders extends CI_Model
 			return false;
 		}
 
-		$user_id = $this->session->userdata('id');
+		$user_id = $this->get_tenant_user_id();
 		$bill_no = 'BILPR-' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
 
 		// Gestion du type client
@@ -219,8 +227,7 @@ class Model_orders extends CI_Model
 	public function update($id)
 	{
 		if ($id) {
-			$user_id = $this->session->userdata('id');
-
+			$user_id = $this->get_tenant_user_id();
 			$old_order = $this->getOrdersData($id);
 			$old_net_amount = $old_order['net_amount'];
 			$old_paid_amount = $old_order['paid_amount'];
@@ -386,8 +393,7 @@ class Model_orders extends CI_Model
 	public function remove($id)
 	{
 		if ($id) {
-			$user_id = $this->session->userdata('id');
-
+			$user_id = $this->get_tenant_user_id();
 			$order_data = $this->getOrdersData($id);
 
 			$this->load->model('model_products');
@@ -431,7 +437,7 @@ class Model_orders extends CI_Model
 	 */
 	public function addPaymentInstallment($order_id, $payment_amount, $payment_method, $payment_notes)
 	{
-		$user_id = $this->session->userdata('id');
+		$user_id = $this->get_tenant_user_id();
 		$order = $this->getOrdersData($order_id);
 
 		if (!$order) {

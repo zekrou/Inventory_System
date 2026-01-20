@@ -200,7 +200,7 @@ class Purchases extends Admin_Controller
             );
 
             // ✅ VÉRIFIER USER AVANT de créer le purchase
-            $user_id = $this->session->userdata('id');
+            $user_id = $this->get_tenant_user_id();
             $user_check = $this->db->where('id', $user_id)->get('users');
             if ($user_check->num_rows() == 0) {
                 $admin = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();
@@ -469,7 +469,7 @@ class Purchases extends Admin_Controller
             $notes            = $this->input->post('payment_notes');
 
             // ✅ VALIDER user_id POUR LE TENANT
-            $user_id = $this->session->userdata('id');
+            $user_id = $this->get_tenant_user_id();
             $user_check = $this->db->where('id', $user_id)->get('users');
             if ($user_check->num_rows() == 0) {
                 $admin   = $this->db->select('id')

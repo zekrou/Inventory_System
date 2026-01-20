@@ -245,7 +245,7 @@ class Orders extends Admin_Controller
                 $paid_status = 3; // Partial
             }
 
-            $user_id = $this->session->userdata('id');
+            $user_id = $this->get_tenant_user_id();
             $bill_no = 'BILPR-' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
 
             // Prepare order data for Model
