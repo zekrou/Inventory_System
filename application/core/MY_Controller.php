@@ -86,12 +86,14 @@ class Admin_Controller extends MY_Controller
             $this->tenant_user_id = $this->resolve_tenant_user_id($user_data['email']);
 
             // Get user permissions from tenant DB
-            if ($this->tenant_user_id) {
+            // Get user permissions from tenant DB
+            $tenant_id = $this->get_tenant_user_id(); // ✅ CHANGÉ
+            if ($tenant_id) { // ✅ CHANGÉ
                 // Get user's group
-                $user_group_query = $this->db->query("SELECT group_id FROM user_group WHERE user_id = ?", array($this->tenant_user_id));
+                $query = $this->db->query("SELECT group_id FROM user_group WHERE user_id = ?", array($tenant_id)); // ✅ CHANGÉ
 
-                if ($user_group_query->num_rows() > 0) {
-                    $user_group_data = $user_group_query->row_array();
+                if ($query->num_rows() > 0) {
+                    $user_group_data = $query->row_array();
                     $group_id = $user_group_data['group_id'];
 
                     // Load group permissions
@@ -112,6 +114,7 @@ class Admin_Controller extends MY_Controller
             } else {
                 $this->permission = array();
             }
+
 
             // Pass to template
             $this->data['user_permission'] = $this->permission;
@@ -149,9 +152,9 @@ class Admin_Controller extends MY_Controller
 
         // If not found, log and return first user (admin)
         log_message('warning', 'User with email ' . $email . ' not found in tenant DB. Using default admin user.');
-        
+
         $first_user_query = $this->db->query("SELECT id FROM users ORDER BY id ASC LIMIT 1");
-        
+
         if ($first_user_query->num_rows() > 0) {
             $first_user = $first_user_query->row_array();
             return (int)$first_user['id'];
