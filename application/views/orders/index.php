@@ -150,7 +150,7 @@
                   <th>Paid Amount</th>
                   <th>Due Amount</th>
                   <th>Status</th>
-                  <?php if (in_array('updateOrder', $user_permission) || in_array('viewOrder', $user_permission) || in_array('deleteOrder', $user_permission)): ?>
+                  <?php if (isset($user_permission['updateOrder']) || isset($user_permission['viewOrder']) || isset($user_permission['deleteOrder'])): ?>
                     <th>Action</th>
                   <?php endif; ?>
                 </tr>
@@ -256,7 +256,8 @@
   </div>
 </div>
 
-<?php if (in_array('deleteOrder', $user_permission)): ?>
+<?php if (isset($user_permission['deleteOrder'])): ?>
+
   <!-- remove modal -->
   <div class="modal fade" tabindex="-1" role="dialog" id="removeModal">
     <div class="modal-dialog" role="document">
