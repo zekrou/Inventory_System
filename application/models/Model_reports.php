@@ -156,7 +156,7 @@ class Model_reports extends CI_Model
                     DATE(o.date_time) as date,
 					SUM(oi.amount * (o.net_amount / o.gross_amount)) as total_ventes,
                     SUM(p.price_default * oi.qty) as total_couts,
-                    SUM((oi.rate - p.price_default) * oi.qty) as profit_net
+					SUM(oi.amount - (p.price_default * oi.qty)) as profit_net
                 FROM orders o
                 JOIN orders_item oi ON o.id = oi.order_id
                 JOIN products p ON oi.product_id = p.id
@@ -170,7 +170,7 @@ class Model_reports extends CI_Model
                     MONTH(o.date_time) as mois,
 					SUM(oi.amount * (o.net_amount / o.gross_amount)) as total_ventes,
                     SUM(p.price_default * oi.qty) as total_couts,
-                    SUM((oi.rate - p.price_default) * oi.qty) as profit_net
+					SUM(oi.amount - (p.price_default * oi.qty)) as profit_net
                 FROM orders o
                 JOIN orders_item oi ON o.id = oi.order_id
                 JOIN products p ON oi.product_id = p.id
@@ -309,7 +309,7 @@ class Model_reports extends CI_Model
                 SUM(o.paid_amount) as encaisse,
                 SUM(o.due_amount) as credit_total,
                 SUM(p.price_default * oi.qty) as couts_totaux,
-                SUM((oi.rate - p.price_default) * oi.qty) as profit_net
+				SUM(oi.amount - (p.price_default * oi.qty)) as profit_net
             FROM orders o
             JOIN orders_item oi ON o.id = oi.order_id
             JOIN products p ON oi.product_id = p.id

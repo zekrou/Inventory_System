@@ -137,3 +137,23 @@ $route['stores/create'] = 'stores/create';
 $route['stores/update/(:num)'] = 'stores/update/$1';
 $route['stores/delete/(:num)'] = 'stores/delete/$1';
 $route['stores/(:any)'] = 'stores/$1';
+// ==========================================
+// PRE-ORDERS ROUTES
+// ==========================================
+$route['preorders'] = 'preorders/index';
+$route['preorders/view/(:num)'] = 'preorders/view/$1';
+$route['preorders/update_status/(:num)'] = 'preorders/update_status/$1';
+$route['preorders/delete/(:num)'] = 'preorders/delete/$1';
+// ==========================================
+// API ROUTES (MOBILE APP)
+// ==========================================
+$route['api/login'] = 'api/login';
+$route['api/logout'] = 'api/logout';
+$route['api/products'] = 'api/products';
+$route['api/product/(:num)'] = 'api/product/$1';
+$route['api/calculate_price'] = 'api/calculate_price';
+$route['api/create_pre_order'] = 'api/create_pre_order';
+$route['api/pre_orders'] = 'api/pre_orders';
+$route['api/preorders'] = 'api/preorders';
+$route['api/preorder/(:num)'] = 'api/preorder/$1';
+$route['api/stats'] = 'api/stats';
