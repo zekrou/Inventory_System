@@ -103,7 +103,7 @@
                     <select class="form-control" id="new_customer_type" name="new_customer_type">
                       <option value="retail" selected>Retail (Normal Price)</option>
                       <option value="wholesale">Wholesale</option>
-                      <option value="superwholesale">Super Wholesale</option>
+                      <option value="super_wholesale">Super Wholesale</option>
                     </select>
                   </div>
                 </div>
@@ -145,7 +145,7 @@
                     <select class="form-control" id="customer_type_override" name="customer_type_override">
                       <option value="retail">Retail (Normal Price)</option>
                       <option value="wholesale">Wholesale</option>
-                      <option value="superwholesale">Super Wholesale</option>
+                      <option value="super_wholesale">Super Wholesale</option>
                     </select>
                     <input type="hidden" id="customer_original_type" value="retail">
                     <small class="text-muted">
@@ -182,7 +182,7 @@
           </div>
           <div class="box-body">
             <div class="table-responsive">
-              <table class="table table-bordered table-hover" id="productinfotable">
+              <table class="table table-bordered table-hover" id="product_info_table">
                 <thead style="background:#f4f4f4;">
                   <tr>
                     <th style="width:40%;">Product</th>
@@ -194,9 +194,9 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr id="row1">
+                  <tr id="row_1"> <!-- 🔴 AJOUT underscore -->
                     <td>
-                      <select class="form-control select2-product" name="product[]" id="product1" onchange="getProductData(1)" data-row-id="1" style="width:100%" required>
+                      <select class="form-control select2-product" name="product[]" id="product_1" onchange="getProductData(1)" data-row-id="1" style="width:100%" required> <!-- 🔴 AJOUT underscore -->
                         <option value="">-- Select Product --</option>
                         <?php foreach ($products as $product): ?>
                           <option value="<?php echo $product['id']; ?>"
@@ -205,25 +205,25 @@
                             data-name="<?php echo $product['name']; ?>"
                             data-price-retail="<?php echo isset($product['price_retail']) ? $product['price_retail'] : $product['price_default']; ?>"
                             data-price-wholesale="<?php echo isset($product['price_wholesale']) ? $product['price_wholesale'] : $product['price_default']; ?>"
-                            data-price-superwholesale="<?php echo isset($product['price_superwholesale']) ? $product['price_superwholesale'] : $product['price_default']; ?>">
+                            data-price-super-wholesale="<?php echo isset($product['price_super_wholesale']) ? $product['price_super_wholesale'] : $product['price_default']; ?>">
                             <?php echo $product['name']; ?> (<?php echo $product['sku']; ?>) - Stock: <?php echo $product['qty']; ?>
                           </option>
                         <?php endforeach; ?>
                       </select>
                     </td>
                     <td>
-                      <span class="badge bg-green available-qty" id="availableqty1">0</span>
+                      <span class="badge bg-green available-qty" id="availableqty_1">0</span> <!-- 🔴 AJOUT underscore -->
                     </td>
                     <td>
-                      <input type="number" name="qty[]" id="qty1" class="form-control" onkeyup="getTotal(1)" min="1" value="1" required>
+                      <input type="number" name="qty[]" id="qty_1" class="form-control" onkeyup="getTotal(1)" min="1" value="1" required> <!-- 🔴 AJOUT underscore -->
                     </td>
                     <td>
-                      <input type="text" name="rate[]" id="rate1" class="form-control" readonly>
-                      <input type="hidden" name="rate_value[]" id="rate_value1" class="form-control">
+                      <input type="text" name="rate[]" id="rate_1" class="form-control" readonly> <!-- 🔴 AJOUT underscore -->
+                      <input type="hidden" name="rate_value[]" id="rate_value_1" class="form-control"> <!-- 🔴 AJOUT underscore -->
                     </td>
                     <td>
-                      <input type="text" name="amount[]" id="amount1" class="form-control" readonly>
-                      <input type="hidden" name="amount_value[]" id="amount_value1" class="form-control">
+                      <input type="text" name="amount[]" id="amount_1" class="form-control" readonly> <!-- 🔴 AJOUT underscore -->
+                      <input type="hidden" name="amount_value[]" id="amount_value_1" class="form-control"> <!-- 🔴 AJOUT underscore -->
                     </td>
                     <td>
                       <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(1)" disabled>
@@ -231,6 +231,7 @@
                       </button>
                     </td>
                   </tr>
+
                 </tbody>
               </table>
             </div>
@@ -482,6 +483,42 @@
       // Update all product prices
       updateAllProductPrices(selectedType);
     });
+
+    // Add row button
+    $('#addrow').on('click', function() {
+      addRow();
+    });
+
+    // Form validation
+    $('#createOrderForm').on('submit', function(e) {
+      var netamount = parseFloat($('#net_amount_value').val()) || 0;
+
+      if (netamount <= 0) {
+        e.preventDefault();
+        alert('Please add at least one product!');
+        return false;
+      }
+
+      // Validate stock availability
+      var valid = true;
+      $('#product_info_table tbody tr').each(function() {
+        var row = $(this);
+        var rowid = row.attr('id').split('row_')[1]; // ✅ AVEC underscore
+        var qty = parseFloat($('#qty_' + rowid).val()) || 0; // ✅ AVEC underscore
+        var available = parseFloat($('#availableqty_' + rowid).text()) || 0; // ✅ AVEC underscore
+
+        if (qty > available) {
+          alert('Insufficient stock for product in row ' + rowid);
+          valid = false;
+          return false;
+        }
+      });
+
+      if (!valid) {
+        e.preventDefault();
+        return false;
+      }
+    });
   });
 
   // ===== CUSTOMER SELECT2 =====
@@ -520,6 +557,8 @@
       var address = selectedOption.data('address');
       var type = selectedOption.data('type');
 
+      console.log('✅ Customer selected:', name, 'Type:', type);
+
       // Display customer info
       $('#display_customer_name').text(name);
       $('#display_customer_phone').text(phone);
@@ -545,13 +584,13 @@
       // Show notification
       $('#customer_exists_alert').remove();
       $('#existingCustomerInfo').prepend(`
-            <div id="customer_exists_alert" class="alert alert-success alert-dismissible" style="margin-bottom:10px;">
-                <button type="button" class="close" data-dismiss="alert">×</button>
-                <i class="fa fa-check-circle"></i> <strong>Customer loaded!</strong> 
-                <span class="label label-success">${type.toUpperCase()}</span>
-                <small>You can change the price type below if needed</small>
-            </div>
-        `);
+        <div id="customer_exists_alert" class="alert alert-success alert-dismissible" style="margin-bottom:10px;">
+          <button type="button" class="close" data-dismiss="alert">×</button>
+          <i class="fa fa-check-circle"></i> <strong>Customer loaded!</strong> 
+          <span class="label label-success">${type.toUpperCase()}</span>
+          <small>You can change the price type below if needed</small>
+        </div>
+      `);
 
     } else {
       // Nothing selected
@@ -573,35 +612,42 @@
   }
 
   // ===== ADD/REMOVE ROWS =====
-  $('#addrow').on('click', function() {
-    addRow();
-  });
-
   function addRow() {
     rowNum++;
-    var html = '<tr id="row' + rowNum + '">';
+
+    var html = '<tr id="row_' + rowNum + '">';
     html += '<td>';
-    html += '<select class="form-control select2-product" name="product[]" id="product' + rowNum + '" onchange="getProductData(' + rowNum + ')" data-row-id="' + rowNum + '" style="width:100%" required>';
+    html += '<select class="form-control select2-product" name="product[]" id="product_' + rowNum + '" onchange="getProductData(' + rowNum + ')" data-row-id="' + rowNum + '" style="width:100%" required>';
     html += '<option value="">-- Select Product --</option>';
+
     <?php foreach ($products as $product): ?>
-      html += '<option value="<?php echo $product['id']; ?>" data-sku="<?php echo $product['sku']; ?>" data-qty="<?php echo $product['qty']; ?>" data-name="<?php echo $product['name']; ?>" data-price-retail="<?php echo isset($product['price_retail']) ? $product['price_retail'] : $product['price_default']; ?>" data-price-wholesale="<?php echo isset($product['price_wholesale']) ? $product['price_wholesale'] : $product['price_default']; ?>" data-price-superwholesale="<?php echo isset($product['price_superwholesale']) ? $product['price_superwholesale'] : $product['price_default']; ?>"><?php echo $product['name']; ?> (<?php echo $product['sku']; ?>) - Stock: <?php echo $product['qty']; ?></option>';
+      html += '<option value="<?php echo $product['id']; ?>"';
+      html += ' data-sku="<?php echo $product['sku']; ?>"';
+      html += ' data-qty="<?php echo $product['qty']; ?>"';
+      html += ' data-name="<?php echo $product['name']; ?>"';
+      html += ' data-price-retail="<?php echo isset($product['price_retail']) ? $product['price_retail'] : $product['price_default']; ?>"';
+      html += ' data-price-wholesale="<?php echo isset($product['price_wholesale']) ? $product['price_wholesale'] : $product['price_default']; ?>"';
+      html += ' data-price-super-wholesale="<?php echo isset($product['price_super_wholesale']) ? $product['price_super_wholesale'] : $product['price_default']; ?>">';
+      html += '<?php echo $product['name']; ?> (<?php echo $product['sku']; ?>) - Stock: <?php echo $product['qty']; ?>';
+      html += '</option>';
     <?php endforeach; ?>
+
     html += '</select>';
     html += '</td>';
-    html += '<td><span class="badge bg-green available-qty" id="availableqty' + rowNum + '">0</span></td>';
-    html += '<td><input type="number" name="qty[]" id="qty' + rowNum + '" class="form-control" onkeyup="getTotal(' + rowNum + ')" min="1" value="1" required></td>';
-    html += '<td><input type="text" name="rate[]" id="rate' + rowNum + '" class="form-control" readonly><input type="hidden" name="rate_value[]" id="rate_value' + rowNum + '"></td>';
-    html += '<td><input type="text" name="amount[]" id="amount' + rowNum + '" class="form-control" readonly><input type="hidden" name="amount_value[]" id="amount_value' + rowNum + '"></td>';
+    html += '<td><span class="badge bg-green available-qty" id="availableqty_' + rowNum + '">0</span></td>';
+    html += '<td><input type="number" name="qty[]" id="qty_' + rowNum + '" class="form-control" onkeyup="getTotal(' + rowNum + ')" min="1" value="1" required></td>';
+    html += '<td><input type="text" name="rate[]" id="rate_' + rowNum + '" class="form-control" readonly><input type="hidden" name="rate_value[]" id="rate_value_' + rowNum + '"></td>';
+    html += '<td><input type="text" name="amount[]" id="amount_' + rowNum + '" class="form-control" readonly><input type="hidden" name="amount_value[]" id="amount_value_' + rowNum + '"></td>';
     html += '<td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(' + rowNum + ')"><i class="fa fa-trash"></i></button></td>';
     html += '</tr>';
 
-    $('#productinfotable tbody').append(html);
+    $('#product_info_table tbody').append(html);
     initProductSelect2();
   }
 
   function removeRow(rowid) {
-    if ($('#productinfotable tbody tr').length > 1) {
-      $('#row' + rowid).remove();
+    if ($('#product_info_table tbody tr').length > 1) { // ✅ CORRIGÉ
+      $('#row_' + rowid).remove(); // ✅ AVEC underscore
       subAmount();
     } else {
       alert('Cannot remove the last row!');
@@ -610,29 +656,46 @@
 
   // ===== PRODUCT DATA & PRICING =====
   function getProductData(rowid) {
-    var productid = $('#product' + rowid).val();
-    var selectedOption = $('#product' + rowid + ' option:selected');
+    var productid = $('#product_' + rowid).val();
+    var selectedOption = $('#product_' + rowid + ' option:selected');
     var customerType = getCustomerType();
 
     if (productid) {
-      var qty = selectedOption.data('qty');
-      var priceKey = 'price-' + customerType;
-      var price = selectedOption.data(priceKey) || selectedOption.data('price-retail') || 0;
+      var qty = selectedOption.attr('data-qty');
+
+      // Mapper le type vers le bon nom d'attribut
+      var typeMap = {
+        'super_wholesale': 'super-wholesale', // ✅ AVEC underscore
+        'superwholesale': 'super-wholesale',
+        'wholesale': 'wholesale',
+        'retail': 'retail'
+      };
+
+      var mappedType = typeMap[customerType] || 'retail';
+      var priceAttr = 'data-price-' + mappedType;
+      var price = selectedOption.attr(priceAttr);
+
+      console.log('🔍 Type:', customerType, 'Attr:', priceAttr, 'Price:', price);
+
+      if (!price || price === '' || parseFloat(price) === 0) {
+        price = selectedOption.attr('data-price-retail');
+      }
+      price = parseFloat(price) || 0;
 
       // Display stock
-      $('#availableqty' + rowid).text(qty);
-      $('#qty' + rowid).attr('max', qty);
+      $('#availableqty_' + rowid).text(qty); // ✅ AVEC underscore
+      $('#qty_' + rowid).attr('max', qty); // ✅ AVEC underscore
 
       // Set price
-      $('#rate' + rowid).val(parseFloat(price).toFixed(2) + ' DZD');
-      $('#rate_value' + rowid).val(price);
+      $('#rate_' + rowid).val(parseFloat(price).toFixed(2) + ' DZD'); // ✅ AVEC underscore
+      $('#rate_value_' + rowid).val(price); // ✅ AVEC underscore
 
       // Calculate total
       getTotal(rowid);
     } else {
-      $('#rate' + rowid).val('0');
-      $('#rate_value' + rowid).val('0');
-      $('#availableqty' + rowid).text('0');
+      $('#rate_' + rowid).val('0'); // ✅ AVEC underscore
+      $('#rate_value_' + rowid).val('0'); // ✅ AVEC underscore
+      $('#availableqty_' + rowid).text('0'); // ✅ AVEC underscore
       getTotal(rowid);
     }
   }
@@ -643,18 +706,36 @@
   }
 
   function updateAllProductPrices(customerType) {
-    $('#productinfotable tbody tr').each(function() {
+    var typeMap = {
+      'super_wholesale': 'super-wholesale', // ✅ AVEC underscore
+      'superwholesale': 'super-wholesale',
+      'wholesale': 'wholesale',
+      'retail': 'retail'
+    };
+
+    var mappedType = typeMap[customerType] || 'retail';
+
+    console.log('🔄 Updating all prices - Type:', customerType, 'Mapped:', mappedType);
+
+    $('#product_info_table tbody tr').each(function() {
       var row = $(this);
-      var rowid = row.attr('id').split('row')[1];
-      var selectedOption = $('#product' + rowid + ' option:selected');
-      var productid = $('#product' + rowid).val();
+      var rowid = row.attr('id').split('row_')[1];
+      var selectedOption = $('#product_' + rowid + ' option:selected');
+      var productid = $('#product_' + rowid).val();
 
       if (productid) {
-        var priceKey = 'price-' + customerType;
-        var price = selectedOption.data(priceKey) || selectedOption.data('price-retail') || 0;
+        var priceAttr = 'data-price-' + mappedType;
+        var price = selectedOption.attr(priceAttr);
 
-        $('#rate' + rowid).val(parseFloat(price).toFixed(2) + ' DZD');
-        $('#rate_value' + rowid).val(price);
+        console.log('📍 Row', rowid, 'Attr:', priceAttr, 'Value:', price);
+
+        if (!price || price === '' || parseFloat(price) === 0) {
+          price = selectedOption.attr('data-price-retail');
+        }
+        price = parseFloat(price) || 0;
+
+        $('#rate_' + rowid).val(parseFloat(price).toFixed(2) + ' DZD'); // ✅ AVEC underscore
+        $('#rate_value_' + rowid).val(price); // ✅ AVEC underscore
 
         getTotal(rowid);
       }
@@ -663,12 +744,12 @@
 
   // ===== CALCULATIONS =====
   function getTotal(rowid) {
-    var qty = parseFloat($('#qty' + rowid).val()) || 0;
-    var rate = parseFloat($('#rate_value' + rowid).val()) || 0;
+    var qty = parseFloat($('#qty_' + rowid).val()) || 0; // ✅ AVEC underscore
+    var rate = parseFloat($('#rate_value_' + rowid).val()) || 0; // ✅ AVEC underscore
     var amount = qty * rate;
 
-    $('#amount' + rowid).val(amount.toFixed(2) + ' DZD');
-    $('#amount_value' + rowid).val(amount.toFixed(2));
+    $('#amount_' + rowid).val(amount.toFixed(2) + ' DZD'); // ✅ AVEC underscore
+    $('#amount_value_' + rowid).val(amount.toFixed(2)); // ✅ AVEC underscore
 
     subAmount();
   }
@@ -743,37 +824,6 @@
     $('#order_date').val(dateStr);
     $('#order_time').val(timeStr);
   }
-
-  // ===== FORM VALIDATION =====
-  $('#createOrderForm').on('submit', function(e) {
-    var netamount = parseFloat($('#net_amount_value').val()) || 0;
-
-    if (netamount <= 0) {
-      e.preventDefault();
-      alert('Please add at least one product!');
-      return false;
-    }
-
-    // Validate stock availability
-    var valid = true;
-    $('#productinfotable tbody tr').each(function() {
-      var row = $(this);
-      var rowid = row.attr('id').split('row')[1];
-      var qty = parseFloat($('#qty' + rowid).val()) || 0;
-      var available = parseFloat($('#availableqty' + rowid).text()) || 0;
-
-      if (qty > available) {
-        alert('Insufficient stock for product in row ' + rowid);
-        valid = false;
-        return false;
-      }
-    });
-
-    if (!valid) {
-      e.preventDefault();
-      return false;
-    }
-  });
 </script>
 
 

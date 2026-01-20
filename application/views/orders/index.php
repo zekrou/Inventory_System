@@ -95,7 +95,7 @@
           </div>
         </div>
 
-        <?php if(isset($user_permission['createOrder'])): ?>
+        <?php if(in_array('createOrder', $user_permission)): ?>
           <a href="<?php echo base_url('orders/create') ?>" class="btn btn-primary"><i class="fa fa-plus"></i> Add Order</a>
           <br /> <br />
         <?php endif; ?>
@@ -150,7 +150,7 @@
                 <th>Paid Amount</th>
                 <th>Due Amount</th>
                 <th>Status</th>
-                <?php if(isset($user_permission['updateOrder']) || isset($user_permission['viewOrder']) || isset($user_permission['deleteOrder'])): ?>
+                <?php if(in_array('updateOrder', $user_permission) || in_array('viewOrder', $user_permission) || in_array('deleteOrder', $user_permission)): ?>
                 <th>Action</th>
                 <?php endif; ?>
               </tr>
@@ -254,7 +254,7 @@
   </div>
 </div>
 
-<?php if(isset($user_permission['deleteOrder'])): ?>
+<?php if(in_array('deleteOrder', $user_permission)): ?>
 <!-- remove modal -->
 <div class="modal fade" tabindex="-1" role="dialog" id="removeModal">
   <div class="modal-dialog" role="document">

@@ -31,7 +31,7 @@ class Orders extends Admin_Controller
 
     public function index()
     {
-        if (!isset($this->permission['viewOrder'])) {
+        if (!in_array('viewOrder', $this->permission)) {
             redirect('dashboard', 'refresh');
         }
 
@@ -76,14 +76,14 @@ class Orders extends Admin_Controller
                 $date_time = $date . ' ' . $time;
 
                 $buttons = '';
-                if (isset($this->permission['viewOrder'])) {
+                if (in_array('viewOrder', $this->permission)) {
                     $buttons .= '<button class="btn btn-info btn-sm" onclick="viewOrderDetails(' . $value['id'] . ')"><i class="fa fa-eye"></i></button> ';
                     $buttons .= '<a target="__blank" href="' . base_url('orders/invoice/' . $value['id']) . '" class="btn btn-default btn-sm"><i class="fa fa-print"></i></a> ';
                 }
-                if (isset($this->permission['updateOrder'])) {
+                if (in_array('updateOrder', $this->permission)) {
                     $buttons .= '<a href="' . base_url('orders/update/' . $value['id']) . '" class="btn btn-warning btn-sm"><i class="fa fa-pencil"></i></a> ';
                 }
-                if (isset($this->permission['deleteOrder'])) {
+                if (in_array('deleteOrder', $this->permission)) {
                     $buttons .= '<button type="button" class="btn btn-danger btn-sm" onclick="removeFunc(' . $value['id'] . ')" data-toggle="modal" data-target="#removeModal"><i class="fa fa-trash"></i></button>';
                 }
 
@@ -154,7 +154,7 @@ class Orders extends Admin_Controller
 
     public function create()
     {
-        if (!isset($this->permission['createOrder'])) {
+        if (!in_array('createOrder', $this->permission)) {
             redirect('dashboard', 'refresh');
         }
 
@@ -231,10 +231,10 @@ class Orders extends Admin_Controller
 
             // Calculate totals
             $gross_amount = floatval($this->input->post('gross_amount_value'));
-            $discount     = $this->input->post('discount') ? floatval($this->input->post('discount')) : 0;
-            $net_amount   = floatval($this->input->post('net_amount_value'));
-            $paid_amount  = $this->input->post('paid_amount') ? floatval($this->input->post('paid_amount')) : 0;
-            $due_amount   = $net_amount - $paid_amount;
+            $discount = $this->input->post('discount') ? floatval($this->input->post('discount')) : 0;
+            $net_amount = floatval($this->input->post('net_amount_value'));
+            $paid_amount = $this->input->post('paid_amount') ? floatval($this->input->post('paid_amount')) : 0;
+            $due_amount = $net_amount - $paid_amount;
 
             // Payment status
             if ($paid_amount == 0) {
@@ -245,48 +245,38 @@ class Orders extends Admin_Controller
                 $paid_status = 3; // Partial
             }
 
-            // ✅ DÉFINIR ET VALIDER user_id ICI (UNE SEULE FOIS)
             $user_id = $this->session->userdata('id');
-
-            $user_check = $this->db->where('id', $user_id)->get('users');
-            if ($user_check->num_rows() == 0) {
-                $admin   = $this->db->select('id')->order_by('id', 'ASC')->limit(1)->get('users')->row();
-                $user_id = $admin ? $admin->id : 1;
-            }
-
             $bill_no = 'BILPR-' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
 
-            // Prepare order data
+            // Prepare order data for Model
             $data = array(
-                'bill_no'            => $bill_no,
-                'customer_id'        => $customer_id,
-                'customer_type'      => $original_type,
+                'bill_no' => $bill_no,
+                'customer_id' => $customer_id,
+                'customer_type' => $original_type,
                 'price_type_override' => ($price_type_override && $price_type_override != $original_type) ? $price_type_override : '',
-                'override_reason'    => ($price_type_override && $price_type_override != $original_type) ? $override_reason : '',
-                'customer_name'      => $customer['customer_name'],
-                'customer_address'   => $customer['address'],
-                'customer_phone'     => $customer['phone'],
-                'date_time'          => date('Y-m-d H:i:s'),
-                'gross_amount'       => $gross_amount,
+                'override_reason' => ($price_type_override && $price_type_override != $original_type) ? $override_reason : '',
+                'customer_name' => $customer['customer_name'],
+                'customer_address' => $customer['address'],
+                'customer_phone' => $customer['phone'],
+                'date_time' => date('Y-m-d H:i:s'),
+                'gross_amount' => $gross_amount,
                 'service_charge_rate' => 0,
-                'service_charge'     => 0,
-                'vat_charge_rate'    => 0,
-                'vat_charge'         => 0,
-                'net_amount'         => $net_amount,
-                'paid_amount'        => $paid_amount,
-                'due_amount'         => $due_amount,
-                'discount'           => $discount,
-                'paid_status'        => $paid_status,
-                'payment_method'     => $this->input->post('payment_method'),
-                'payment_notes'      => $this->input->post('payment_notes'),
-                'user_id'            => $user_id, // ✅ validé tenant
+                'service_charge' => 0,
+                'vat_charge_rate' => 0,
+                'vat_charge' => 0,
+                'net_amount' => $net_amount,
+                'paid_amount' => $paid_amount,
+                'due_amount' => $due_amount,
+                'discount' => $discount,
+                'paid_status' => $paid_status,
+                'payment_method' => $this->input->post('payment_method'),
+                'payment_notes' => $this->input->post('payment_notes'),
+                'user_id' => $user_id
             );
 
             // Insert order
             $this->db->insert('orders', $data);
             $order_id = $this->db->insert_id();
-
-
 
             if ($order_id) {
                 // Insert order items and update stock
@@ -383,7 +373,7 @@ class Orders extends Admin_Controller
 
     public function update($id)
     {
-        if (!isset($this->permission['updateOrder'])) {
+        if (!in_array('updateOrder', $this->permission)) {
             redirect('dashboard', 'refresh');
         }
         if (!$id) {
@@ -393,6 +383,7 @@ class Orders extends Admin_Controller
         $this->form_validation->set_rules('product[]', 'Product name', 'trim|required');
 
         if ($this->form_validation->run() == TRUE) {
+            
             $update = $this->model_orders->update($id);
             if ($update == true) {
                 $this->session->set_flashdata('success', 'Successfully updated');
@@ -425,7 +416,7 @@ class Orders extends Admin_Controller
 
     public function remove()
     {
-        if (!isset($this->permission['deleteOrder'])) {
+        if (!in_array('deleteOrder', $this->permission)) {
             redirect('dashboard', 'refresh');
         }
         $order_id = $this->input->post('order_id');
@@ -632,7 +623,7 @@ class Orders extends Admin_Controller
             echo '</div>';
         }
 
-        if ($order['due_amount'] > 0 && isset($this->permission['updateOrder'])) {
+        if ($order['due_amount'] > 0 && in_array('updateOrder', $this->permission)) {
             echo '<div class="text-center" style="margin-top: 20px;">';
             echo '<button type="button" class="btn btn-success btn-lg" onclick="openAddPaymentModal(' . $order['id'] . ', ' . $order['due_amount'] . ')">';
             echo '<i class="fa fa-plus-circle"></i> Add Payment Installment';
@@ -643,38 +634,32 @@ class Orders extends Admin_Controller
 
     public function addPayment()
     {
-        if (!isset($this->permission['updateOrder'])) {
+        if (!in_array('updateOrder', $this->permission)) {
             echo json_encode(array('success' => false, 'message' => 'Permission denied'));
             return;
         }
 
-        // 1) Récupérer d’abord les valeurs POST
-        $order_id       = $this->input->post('order_id');
+        $order_id = $this->input->post('order_id');
         $payment_amount = $this->input->post('payment_amount');
         $payment_method = $this->input->post('payment_method');
-        $payment_notes  = $this->input->post('payment_notes');
-
-        // 2) Puis seulement après, logger pour debug (optionnel)
-        log_message('error', 'addPayment POST: order_id=' . print_r($order_id, true) . ' amount=' . print_r($payment_amount, true));
+        $payment_notes = $this->input->post('payment_notes');
 
         $response = array();
 
-        // 3) Validation robuste
-        if ($order_id === null || $payment_amount === null || $payment_amount === '' || !is_numeric($payment_amount) || $payment_amount <= 0) {
+        if (!$order_id || !$payment_amount || $payment_amount <= 0) {
             $response['success'] = false;
             $response['message'] = 'Invalid payment amount';
             echo json_encode($response);
             return;
         }
 
-        // 4) Appel du modèle
         $result = $this->model_orders->addPaymentInstallment($order_id, $payment_amount, $payment_method, $payment_notes);
 
         if ($result['success']) {
-            $response['success']        = true;
-            $response['message']        = 'Payment recorded successfully!';
+            $response['success'] = true;
+            $response['message'] = 'Payment recorded successfully!';
             $response['new_due_amount'] = $result['new_due_amount'];
-            $response['paid_status']    = $result['paid_status'];
+            $response['paid_status'] = $result['paid_status'];
         } else {
             $response['success'] = false;
             $response['message'] = $result['message'];
@@ -682,7 +667,6 @@ class Orders extends Admin_Controller
 
         echo json_encode($response);
     }
-
 
     /**
      * Invoice with Payment Installments
@@ -693,7 +677,7 @@ class Orders extends Admin_Controller
      */
     public function invoice($id)
     {
-        if (!isset($this->permission['viewOrder'])) {
+        if (!in_array('viewOrder', $this->permission)) {
             redirect('dashboard', 'refresh');
         }
 
@@ -701,17 +685,6 @@ class Orders extends Admin_Controller
             $order_data = $this->model_orders->getOrdersData($id);
             $orders_items = $this->model_orders->getOrdersItemData($id);
             $company_info = $this->model_company->getCompanyData(1);
-
-            // ✅ ADD NULL CHECK FOR COMPANY INFO
-            if (!$company_info || !is_array($company_info)) {
-                $company_info = array(
-                    'company_name' => 'Your Company',
-                    'address' => 'Your Address Here',
-                    'phone' => 'N/A',
-                    'email' => 'email@example.com'
-                );
-            }
-
             $payments = $this->model_orders->getOrderPayments($id);
 
             // Convert order date
@@ -748,427 +721,427 @@ class Orders extends Admin_Controller
             // NOUVEAU DESIGN HTML (COMME PURCHASE)
             // ========================================
             $html = '<!DOCTYPE html>
-            <html lang="en">
-            <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Sales Invoice - ' . htmlspecialchars($order_data['bill_no']) . '</title>
-            <style>
-                * {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
-                
-                body {
-                    font-family: \'Segoe UI\', Arial, sans-serif;
-                    font-size: 11pt;
-                    line-height: 1.6;
-                    color: #2c3e50;
-                    background: #fff;
-                    padding: 20mm;
-                }
-                
-                .container {
-                    max-width: 210mm;
-                    margin: 0 auto;
-                    background: white;
-                }
-                
-                /* Header */
-                .header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-start;
-                    border-bottom: 4px solid #2c3e50;
-                    padding-bottom: 20px;
-                    margin-bottom: 30px;
-                }
-                
-                .company-section {
-                    flex: 1;
-                }
-                
-                .company-name {
-                    font-size: 26pt;
-                    font-weight: bold;
-                    color: #2c3e50;
-                    margin-bottom: 8px;
-                }
-                
-                .company-details {
-                    font-size: 10pt;
-                    color: #555;
-                    line-height: 1.5;
-                }
-                
-                .invoice-section {
-                    text-align: right;
-                }
-                
-                .invoice-title {
-                    font-size: 32pt;
-                    font-weight: bold;
-                    color: #2c3e50;
-                    margin-bottom: 5px;
-                }
-                
-                .invoice-number {
-                    font-size: 13pt;
-                    font-weight: bold;
-                    color: #e74c3c;
-                    background: #fff3cd;
-                    padding: 5px 15px;
-                    display: inline-block;
-                    border-radius: 4px;
-                }
-                
-                /* Info Grid */
-                .info-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 20px;
-                    margin: 30px 0;
-                }
-                
-                .info-box {
-                    background: #f8f9fa;
-                    border-left: 4px solid #3498db;
-                    padding: 15px;
-                    border-radius: 4px;
-                }
-                
-                .info-box.customer {
-                    border-left-color: #9b59b6;
-                }
-                
-                .info-title {
-                    font-size: 11pt;
-                    font-weight: bold;
-                    text-transform: uppercase;
-                    color: #2c3e50;
-                    margin-bottom: 10px;
-                    letter-spacing: 1px;
-                }
-                
-                .info-row {
-                    display: flex;
-                    padding: 5px 0;
-                    font-size: 10pt;
-                }
-                
-                .info-label {
-                    font-weight: 600;
-                    width: 140px;
-                    color: #555;
-                }
-                
-                .info-value {
-                    flex: 1;
-                    color: #2c3e50;
-                }
-                
-                .status-badge {
-                    display: inline-block;
-                    padding: 4px 12px;
-                    border-radius: 20px;
-                    font-size: 9pt;
-                    font-weight: bold;
-                    text-transform: uppercase;
-                }
-                
-                .status-received {
-                    background: #d4edda;
-                    color: #155724;
-                }
-                
-                .status-pending {
-                    background: #fff3cd;
-                    color: #856404;
-                }
-                
-                .status-cancelled {
-                    background: #f8d7da;
-                    color: #721c24;
-                }
-                
-                /* Table */
-                .items-section {
-                    margin: 30px 0;
-                }
-                
-                .section-title {
-                    font-size: 14pt;
-                    font-weight: bold;
-                    color: #2c3e50;
-                    margin-bottom: 15px;
-                    padding-bottom: 8px;
-                    border-bottom: 2px solid #3498db;
-                }
-                
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-top: 15px;
-                }
-                
-                thead {
-                    background: #34495e;
-                    color: white;
-                }
-                
-                th {
-                    padding: 12px 10px;
-                    text-align: left;
-                    font-size: 10pt;
-                    font-weight: 600;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                }
-                
-                tbody tr {
-                    border-bottom: 1px solid #e0e0e0;
-                }
-                
-                tbody tr:hover {
-                    background: #f8f9fa;
-                }
-                
-                tbody tr:last-child {
-                    border-bottom: 3px solid #34495e;
-                }
-                
-                td {
-                    padding: 12px 10px;
-                    font-size: 10pt;
-                }
-                
-                .text-center { text-align: center; }
-                .text-right { text-align: right; }
-                .text-bold { font-weight: bold; }
-                
-                /* Payment Summary Box */
-                .payment-summary {
-                    background: #f8f9fa;
-                    padding: 20px;
-                    border-left: 4px solid #27ae60;
-                    margin-top: 30px;
-                    border-radius: 4px;
-                }
-                
-                .payment-row {
-                    display: flex;
-                    justify-content: space-between;
-                    padding: 8px 0;
-                    font-size: 11pt;
-                }
-                
-                .payment-row.total {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    padding: 15px 20px;
-                    margin: 10px -10px;
-                    border-radius: 8px;
-                    font-size: 14pt;
-                    font-weight: bold;
-                }
-                
-                .payment-row.paid {
-                    color: #27ae60;
-                    font-weight: 600;
-                }
-                
-                .payment-row.due {
-                    color: #e74c3c;
-                    font-weight: 600;
-                }
-                
-                /* Payment History */
-                .payment-history {
-                    margin-top: 30px;
-                }
-                
-                .history-title {
-                    font-size: 12pt;
-                    font-weight: bold;
-                    color: #2c3e50;
-                    margin-bottom: 15px;
-                    padding-bottom: 8px;
-                    border-bottom: 2px solid #27ae60;
-                }
-                
-                /* Print Button */
-                .print-button {
-                    text-align: center;
-                    margin: 30px 0;
-                }
-                
-                .btn-print {
-                    background: #2c3e50;
-                    color: white;
-                    border: none;
-                    padding: 15px 50px;
-                    font-size: 14pt;
-                    font-weight: bold;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                }
-                
-                .btn-print:hover {
-                    background: #34495e;
-                    transform: translateY(-2px);
-                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-                }
-                
-                /* Print Styles */
-                @media print {
-                    @page {
-                        margin: 10mm;
-                        size: A4;
-                    }
-                    
-                    body {
-                        padding: 0 !important;
-                        margin: 0 !important;
-                    }
-                    
-                    .print-button {
-                        display: none !important;
-                    }
-                    
-                    .container {
-                        max-width: 100%;
-                        padding: 0;
-                        margin: 0;
-                    }
-                    
-                    html, body {
-                        height: 100%;
-                        overflow: visible;
-                    }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                
-                <!-- Header -->
-                <div class="header">
-                    <div class="company-section">
-                        <div class="company-name">' . htmlspecialchars($company_info['company_name'] ?? 'Your Company') . '</div>
-                        <div class="company-details">
-                            ' . nl2br(htmlspecialchars($company_info['address'] ?? '')) . '<br>
-                            <strong>Phone:</strong> ' . htmlspecialchars($company_info['phone'] ?? 'N/A') . '
-                        </div>
-                    </div>
-                    
-                    <div class="invoice-section">
-                        <div class="invoice-title">SALES INVOICE</div>
-                        <div class="invoice-number">' . htmlspecialchars($order_data['bill_no']) . '</div>
-                    </div>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Invoice - ' . $order_data['bill_no'] . '</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: \'Segoe UI\', Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #2c3e50;
+            background: #fff;
+            padding: 20mm;
+        }
+        
+        .container {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+        }
+        
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 4px solid #2c3e50;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .company-section {
+            flex: 1;
+        }
+        
+        .company-name {
+            font-size: 26pt;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        
+        .company-details {
+            font-size: 10pt;
+            color: #555;
+            line-height: 1.5;
+        }
+        
+        .invoice-section {
+            text-align: right;
+        }
+        
+        .invoice-title {
+            font-size: 32pt;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .invoice-number {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #e74c3c;
+            background: #fff3cd;
+            padding: 5px 15px;
+            display: inline-block;
+            border-radius: 4px;
+        }
+        
+        /* Info Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        
+        .info-box.customer {
+            border-left-color: #9b59b6;
+        }
+        
+        .info-title {
+            font-size: 11pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        
+        .info-row {
+            display: flex;
+            padding: 5px 0;
+            font-size: 10pt;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            width: 140px;
+            color: #555;
+        }
+        
+        .info-value {
+            flex: 1;
+            color: #2c3e50;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 9pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-received {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        /* Table */
+        .items-section {
+            margin: 30px 0;
+        }
+        
+        .section-title {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        thead {
+            background: #34495e;
+            color: white;
+        }
+        
+        th {
+            padding: 12px 10px;
+            text-align: left;
+            font-size: 10pt;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        tbody tr {
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        tbody tr:last-child {
+            border-bottom: 3px solid #34495e;
+        }
+        
+        td {
+            padding: 12px 10px;
+            font-size: 10pt;
+        }
+        
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-bold { font-weight: bold; }
+        
+        /* Payment Summary Box */
+        .payment-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-left: 4px solid #27ae60;
+            margin-top: 30px;
+            border-radius: 4px;
+        }
+        
+        .payment-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 11pt;
+        }
+        
+        .payment-row.total {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            margin: 10px -10px;
+            border-radius: 8px;
+            font-size: 14pt;
+            font-weight: bold;
+        }
+        
+        .payment-row.paid {
+            color: #27ae60;
+            font-weight: 600;
+        }
+        
+        .payment-row.due {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        
+        /* Payment History */
+        .payment-history {
+            margin-top: 30px;
+        }
+        
+        .history-title {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #27ae60;
+        }
+        
+        /* Print Button */
+        .print-button {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .btn-print {
+            background: #2c3e50;
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 14pt;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-print:hover {
+            background: #34495e;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* Print Styles */
+        @media print {
+            @page {
+                margin: 10mm;
+                size: A4;
+            }
+            
+            body {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            .print-button {
+                display: none !important;
+            }
+            
+            .container {
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+            
+            html, body {
+                height: 100%;
+                overflow: visible;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- Header -->
+        <div class="header">
+            <div class="company-section">
+                <div class="company-name">' . htmlspecialchars($company_info['company_name']) . '</div>
+                <div class="company-details">
+                    ' . nl2br(htmlspecialchars($company_info['address'])) . '<br>
+                    <strong>Phone:</strong> ' . htmlspecialchars($company_info['phone']) . '
                 </div>
-                
-                <!-- Info Grid -->
-                <div class="info-grid">
-                    <!-- Customer Info -->
-                    <div class="info-box customer">
-                        <div class="info-title">👤 Customer Information</div>
-                        <div class="info-row">
-                            <div class="info-label">Name:</div>
-                            <div class="info-value"><strong>' . htmlspecialchars($order_data['customer_name']) . '</strong></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Phone:</div>
-                            <div class="info-value">' . htmlspecialchars($order_data['customer_phone']) . '</div>
-                        </div>';
+            </div>
+            
+            <div class="invoice-section">
+                <div class="invoice-title">SALES INVOICE</div>
+                <div class="invoice-number">' . htmlspecialchars($order_data['bill_no']) . '</div>
+            </div>
+        </div>
+        
+        <!-- Info Grid -->
+        <div class="info-grid">
+            <!-- Customer Info -->
+            <div class="info-box customer">
+                <div class="info-title">👤 Customer Information</div>
+                <div class="info-row">
+                    <div class="info-label">Name:</div>
+                    <div class="info-value"><strong>' . htmlspecialchars($order_data['customer_name']) . '</strong></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Phone:</div>
+                    <div class="info-value">' . htmlspecialchars($order_data['customer_phone']) . '</div>
+                </div>';
 
             if (!empty($order_data['customer_address'])) {
                 $html .= '<div class="info-row">
-                            <div class="info-label">Address:</div>
-                            <div class="info-value">' . htmlspecialchars($order_data['customer_address']) . '</div>
-                        </div>';
+                    <div class="info-label">Address:</div>
+                    <div class="info-value">' . htmlspecialchars($order_data['customer_address']) . '</div>
+                </div>';
             }
 
             $html .= '</div>
-                    
-                    <!-- Order Details -->
-                    <div class="info-box">
-                        <div class="info-title">📋 Order Details</div>
-                        <div class="info-row">
-                            <div class="info-label">Date:</div>
-                            <div class="info-value"><strong>' . $order_date . ' ' . $order_time . '</strong></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Payment Status:</div>
-                            <div class="info-value">
-                                <span class="status-badge ' . $status_class . '">' . $paid_status . '</span>
-                            </div>
-                        </div>
+            
+            <!-- Order Details -->
+            <div class="info-box">
+                <div class="info-title">📋 Order Details</div>
+                <div class="info-row">
+                    <div class="info-label">Date:</div>
+                    <div class="info-value"><strong>' . $order_date . ' ' . $order_time . '</strong></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Payment Status:</div>
+                    <div class="info-value">
+                        <span class="status-badge ' . $status_class . '">' . $paid_status . '</span>
                     </div>
                 </div>
-                
-                <!-- Items Section -->
-                <div class="items-section">
-                    <div class="section-title">🛒 Order Items</div>
-                    
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width: 5%;">#</th>
-                                <th style="width: 45%;">Product</th>
-                                <th style="width: 12%;" class="text-center">Quantity</th>
-                                <th style="width: 19%;" class="text-right">Unit Price</th>
-                                <th style="width: 19%;" class="text-right">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>';
+            </div>
+        </div>
+        
+        <!-- Items Section -->
+        <div class="items-section">
+            <div class="section-title">🛒 Order Items</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 45%;">Product</th>
+                        <th style="width: 12%;" class="text-center">Quantity</th>
+                        <th style="width: 19%;" class="text-right">Unit Price</th>
+                        <th style="width: 19%;" class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>';
 
             $no = 1;
             foreach ($orders_items as $item) {
                 $product_data = $this->model_products->getProductData($item['product_id']);
                 $html .= '<tr>
-                                <td class="text-center text-bold">' . $no++ . '</td>
-                                <td class="text-bold">' . htmlspecialchars($product_data['name']) . '</td>
-                                <td class="text-center"><strong>' . $item['qty'] . '</strong></td>
-                                <td class="text-right">' . number_format($item['rate'], 2) . ' DZD</td>
-                                <td class="text-right text-bold">' . number_format($item['amount'], 2) . ' DZD</td>
-                            </tr>';
+                        <td class="text-center text-bold">' . $no++ . '</td>
+                        <td class="text-bold">' . htmlspecialchars($product_data['name']) . '</td>
+                        <td class="text-center"><strong>' . $item['qty'] . '</strong></td>
+                        <td class="text-right">' . number_format($item['rate'], 2) . ' DZD</td>
+                        <td class="text-right text-bold">' . number_format($item['amount'], 2) . ' DZD</td>
+                    </tr>';
             }
 
             $html .= '</tbody>
-                    </table>
-                </div>
-                
-                <!-- Payment Summary -->
-                <div class="payment-summary">
-                    <div class="payment-row">
-                        <span>Gross Amount:</span>
-                        <span>' . number_format($order_data['gross_amount'], 2) . ' DZD</span>
-                    </div>';
+            </table>
+        </div>
+        
+        <!-- Payment Summary -->
+        <div class="payment-summary">
+            <div class="payment-row">
+                <span>Gross Amount:</span>
+                <span>' . number_format($order_data['gross_amount'], 2) . ' DZD</span>
+            </div>';
 
             if ($order_data['discount'] > 0) {
                 $html .= '<div class="payment-row">
-                            <span>Discount:</span>
-                            <span>- ' . number_format($order_data['discount'], 2) . ' DZD</span>
-                        </div>';
+                    <span>Discount:</span>
+                    <span>- ' . number_format($order_data['discount'], 2) . ' DZD</span>
+                </div>';
             }
 
             $html .= '<div class="payment-row total">
-                        <span>TOTAL AMOUNT</span>
-                        <span>' . number_format($order_data['net_amount'], 2) . ' DZD</span>
-                    </div>
-                    
-                    <div class="payment-row paid">
-                        <span>Amount Paid:</span>
-                        <span><strong>' . number_format($order_data['paid_amount'], 2) . ' DZD</strong></span>
-                    </div>';
+                <span>TOTAL AMOUNT</span>
+                <span>' . number_format($order_data['net_amount'], 2) . ' DZD</span>
+            </div>
+            
+            <div class="payment-row paid">
+                <span>Amount Paid:</span>
+                <span><strong>' . number_format($order_data['paid_amount'], 2) . ' DZD</strong></span>
+            </div>';
 
             if ($order_data['due_amount'] > 0) {
                 $html .= '<div class="payment-row due">
-                            <span>Amount Due:</span>
-                            <span><strong>' . number_format($order_data['due_amount'], 2) . ' DZD</strong></span>
-                        </div>';
+                    <span>Amount Due:</span>
+                    <span><strong>' . number_format($order_data['due_amount'], 2) . ' DZD</strong></span>
+                </div>';
             }
 
             $html .= '</div>';
@@ -1176,20 +1149,20 @@ class Orders extends Admin_Controller
             // Payment History
             if (!empty($payments) && count($payments) > 0) {
                 $html .= '<div class="payment-history">
-                        <div class="history-title">💳 Payment History (' . count($payments) . ' installments)</div>
-                        
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width: 8%;">#</th>
-                                    <th style="width: 22%;">Date & Time</th>
-                                    <th style="width: 18%;" class="text-right">Amount</th>
-                                    <th style="width: 18%;" class="text-right">Balance</th>
-                                    <th style="width: 17%;">Method</th>
-                                    <th style="width: 17%;">Notes</th>
-                                </tr>
-                            </thead>
-                            <tbody>';
+                <div class="history-title">💳 Payment History (' . count($payments) . ' installments)</div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 8%;">#</th>
+                            <th style="width: 22%;">Date & Time</th>
+                            <th style="width: 18%;" class="text-right">Amount</th>
+                            <th style="width: 18%;" class="text-right">Balance</th>
+                            <th style="width: 17%;">Method</th>
+                            <th style="width: 17%;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>';
 
                 foreach ($payments as $payment) {
                     $is_final = ($payment['remaining_balance'] == 0);
@@ -1212,10 +1185,10 @@ class Orders extends Admin_Controller
                     $row_style = $is_final ? 'background: #d4edda;' : '';
 
                     $html .= '<tr style="' . $row_style . '">
-                                    <td class="text-center text-bold">#' . $payment['installment_number'] . '</td>
-                                    <td>' . date('d/m/Y H:i', $payment_timestamp) . '</td>
-                                    <td class="text-right text-bold" style="color: #27ae60;">' . number_format($payment['payment_amount'], 2) . ' DZD</td>
-                                    <td class="text-right">';
+                            <td class="text-center text-bold">#' . $payment['installment_number'] . '</td>
+                            <td>' . date('d/m/Y H:i', $payment_timestamp) . '</td>
+                            <td class="text-right text-bold" style="color: #27ae60;">' . number_format($payment['payment_amount'], 2) . ' DZD</td>
+                            <td class="text-right">';
 
                     if ($is_final) {
                         $html .= '<strong style="color: #27ae60;">PAID ✓</strong>';
@@ -1227,42 +1200,41 @@ class Orders extends Admin_Controller
                     $notes_display = !empty($payment['notes']) ? htmlspecialchars($payment['notes']) : '-';
 
                     $html .= '</td>
-                                    <td>' . $method_display . '</td>
-                                    <td style="font-size: 9pt;">' . $notes_display . '</td>
-                                </tr>';
+                            <td>' . $method_display . '</td>
+                            <td style="font-size: 9pt;">' . $notes_display . '</td>
+                        </tr>';
                 }
 
                 $html .= '</tbody>
-                        </table>
-                    </div>';
+                </table>
+            </div>';
             }
 
             $html .= '
-                <!-- Print Button -->
-                <div class="print-button">
-                    <button class="btn-print" onclick="printInvoice()">
-                        🖨️ PRINT
-                    </button>
-                </div>
-                
-            </div>
+        <!-- Print Button -->
+        <div class="print-button">
+            <button class="btn-print" onclick="printInvoice()">
+                🖨️ PRINT
+            </button>
+        </div>
+        
+    </div>
 
-            <script>
-            function printInvoice() {
-                document.querySelector(\'.print-button\').style.display = \'none\';
-                window.print();
-                setTimeout(function() {
-                    document.querySelector(\'.print-button\').style.display = \'block\';
-                }, 100);
-            }
-            </script>
-        </body>
-        </html>';
+    <script>
+    function printInvoice() {
+        document.querySelector(\'.print-button\').style.display = \'none\';
+        window.print();
+        setTimeout(function() {
+            document.querySelector(\'.print-button\').style.display = \'block\';
+        }, 100);
+    }
+    </script>
+</body>
+</html>';
 
             echo $html;
         }
     }
-
 
 
 
@@ -1276,10 +1248,10 @@ class Orders extends Admin_Controller
         ini_set('display_errors', 0);
         ob_clean(); // Nettoyer le buffer de sortie
 
-        if (!isset($this->permission['viewOrder'])) {
+        if (!in_array('viewOrder', $this->permission)) {
             redirect('dashboard', 'refresh');
         }
-        if (!isset($this->permission['viewOrder'])) {
+        if (!in_array('viewOrder', $this->permission)) {
             redirect('dashboard', 'refresh');
         }
 
