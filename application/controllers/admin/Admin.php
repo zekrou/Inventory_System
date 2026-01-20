@@ -155,19 +155,58 @@ class Admin extends CI_Controller
     private function get_all_permissions()
     {
         return [
-            'createProduct', 'updateProduct', 'viewProduct', 'deleteProduct',
-            'createBrand', 'updateBrand', 'viewBrand', 'deleteBrand',
-            'createCategory', 'updateCategory', 'viewCategory', 'deleteCategory',
-            'createStock', 'updateStock', 'viewStock', 'deleteStock',
-            'createPurchase', 'updatePurchase', 'viewPurchase', 'deletePurchase',
-            'createOrder', 'updateOrder', 'viewOrder', 'deleteOrder',
-            'createCustomer', 'updateCustomer', 'viewCustomer', 'deleteCustomer',
-            'createSupplier', 'updateSupplier', 'viewSupplier', 'deleteSupplier',
-            'createUser', 'updateUser', 'viewUser', 'deleteUser',
-            'createGroup', 'updateGroup', 'viewGroup', 'deleteGroup',
-            'createCompany', 'updateCompany', 'viewCompany', 'viewReports'
+            'createProduct',
+            'updateProduct',
+            'viewProduct',
+            'deleteProduct',
+            'createBrand',
+            'updateBrand',
+            'viewBrand',
+            'deleteBrand',
+            'createCategory',
+            'updateCategory',
+            'viewCategory',
+            'deleteCategory',
+            'createStock',
+            'updateStock',
+            'viewStock',
+            'deleteStock',
+            'createPurchase',
+            'updatePurchase',
+            'viewPurchase',
+            'deletePurchase',
+            'createOrder',
+            'updateOrder',
+            'viewOrder',
+            'deleteOrder',
+            'createCustomer',
+            'updateCustomer',
+            'viewCustomer',
+            'deleteCustomer',
+            'createSupplier',
+            'updateSupplier',
+            'viewSupplier',
+            'deleteSupplier',
+            'createUser',
+            'updateUser',
+            'viewUser',
+            'deleteUser',
+            'createGroup',
+            'updateGroup',
+            'viewGroup',
+            'deleteGroup',
+            'createCompany',
+            'updateCompany',
+            'viewCompany',
+            'viewReports',
+
+            // ✅ AJOUTE CES 3 LIGNES
+            'viewPreOrder',
+            'updatePreOrder',
+            'deletePreOrder'
         ];
     }
+
 
     public function edit_tenant($id = null)
     {
@@ -378,8 +417,10 @@ class Admin extends CI_Controller
                     $filename = 'master_backup_' . date('Y-m-d_H-i-s') . '.zip';
                     file_put_contents($backup_path . $filename, $backup);
 
-                    $master_db->query("INSERT INTO backup_history (backup_name, backup_type, file_size, created_by, created_at) VALUES (?, ?, ?, ?, ?)",
-                        array($filename, 'master', filesize($backup_path . $filename), $this->session->userdata('id'), date('Y-m-d H:i:s')));
+                    $master_db->query(
+                        "INSERT INTO backup_history (backup_name, backup_type, file_size, created_by, created_at) VALUES (?, ?, ?, ?, ?)",
+                        array($filename, 'master', filesize($backup_path . $filename), $this->session->userdata('id'), date('Y-m-d H:i:s'))
+                    );
                 } else {
                     $tenants = $master_db->query("SELECT * FROM tenants")->result_array();
 
@@ -390,8 +431,10 @@ class Admin extends CI_Controller
                         $filename = 'tenant_' . $tenant['id'] . '_' . date('Y-m-d_H-i-s') . '.zip';
                         file_put_contents($backup_path . $filename, $backup);
 
-                        $master_db->query("INSERT INTO backup_history (backup_name, backup_type, tenant_id, file_size, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-                            array($filename, 'tenant', $tenant['id'], filesize($backup_path . $filename), $this->session->userdata('id'), date('Y-m-d H:i:s')));
+                        $master_db->query(
+                            "INSERT INTO backup_history (backup_name, backup_type, tenant_id, file_size, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                            array($filename, 'tenant', $tenant['id'], filesize($backup_path . $filename), $this->session->userdata('id'), date('Y-m-d H:i:s'))
+                        );
                     }
                 }
 

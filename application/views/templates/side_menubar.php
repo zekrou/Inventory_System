@@ -7,7 +7,15 @@
           <i class="fa fa-dashboard"></i> <span>Dashboard</span>
         </a>
       </li>
-
+      <!-- Pre-Orders Menu -->
+      <?php if (in_array('viewPreOrder', $user_permission)): ?>
+        <li class="treeview <?php echo $this->uri->segment(1) == 'preorders' ? 'active' : ''; ?>">
+          <a href="<?php echo base_url('preorders'); ?>">
+            <i class="fa fa-mobile"></i>
+            <span>Pre-Orders Mobile</span>
+          </a>
+        </li>
+      <?php endif; ?>
       <?php if (!empty($user_permission) && is_array($user_permission)): ?>
 
         <!-- ========== 📦 INVENTORY MANAGEMENT ========== -->

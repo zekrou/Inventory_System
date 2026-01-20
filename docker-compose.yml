@@ -1,0 +1,17 @@
+services:
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    environment:
+      PMA_HOST: inventorysystem-mysqlinventory-ydsxph
+      PMA_PORT: 3306
+      PMA_USER: mysql
+      PMA_PASSWORD: Zakaria1304@
+      PMA_ARBITRARY: 0
+      UPLOAD_LIMIT: 50M
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+
+networks:
+  dokploy-network:
+    external: true
