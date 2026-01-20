@@ -29,6 +29,8 @@ class Orders extends Admin_Controller
         $this->load->model('model_customers');
     }
 
+
+
     public function index()
     {
         if (!isset($this->permission['viewOrder'])) {
@@ -44,29 +46,12 @@ class Orders extends Admin_Controller
         error_reporting(E_ALL);
         ini_set('display_errors', 1);
 
-        // ✅ DEBUG: Affiche les permissions
-        echo "<h3>DEBUG PERMISSIONS:</h3>";
-        echo "Permission isset: " . (isset($this->permission) ? 'YES' : 'NO') . "<br>";
-        echo "Permission is_array: " . (is_array($this->permission) ? 'YES' : 'NO') . "<br>";
-        echo "Permission count: " . count($this->permission) . "<br>";
-        echo "viewOrder isset: " . (isset($this->permission['viewOrder']) ? 'YES' : 'NO') . "<br>";
-        echo "viewOrder value: " . (isset($this->permission['viewOrder']) ? $this->permission['viewOrder'] : 'NULL') . "<br>";
-        echo "<pre>" . print_r($this->permission, true) . "</pre>";
-
-        // ✅ TEST DIRECT DE LA BASE
-        $test = $this->db->query("SELECT permission FROM `groups` WHERE id = 1")->row_array();
-        $test_perm = unserialize($test['permission']);
-        echo "<h3>TEST DIRECT DB:</h3>";
-        echo "viewOrder in DB: " . (isset($test_perm['viewOrder']) ? $test_perm['viewOrder'] : 'NOT FOUND') . "<br>";
-        echo "<pre>" . print_r($test_perm, true) . "</pre>";
-        die();
-
         try {
             $result = array('data' => array());
             $status = $this->input->get('status');
             $searchTerm = $this->input->get('search_term');
 
-            // 🔴 LOG pour debug
+            // Log pour debug (n'affiche pas à l'écran)
             log_message('debug', 'Status: ' . $status);
             log_message('debug', 'Search term: ' . $searchTerm);
 
@@ -77,7 +62,7 @@ class Orders extends Admin_Controller
                 $data = $this->model_orders->getOrdersDataWithSearch(null, $searchTerm);
             }
 
-            // 🔴 Vérifie si $data existe
+            // Vérifie si $data existe
             if (!$data) {
                 $data = array();
             }
@@ -128,7 +113,7 @@ class Orders extends Admin_Controller
 
             echo json_encode($result);
         } catch (Exception $e) {
-            // 🔴 Retourne un JSON valide avec détails de l'erreur
+            // Retourne un JSON valide avec détails de l'erreur
             http_response_code(200); // Force 200 pour éviter l'alerte
             echo json_encode(array(
                 'error' => true,
@@ -138,6 +123,7 @@ class Orders extends Admin_Controller
             ));
         }
     }
+
 
 
 
