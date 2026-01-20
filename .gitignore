@@ -1,3 +1,37 @@
+# Logs
+application/logs/*
+!application/logs/index.html
+!application/logs/.htaccess
+
+# Cache
+application/cache/*
+!application/cache/index.html
+!application/cache/.htaccess
+
+# Sessions
+application/sessions/*
+!application/sessions/index.html
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.bak
+*~
+
+# Node modules (si tu en as)
+node_modules/
+
+# Vendor (si Composer)
+vendor/
+
 */config/development
 */logs/log-*.php
 !*/logs/index.html
