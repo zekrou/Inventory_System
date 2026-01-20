@@ -8,8 +8,11 @@
         </a>
       </li>
 
-
       <?php if (!empty($user_permission) && is_array($user_permission)): ?>
+
+        <!-- ========== 📱 MOBILE ORDERS ========== -->
+        <li class="header">MOBILE ORDERS</li>
+
         <!-- Pre-Orders Menu -->
         <?php if (in_array('viewPreOrder', $user_permission)): ?>
           <li class="treeview <?php echo $this->uri->segment(1) == 'preorders' ? 'active' : ''; ?>">
@@ -17,18 +20,25 @@
               <i class="fa fa-mobile"></i>
               <span>Pre-Orders Mobile</span>
               <?php
-              // Badge count (optionnel)
-              $this->load->model('model_preorders');
-              $pending_count = $this->db->where('status', 'pending')->count_all_results('pre_orders');
-              if ($pending_count > 0):
+              // Badge count (optionnel - avec vérification)
+              if(class_exists('Model_preorders')) {
+                $this->load->model('model_preorders');
+                if($this->db->table_exists('pre_orders')) {
+                  $pending_count = $this->db->where('status', 'pending')->count_all_results('pre_orders');
+                  if ($pending_count > 0):
               ?>
                 <span class="pull-right-container">
                   <small class="label pull-right bg-yellow"><?php echo $pending_count; ?></small>
                 </span>
-              <?php endif; ?>
+              <?php 
+                  endif;
+                }
+              }
+              ?>
             </a>
           </li>
         <?php endif; ?>
+
         <!-- ========== 📦 INVENTORY MANAGEMENT ========== -->
         <li class="header">INVENTORY MANAGEMENT</li>
 
@@ -158,7 +168,7 @@
             </span>
           </a>
           <ul class="treeview-menu">
-            <?php if (isset($user_permission['viewReports'])): ?> <!-- ✅ SANS S -->
+            <?php if (isset($user_permission['viewReports'])): ?>
               <li id="reportSubMenu">
                 <a href="<?php echo base_url('reports/') ?>">
                   <i class="fa fa-line-chart"></i> Sales Reports
@@ -176,7 +186,6 @@
               </li>
             <?php endif; ?>
           </ul>
-
         </li>
 
         <!-- ========== ⚙️ SYSTEM SETTINGS ========== -->
