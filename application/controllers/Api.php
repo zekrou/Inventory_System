@@ -86,60 +86,59 @@ class Api extends CI_Controller
      * Login employé avec switch automatique tenant
      */
     public function login()
-{
-    header('Content-Type: application/json');
+    {
+        header('Content-Type: application/json');
 
-    try {
-        // Lire x-www-form-urlencoded
-        $username = $this->input->post('username');
-        $password = $this->input->post('password');
+        try {
+            // Lire x-www-form-urlencoded
+            $username = $this->input->post('username');
+            $password = $this->input->post('password');
 
-        if (empty($username) || empty($password)) {
-            echo json_encode(['success' => false, 'message' => 'Username and password required']);
+            if (empty($username) || empty($password)) {
+                echo json_encode(['success' => false, 'message' => 'Username and password required']);
+                return;
+            }
+
+            // S'assurer que le modèle est chargé
+            $this->load->model('model_users');
+
+            // Ta fonction cherche username OU email (parfait)
+            $user = $this->model_users->getUserDataByUsername($username);
+
+            if (!$user) {
+                echo json_encode(['success' => false, 'message' => 'Utilisateur non trouvé']);
+                return;
+            }
+
+            if (!password_verify($password, $user['password'])) {
+                echo json_encode(['success' => false, 'message' => 'Mot de passe incorrect']);
+                return;
+            }
+
+            $token = bin2hex(random_bytes(32));
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Login réussi',
+                'user' => [
+                    'id' => (int)$user['id'],
+                    'username' => $user['username'],
+                    'firstname' => $user['firstname'] ?? '',
+                    'lastname' => $user['lastname'] ?? '',
+                    'email' => $user['email'] ?? '',
+                ],
+                'token' => $token
+            ]);
+            return;
+        } catch (Throwable $e) {
+            // IMPORTANT: renvoyer JSON, pas HTML
+            echo json_encode([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage()
+            ]);
             return;
         }
-
-        // S'assurer que le modèle est chargé
-        $this->load->model('model_users');
-
-        // Ta fonction cherche username OU email (parfait)
-        $user = $this->model_users->getUserDataByUsername($username);
-
-        if (!$user) {
-            echo json_encode(['success' => false, 'message' => 'Utilisateur non trouvé']);
-            return;
-        }
-
-        if (!password_verify($password, $user['password'])) {
-            echo json_encode(['success' => false, 'message' => 'Mot de passe incorrect']);
-            return;
-        }
-
-        $token = bin2hex(random_bytes(32));
-
-        echo json_encode([
-            'success' => true,
-            'message' => 'Login réussi',
-            'user' => [
-                'id' => (int)$user['id'],
-                'username' => $user['username'],
-                'firstname' => $user['firstname'] ?? '',
-                'lastname' => $user['lastname'] ?? '',
-                'email' => $user['email'] ?? '',
-            ],
-            'token' => $token
-        ]);
-        return;
-
-    } catch (Throwable $e) {
-        // IMPORTANT: renvoyer JSON, pas HTML
-        echo json_encode([
-            'success' => false,
-            'message' => 'Server error: ' . $e->getMessage()
-        ]);
-        return;
     }
-}
 
 
 
@@ -151,48 +150,28 @@ class Api extends CI_Controller
      * Liste produits du tenant
      */
     public function products() {
-  // DEBUG
   $headers = getallheaders();
-  error_log("Products token OK: " . substr($headers['Authorization'] ?? '', 0, 20));
+  error_log("Token OK");
 
   try {
-    $this->load->model('model_products');
-    
-    // FIX: Query directe tous les produits disponibles
-    $this->db->select('id, name, sku, description, qty, price_retail, price_wholesale, price_super_wholesale, image, availability');
+    // TEMPORAIRE: TOUS les produits (pas de filtre)
+    $this->db->select('*');
     $this->db->from('products');
-    $this->db->where('availability', 1);
-    $this->db->where('qty >', 0);
+    $this->db->order_by('id', 'DESC');
     $products = $this->db->get()->result_array();
-
-    $formatted = array_map(function($p) {
-      return [
-        'id' => (int)$p['id'],
-        'name' => $p['name'],
-        'sku' => $p['sku'] ?? '',
-        'description' => $p['description'] ?? '',
-        'qty' => (int)$p['qty'],
-        'price_retail' => (float)($p['price_retail'] ?? 0),
-        'price_wholesale' => (float)($p['price_wholesale'] ?? 0),
-        'price_super_wholesale' => (float)($p['price_super_wholesale'] ?? 0),
-        'image' => !empty($p['image']) ? base_url('uploads/products/' . $p['image']) : null,
-        'availability' => (int)$p['availability']
-      ];
-    }, $products);
 
     echo json_encode([
       'success' => true,
-      'products' => $formatted,
-      'count' => count($formatted)
+      'products' => $products,  // Raw pour debug
+      'count' => count($products),
+      'debug' => 'Total produits trouvés: ' . count($products)
     ]);
     
   } catch (Exception $e) {
-    echo json_encode([
-      'success' => false,
-      'message' => $e->getMessage()
-    ]);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
   }
 }
+
 
 
 
