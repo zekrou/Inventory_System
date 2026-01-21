@@ -1,30 +1,14 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
-/**
- * @property CI_DB_query_builder $db
- * @property CI_Session $session
- * @property CI_Input $input
- * @property CI_Form_validation $form_validation
- * @property Model_orders $model_orders
- * @property Model_products $model_products
- * @property Model_customers $model_customers
- * @property Model_orders $model_orders
- * @property Model_company $model_company
- * @property CI_Output $output
- * 
- * Custom Models
- * @property Model_purchases $model_purchases
- * @property Model_suppliers $model_suppliers
- * @property Model_tenant_auth $model_tenant_auth
- */
+
 class Api extends CI_Controller
 {
+    private $tenant_db;
 
     public function __construct()
     {
         parent::__construct();
         $this->load->model('model_products');
-        $this->load->model('model_users');
         $this->load->database();
 
         // Enable CORS
@@ -38,253 +22,159 @@ class Api extends CI_Controller
             exit();
         }
     }
-    /**
-     * Retourne la connexion DB du bon tenant
-     * @param int $tenant_id - ID du tenant (donomagic = 1, merchant2 = 2, etc.)
-     * @return CI_DB_mysql_driver
-     */
-    private function get_tenant_db($tenant_id)
-    {
-        // 1. Vérifier que le tenant existe et est actif
-        $this->load->model('model_tenant_auth');
-        $tenant = $this->model_tenant_auth->get_tenant($tenant_id);
 
-        if (!$tenant) {
-            throw new Exception('Tenant not found or inactive');
+    // ==================== AUTHENTICATION ====================
+    public function login()
+    {
+        header('Content-Type: application/json');
+
+        $email = $this->input->post('email');
+        $password = $this->input->post('password');
+
+        if (!$email || !$password) {
+            echo json_encode(['success'=>false,'message'=>'Email and password required']);
+            return;
         }
 
-        // 2. Construire les credentials de connexion
-        $db_config = [
-            'hostname' => $tenant['db_hostname'] ?? 'localhost',
-            'username' => $tenant['db_username'],
-            'password' => $tenant['db_password'],
-            'database' => $tenant['db_name'], // stock_donomagic, stock_merchant2, etc.
+        // 1️⃣ Vérifier l'utilisateur dans stock master
+        $user = $this->db->where('email', $email)->get('users')->row_array();
+        if (!$user || !password_verify($password, $user['password'])) {
+            echo json_encode(['success'=>false,'message'=>'Invalid credentials']);
+            return;
+        }
+
+        // 2️⃣ Récupérer le tenant associé
+        $userTenant = $this->db->where('user_id', $user['id'])->get('user_tenant')->row_array();
+        if (!$userTenant) {
+            echo json_encode(['success'=>false,'message'=>'User not linked to any tenant']);
+            return;
+        }
+
+        $tenant = $this->db->where('id', $userTenant['tenant_id'])->get('tenants')->row_array();
+        if (!$tenant) {
+            echo json_encode(['success'=>false,'message'=>'Tenant not found']);
+            return;
+        }
+
+        // 3️⃣ Connecter la base du tenant
+        $dbConfig = [
+            'hostname' => 'localhost', // ou tenant['db_hostname']
+            'username' => 'db_user',   // username correct pour toutes les bases tenant
+            'password' => 'db_pass',   // password correct
+            'database' => $tenant['database_name'],
             'dbdriver' => 'mysqli',
             'dbprefix' => '',
             'pconnect' => FALSE,
             'db_debug' => FALSE,
             'cache_on' => FALSE,
-            'cachedir' => '',
             'char_set' => 'utf8',
             'dbcollat' => 'utf8_general_ci',
-            'swap_pre' => '',
-            'encrypt' => FALSE,
-            'compress' => FALSE,
-            'stricton' => FALSE,
-            'failover' => array(),
-            'save_queries' => TRUE
         ];
 
-        // 3. Créer une connexion temporaire
-        $this->tenant_db = $this->load->database($db_config, TRUE, 'tenant_db');
+        $this->tenant_db = $this->load->database($dbConfig, TRUE, 'tenant_db');
 
-        return $this->tenant_db;
+        // 4️⃣ Générer token
+        $token = bin2hex(random_bytes(32));
+
+        echo json_encode([
+            'success' => true,
+            'token' => $token,
+            'tenant_id' => (int)$tenant['id'],
+            'user' => [
+                'id' => (int)$user['id'],
+                'email' => $user['email'],
+                'firstname' => $user['firstname'],
+                'lastname' => $user['lastname'],
+            ]
+        ]);
     }
-    // ==================== AUTHENTICATION ====================
-
-    /**
-     * Login employé avec switch automatique tenant
-     */
-    public function login()
-    {
-        header('Content-Type: application/json');
-
-        try {
-            // Lire x-www-form-urlencoded
-            $username = $this->input->post('username');
-            $password = $this->input->post('password');
-
-            if (empty($username) || empty($password)) {
-                echo json_encode(['success' => false, 'message' => 'Username and password required']);
-                return;
-            }
-
-            // S'assurer que le modèle est chargé
-            $this->load->model('model_users');
-
-            // Ta fonction cherche username OU email (parfait)
-            $user = $this->model_users->getUserDataByUsername($username);
-
-            if (!$user) {
-                echo json_encode(['success' => false, 'message' => 'Utilisateur non trouvé']);
-                return;
-            }
-
-            if (!password_verify($password, $user['password'])) {
-                echo json_encode(['success' => false, 'message' => 'Mot de passe incorrect']);
-                return;
-            }
-
-            $token = bin2hex(random_bytes(32));
-
-            echo json_encode([
-                'success' => true,
-                'message' => 'Login réussi',
-                'user' => [
-                    'id' => (int)$user['id'],
-                    'username' => $user['username'],
-                    'firstname' => $user['firstname'] ?? '',
-                    'lastname' => $user['lastname'] ?? '',
-                    'email' => $user['email'] ?? '',
-                ],
-                'token' => $token
-            ]);
-            return;
-        } catch (Throwable $e) {
-            // IMPORTANT: renvoyer JSON, pas HTML
-            echo json_encode([
-                'success' => false,
-                'message' => 'Server error: ' . $e->getMessage()
-            ]);
-            return;
-        }
-    }
-
-
-
-
 
     // ==================== PRODUCTS ====================
-
-    /**
-     * Liste produits du tenant
-     */
-    public function products() {
-  $headers = getallheaders();
-  error_log("Token OK");
-
-  try {
-    // TEMPORAIRE: TOUS les produits (pas de filtre)
-    $this->db->select('*');
-    $this->db->from('products');
-    $this->db->order_by('id', 'DESC');
-    $products = $this->db->get()->result_array();
-
-    echo json_encode([
-      'success' => true,
-      'products' => $products,  // Raw pour debug
-      'count' => count($products),
-      'debug' => 'Total produits trouvés: ' . count($products)
-    ]);
-    
-  } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-  }
-}
-
-
-
-
-
+    public function products()
+    {
+        try {
+            $products = $this->tenant_db->order_by('id','DESC')->get('products')->result_array();
+            echo json_encode([
+                'success'=>true,
+                'products'=>$products,
+                'count'=>count($products)
+            ]);
+        } catch(Exception $e) {
+            echo json_encode(['success'=>false,'message'=>$e->getMessage()]);
+        }
+    }
 
     public function product($id = null)
     {
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'Product ID required']);
+            echo json_encode(['success'=>false,'message'=>'Product ID required']);
             return;
         }
-
-        $product = $this->model_products->getProductData($id);
-
+        $product = $this->tenant_db->get_where('products',['id'=>$id])->row_array();
         if (!$product) {
-            echo json_encode(['success' => false, 'message' => 'Product not found']);
+            echo json_encode(['success'=>false,'message'=>'Product not found']);
             return;
         }
-
-        $formatted = [
-            'id' => $product['id'],
-            'name' => $product['name'],
-            'sku' => $product['sku'] ?? '',
-            'price' => floatval($product['price']),
-            'qty' => intval($product['qty']),
-            'image' => !empty($product['image']) ? base_url('uploads/products/' . $product['image']) : null,
-            'description' => $product['description'] ?? '',
-            'category_id' => $product['category_id'] ?? null,
-            'brand_id' => $product['brand_id'] ?? null
-        ];
-
-        echo json_encode(['success' => true, 'product' => $formatted]);
+        echo json_encode(['success'=>true,'product'=>$product]);
     }
 
     // ==================== PRE-ORDERS ====================
-
     public function create_preorder()
     {
         $json = file_get_contents('php://input');
-        $data = json_decode($json, true);
+        $data = json_decode($json,true) ?: $_POST;
 
-        if (!$data) {
-            $data = $_POST;
-        }
-
-        // Validation
-        if (!isset($data['customer_name']) || empty($data['customer_name'])) {
-            echo json_encode(['success' => false, 'message' => 'Customer name is required']);
+        if(empty($data['customer_name']) || empty($data['items'])){
+            echo json_encode(['success'=>false,'message'=>'Customer name and items required']);
             return;
         }
 
-        if (!isset($data['items']) || empty($data['items'])) {
-            echo json_encode(['success' => false, 'message' => 'Order items are required']);
-            return;
-        }
+        $this->tenant_db->trans_start();
 
-        $this->db->trans_start();
-
-        try {
-            // Generate order number
-            $order_number = 'PRE-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
-
-            // Calculate total
+        try{
+            $order_number = 'PRE-'.date('Ymd').'-'.strtoupper(substr(uniqid(),-6));
             $total = 0;
-            foreach ($data['items'] as $item) {
+            foreach($data['items'] as $item){
                 $total += floatval($item['price']) * intval($item['qty']);
             }
 
-            // Insert pre_order
             $pre_order_data = [
-                'order_number' => $order_number,
-                'customer_name' => $data['customer_name'],
-                'customer_phone' => $data['customer_phone'] ?? '',
-                'customer_address' => $data['customer_address'] ?? '',
-                'total_amount' => $total,
-                'status' => 'pending',
-                'user_id' => $data['user_id'] ?? null,
-                'notes' => $data['notes'] ?? ''
+                'order_number'=>$order_number,
+                'customer_name'=>$data['customer_name'],
+                'customer_phone'=>$data['customer_phone'] ?? '',
+                'customer_address'=>$data['customer_address'] ?? '',
+                'total_amount'=>$total,
+                'status'=>'pending',
+                'user_id'=>$data['user_id'] ?? null,
+                'notes'=>$data['notes'] ?? ''
             ];
 
-            $this->db->insert('pre_orders', $pre_order_data);
-            $pre_order_id = $this->db->insert_id();
+            $this->tenant_db->insert('pre_orders',$pre_order_data);
+            $pre_order_id = $this->tenant_db->insert_id();
 
-            // Insert items
-            foreach ($data['items'] as $item) {
+            foreach($data['items'] as $item){
                 $item_data = [
-                    'pre_order_id' => $pre_order_id,
-                    'product_id' => $item['product_id'],
-                    'product_name' => $item['product_name'],
-                    'qty' => $item['qty'],
-                    'price' => $item['price'],
-                    'subtotal' => floatval($item['price']) * intval($item['qty'])
+                    'pre_order_id'=>$pre_order_id,
+                    'product_id'=>$item['product_id'],
+                    'product_name'=>$item['product_name'],
+                    'qty'=>$item['qty'],
+                    'price'=>$item['price'],
+                    'subtotal'=>floatval($item['price']) * intval($item['qty'])
                 ];
-                $this->db->insert('pre_order_items', $item_data);
+                $this->tenant_db->insert('pre_order_items',$item_data);
             }
 
-            $this->db->trans_complete();
-
-            if ($this->db->trans_status() === FALSE) {
-                throw new Exception('Database transaction failed');
-            }
+            $this->tenant_db->trans_complete();
 
             echo json_encode([
-                'success' => true,
-                'message' => 'Pre-order created successfully',
-                'order_number' => $order_number,
-                'pre_order_id' => $pre_order_id,
-                'total_amount' => $total
+                'success'=>true,
+                'order_number'=>$order_number,
+                'pre_order_id'=>$pre_order_id,
+                'total_amount'=>$total
             ]);
-        } catch (Exception $e) {
-            $this->db->trans_rollback();
-            log_message('error', 'Pre-order creation failed: ' . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Failed to create pre-order: ' . $e->getMessage()]);
+        }catch(Exception $e){
+            $this->tenant_db->trans_rollback();
+            echo json_encode(['success'=>false,'message'=>$e->getMessage()]);
         }
     }
 
@@ -293,49 +183,31 @@ class Api extends CI_Controller
         $user_id = $this->input->get('user_id');
         $status = $this->input->get('status');
 
-        $this->db->select('*');
-        $this->db->from('pre_orders');
+        $this->tenant_db->select('*')->from('pre_orders');
+        if($user_id) $this->tenant_db->where('user_id',$user_id);
+        if($status) $this->tenant_db->where('status',$status);
+        $this->tenant_db->order_by('created_at','DESC');
+        $preorders = $this->tenant_db->get()->result_array();
 
-        if ($user_id) {
-            $this->db->where('user_id', $user_id);
+        foreach($preorders as &$order){
+            $order['items'] = $this->tenant_db->get_where('pre_order_items',['pre_order_id'=>$order['id']])->result_array();
         }
 
-        if ($status) {
-            $this->db->where('status', $status);
-        }
-
-        $this->db->order_by('created_at', 'DESC');
-        $preorders = $this->db->get()->result_array();
-
-        // Get items for each order
-        foreach ($preorders as &$order) {
-            $this->db->select('*');
-            $this->db->from('pre_order_items');
-            $this->db->where('pre_order_id', $order['id']);
-            $order['items'] = $this->db->get()->result_array();
-        }
-
-        echo json_encode(['success' => true, 'preorders' => $preorders]);
+        echo json_encode(['success'=>true,'preorders'=>$preorders]);
     }
 
     public function preorder($id = null)
     {
         if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'Pre-order ID required']);
+            echo json_encode(['success'=>false,'message'=>'Pre-order ID required']);
             return;
         }
-
-        $preorder = $this->db->get_where('pre_orders', ['id' => $id])->row_array();
-
+        $preorder = $this->tenant_db->get_where('pre_orders',['id'=>$id])->row_array();
         if (!$preorder) {
-            echo json_encode(['success' => false, 'message' => 'Pre-order not found']);
+            echo json_encode(['success'=>false,'message'=>'Pre-order not found']);
             return;
         }
-
-        // Get items
-        $items = $this->db->get_where('pre_order_items', ['pre_order_id' => $id])->result_array();
-        $preorder['items'] = $items;
-
-        echo json_encode(['success' => true, 'preorder' => $preorder]);
+        $preorder['items'] = $this->tenant_db->get_where('pre_order_items',['pre_order_id'=>$id])->result_array();
+        echo json_encode(['success'=>true,'preorder'=>$preorder]);
     }
 }
