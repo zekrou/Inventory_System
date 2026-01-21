@@ -88,29 +88,22 @@ class Api extends CI_Controller
     public function login()
     {
         $data = json_decode(file_get_contents('php://input'), true);
-
-        if (!$data) {
-            $data = $_POST;
-        }
+        if (!$data) $data = $_POST;
 
         $username = $data['username'] ?? '';
         $password = $data['password'] ?? '';
-        $tenant_id = $data['tenant_id'] ?? 0;
 
-        // Validation
-        if (empty($username) || empty($password) || empty($tenant_id)) {
-            echo json_encode(['success' => false, 'message' => 'Username, password et tenant_id requis']);
+        if (empty($username) || empty($password)) {
+            echo json_encode(['success' => false, 'message' => 'Username/email et password requis']);
             return;
         }
 
         try {
-            // 1. Se connecter au bon tenant
-            $tenant_db = $this->get_tenant_db($tenant_id);
-
-            // 2. Charger modèle users du tenant
+            // ✅ DB donomagic
+            $this->load->database('stock_donomagic_1768902664', TRUE);
             $this->load->model('model_users');
 
-            // 3. Chercher l'utilisateur dans la bonne base
+            // ✅ Ta fonction cherche déjà username OU email
             $user = $this->model_users->getUserDataByUsername($username);
 
             if (!$user) {
@@ -118,16 +111,13 @@ class Api extends CI_Controller
                 return;
             }
 
-            // 4. Vérifier mot de passe
             if (!password_verify($password, $user['password'])) {
                 echo json_encode(['success' => false, 'message' => 'Mot de passe incorrect']);
                 return;
             }
 
-            // 5. Générer token simple (à améliorer plus tard)
             $token = bin2hex(random_bytes(32));
 
-            // 6. Réponse complète
             echo json_encode([
                 'success' => true,
                 'message' => 'Login réussi',
@@ -138,18 +128,16 @@ class Api extends CI_Controller
                     'lastname' => $user['lastname'] ?? '',
                     'phone' => $user['phone'] ?? '',
                     'email' => $user['email'] ?? '',
-                    'tenant_id' => $tenant_id,
-                    'tenant_db' => $tenant['db_name']
+                    'tenant_id' => 1
                 ],
                 'token' => $token
             ]);
         } catch (Exception $e) {
-            echo json_encode([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
+
+
 
 
     // ==================== PRODUCTS ====================
