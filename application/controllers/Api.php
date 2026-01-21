@@ -150,40 +150,50 @@ class Api extends CI_Controller
     /**
      * Liste produits du tenant
      */
-    public function products()
-    {
-        // 1) Charger tous les produits disponibles
-        $this->db->select('id, name, sku, description, qty, price_retail, price_wholesale, price_super_wholesale, image, availability');
-        $this->db->from('products');
-        $this->db->where('availability', 1); // produits actifs uniquement
-        // Si tu veux vraiment filtrer stock > 0, garde cette ligne, sinon commente là
-        // $this->db->where('qty >', 0);
+    public function products() {
+  // DEBUG
+  $headers = getallheaders();
+  error_log("Products token OK: " . substr($headers['Authorization'] ?? '', 0, 20));
 
-        $products = $this->db->get()->result_array();
+  try {
+    $this->load->model('model_products');
+    
+    // FIX: Query directe tous les produits disponibles
+    $this->db->select('id, name, sku, description, qty, price_retail, price_wholesale, price_super_wholesale, image, availability');
+    $this->db->from('products');
+    $this->db->where('availability', 1);
+    $this->db->where('qty >', 0);
+    $products = $this->db->get()->result_array();
 
-        // 2) Formatage pour l’app mobile
-        $formatted = array_map(function ($p) {
-            return [
-                'id' => (int)$p['id'],
-                'name' => $p['name'],
-                'sku' => $p['sku'] ?? '',
-                'description' => $p['description'] ?? '',
-                'qty' => isset($p['qty']) ? (int)$p['qty'] : 0,
-                'price_retail' => isset($p['price_retail']) ? (float)$p['price_retail'] : 0,
-                'price_wholesale' => isset($p['price_wholesale']) ? (float)$p['price_wholesale'] : 0,
-                'price_super_wholesale' => isset($p['price_super_wholesale']) ? (float)$p['price_super_wholesale'] : 0,
-                'image' => !empty($p['image']) ? base_url('uploads/products/' . $p['image']) : null,
-                'availability' => isset($p['availability']) ? (int)$p['availability'] : 0,
-            ];
-        }, $products);
+    $formatted = array_map(function($p) {
+      return [
+        'id' => (int)$p['id'],
+        'name' => $p['name'],
+        'sku' => $p['sku'] ?? '',
+        'description' => $p['description'] ?? '',
+        'qty' => (int)$p['qty'],
+        'price_retail' => (float)($p['price_retail'] ?? 0),
+        'price_wholesale' => (float)($p['price_wholesale'] ?? 0),
+        'price_super_wholesale' => (float)($p['price_super_wholesale'] ?? 0),
+        'image' => !empty($p['image']) ? base_url('uploads/products/' . $p['image']) : null,
+        'availability' => (int)$p['availability']
+      ];
+    }, $products);
 
-        // 3) Réponse JSON
-        echo json_encode([
-            'success' => true,
-            'products' => $formatted,
-            'count' => count($formatted),
-        ]);
-    }
+    echo json_encode([
+      'success' => true,
+      'products' => $formatted,
+      'count' => count($formatted)
+    ]);
+    
+  } catch (Exception $e) {
+    echo json_encode([
+      'success' => false,
+      'message' => $e->getMessage()
+    ]);
+  }
+}
+
 
 
 
