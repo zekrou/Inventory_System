@@ -86,56 +86,61 @@ class Api extends CI_Controller
      * Login employé avec switch automatique tenant
      */
     public function login()
-    {
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (!$data) $data = $_POST;
+{
+    header('Content-Type: application/json');
 
-        $username = $data['username'] ?? '';
-        $password = $data['password'] ?? '';
+    try {
+        // Lire x-www-form-urlencoded
+        $username = $this->input->post('username');
+        $password = $this->input->post('password');
 
         if (empty($username) || empty($password)) {
-            echo json_encode(['success' => false, 'message' => 'Username/email et password requis']);
+            echo json_encode(['success' => false, 'message' => 'Username and password required']);
             return;
         }
 
-        try {
-            // ✅ DB donomagic
-            $this->load->database('stock_donomagic_1768902664', TRUE);
-            $this->load->model('model_users');
+        // S'assurer que le modèle est chargé
+        $this->load->model('model_users');
 
-            // ✅ Ta fonction cherche déjà username OU email
-            $user = $this->model_users->getUserDataByUsername($username);
+        // Ta fonction cherche username OU email (parfait)
+        $user = $this->model_users->getUserDataByUsername($username);
 
-            if (!$user) {
-                echo json_encode(['success' => false, 'message' => 'Utilisateur non trouvé']);
-                return;
-            }
-
-            if (!password_verify($password, $user['password'])) {
-                echo json_encode(['success' => false, 'message' => 'Mot de passe incorrect']);
-                return;
-            }
-
-            $token = bin2hex(random_bytes(32));
-
-            echo json_encode([
-                'success' => true,
-                'message' => 'Login réussi',
-                'user' => [
-                    'id' => $user['id'],
-                    'username' => $user['username'],
-                    'firstname' => $user['firstname'] ?? '',
-                    'lastname' => $user['lastname'] ?? '',
-                    'phone' => $user['phone'] ?? '',
-                    'email' => $user['email'] ?? '',
-                    'tenant_id' => 1
-                ],
-                'token' => $token
-            ]);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        if (!$user) {
+            echo json_encode(['success' => false, 'message' => 'Utilisateur non trouvé']);
+            return;
         }
+
+        if (!password_verify($password, $user['password'])) {
+            echo json_encode(['success' => false, 'message' => 'Mot de passe incorrect']);
+            return;
+        }
+
+        $token = bin2hex(random_bytes(32));
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Login réussi',
+            'user' => [
+                'id' => (int)$user['id'],
+                'username' => $user['username'],
+                'firstname' => $user['firstname'] ?? '',
+                'lastname' => $user['lastname'] ?? '',
+                'email' => $user['email'] ?? '',
+            ],
+            'token' => $token
+        ]);
+        return;
+
+    } catch (Throwable $e) {
+        // IMPORTANT: renvoyer JSON, pas HTML
+        echo json_encode([
+            'success' => false,
+            'message' => 'Server error: ' . $e->getMessage()
+        ]);
+        return;
     }
+}
+
 
 
 
