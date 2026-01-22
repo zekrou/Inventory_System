@@ -19,32 +19,37 @@ class Api extends CI_Controller
 
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             http_response_code(200);
-            exit();
+            exit;
         }
     }
 
-    // ==================== AUTHENTICATION ====================
+    // ================================
+    // 🔐 AUTHENTICATION
+    // ================================
+    
     public function login()
     {
         header('Content-Type: application/json');
 
-        $username = $this->input->post('username');
-        $password = $this->input->post('password');
+        // ✅ Lire JSON depuis body
+        $input = json_decode(file_get_contents('php://input'), true);
+        $username = $input['username'] ?? null;
+        $password = $input['password'] ?? null;
 
         if (!$username || !$password) {
             echo json_encode(['success' => false, 'message' => 'Username and password required']);
             return;
         }
 
-        // 🚀 1 SEULE REQUÊTE avec JOIN (testée et validée ✅)
+        // 🚀 1 SEULE REQUÊTE avec JOIN
         $result = $this->db
             ->select('u.*, ut.tenant_id, ut.role, t.tenant_name, t.database_name, t.status')
             ->from('users u')
             ->join('user_tenant ut', 'u.id = ut.user_id', 'inner')
             ->join('tenants t', 'ut.tenant_id = t.id', 'inner')
             ->group_start()
-            ->where('u.username', $username)
-            ->or_where('u.email', $username)
+                ->where('u.username', $username)
+                ->or_where('u.email', $username)
             ->group_end()
             ->where('t.status', 'active')
             ->get()
@@ -60,7 +65,7 @@ class Api extends CI_Controller
             'hostname' => 'inventorysystem-mysqlinventory-ydsxph',
             'username' => 'mysql',
             'password' => 'Zakaria1304@',
-            'database' => $result['database_name'], // stock_donomagic_1768902664
+            'database' => $result['database_name'],
             'dbdriver' => 'mysqli',
             'dbprefix' => '',
             'pconnect' => FALSE,
@@ -93,14 +98,17 @@ class Api extends CI_Controller
         ]);
     }
 
+    // ================================
+    // 📦 PRODUCTS
+    // ================================
 
-
-    // ==================== PRODUCTS ====================
     public function products()
     {
         try {
             // Vérifier que tenant_db existe
             if (!isset($this->tenant_db) || !$this->tenant_db) {
+                // Charger tenant_db depuis token (si implémenté)
+                // Pour l'instant, renvoyer erreur
                 echo json_encode(['success' => false, 'message' => 'Tenant DB not loaded. Login first.']);
                 return;
             }
@@ -112,14 +120,12 @@ class Api extends CI_Controller
             echo json_encode([
                 'success' => true,
                 'products' => $products,
-                'count' => count($products),
-                'debug' => 'DB: ' . $this->tenant_db->database
+                'count' => count($products)
             ]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
-
 
     public function product($id = null)
     {
@@ -127,15 +133,21 @@ class Api extends CI_Controller
             echo json_encode(['success' => false, 'message' => 'Product ID required']);
             return;
         }
+
         $product = $this->tenant_db->get_where('products', ['id' => $id])->row_array();
+
         if (!$product) {
             echo json_encode(['success' => false, 'message' => 'Product not found']);
             return;
         }
+
         echo json_encode(['success' => true, 'product' => $product]);
     }
 
-    // ==================== PRE-ORDERS ====================
+    // ================================
+    // 🛒 PRE-ORDERS
+    // ================================
+
     public function create_preorder()
     {
         $json = file_get_contents('php://input');
@@ -151,11 +163,12 @@ class Api extends CI_Controller
         try {
             $order_number = 'PRE-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
             $total = 0;
+
             foreach ($data['items'] as $item) {
                 $total += floatval($item['price']) * intval($item['qty']);
             }
 
-            $pre_order_data = [
+            $preorder_data = [
                 'order_number' => $order_number,
                 'customer_name' => $data['customer_name'],
                 'customer_phone' => $data['customer_phone'] ?? '',
@@ -166,12 +179,12 @@ class Api extends CI_Controller
                 'notes' => $data['notes'] ?? ''
             ];
 
-            $this->tenant_db->insert('pre_orders', $pre_order_data);
-            $pre_order_id = $this->tenant_db->insert_id();
+            $this->tenant_db->insert('pre_orders', $preorder_data);
+            $preorder_id = $this->tenant_db->insert_id();
 
             foreach ($data['items'] as $item) {
                 $item_data = [
-                    'pre_order_id' => $pre_order_id,
+                    'pre_order_id' => $preorder_id,
                     'product_id' => $item['product_id'],
                     'product_name' => $item['product_name'],
                     'qty' => $item['qty'],
@@ -186,7 +199,7 @@ class Api extends CI_Controller
             echo json_encode([
                 'success' => true,
                 'order_number' => $order_number,
-                'pre_order_id' => $pre_order_id,
+                'pre_order_id' => $preorder_id,
                 'total_amount' => $total
             ]);
         } catch (Exception $e) {
@@ -201,8 +214,15 @@ class Api extends CI_Controller
         $status = $this->input->get('status');
 
         $this->tenant_db->select('*')->from('pre_orders');
-        if ($user_id) $this->tenant_db->where('user_id', $user_id);
-        if ($status) $this->tenant_db->where('status', $status);
+
+        if ($user_id) {
+            $this->tenant_db->where('user_id', $user_id);
+        }
+
+        if ($status) {
+            $this->tenant_db->where('status', $status);
+        }
+
         $this->tenant_db->order_by('created_at', 'DESC');
         $preorders = $this->tenant_db->get()->result_array();
 
@@ -219,12 +239,16 @@ class Api extends CI_Controller
             echo json_encode(['success' => false, 'message' => 'Pre-order ID required']);
             return;
         }
+
         $preorder = $this->tenant_db->get_where('pre_orders', ['id' => $id])->row_array();
+
         if (!$preorder) {
             echo json_encode(['success' => false, 'message' => 'Pre-order not found']);
             return;
         }
+
         $preorder['items'] = $this->tenant_db->get_where('pre_order_items', ['pre_order_id' => $id])->result_array();
+
         echo json_encode(['success' => true, 'preorder' => $preorder]);
     }
 }
