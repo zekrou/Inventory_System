@@ -24,23 +24,16 @@ class Api extends CI_Controller
             exit;
         }
 
-        // ✅ Authentifier et charger tenant_db pour toutes les requêtes (sauf login)
         $this->_authenticate();
     }
 
-    // ================================
-    // 🔐 AUTHENTIFICATION + LOAD TENANT DB
-    // ================================
-
     private function _authenticate()
     {
-        // Skip auth pour login
         $request_uri = $_SERVER['REQUEST_URI'];
         if (strpos($request_uri, '/login') !== false) {
             return;
         }
 
-        // Récupérer le token depuis header Authorization
         $headers = getallheaders();
         $token = null;
 
@@ -56,7 +49,6 @@ class Api extends CI_Controller
             exit;
         }
 
-        // ✅ Décoder le token (format: tenant_id|user_id|random)
         $parts = explode('|', $token);
         if (count($parts) !== 3) {
             echo json_encode(['success' => false, 'message' => 'Invalid token format']);
@@ -66,7 +58,6 @@ class Api extends CI_Controller
         $this->tenant_id = (int)$parts[0];
         $this->user_id = (int)$parts[1];
 
-        // Charger les infos du tenant
         $tenant = $this->db->where('id', $this->tenant_id)->get('tenants')->row_array();
 
         if (!$tenant) {
@@ -74,7 +65,6 @@ class Api extends CI_Controller
             exit;
         }
 
-        // ✅ Connecter à la base tenant
         $dbConfig = [
             'hostname' => 'inventorysystem-mysqlinventory-ydsxph',
             'username' => 'mysql',
@@ -92,10 +82,6 @@ class Api extends CI_Controller
         $this->tenant_db = $this->load->database($dbConfig, TRUE);
     }
 
-    // ================================
-    // 🔐 LOGIN
-    // ================================
-
     public function login()
     {
         header('Content-Type: application/json');
@@ -109,7 +95,6 @@ class Api extends CI_Controller
             return;
         }
 
-        // Requête avec JOIN
         $result = $this->db
             ->select('u.*, ut.tenant_id, ut.role, t.tenant_name, t.database_name, t.status')
             ->from('users u')
@@ -128,7 +113,6 @@ class Api extends CI_Controller
             return;
         }
 
-        // ✅ Générer token avec tenant_id et user_id
         $token = $result['tenant_id'] . '|' . $result['id'] . '|' . bin2hex(random_bytes(16));
 
         echo json_encode([
@@ -188,65 +172,97 @@ class Api extends CI_Controller
     }
 
     // ================================
-    // 🛒 PRE-ORDERS
+    // 🛒 PRE-ORDERS - CREATE
     // ================================
-    public function preorder($id = null)
+    
+    // ✅ MÉTHODE MANQUANTE - AJOUTE ICI
+    public function create_pre_order()
     {
-        if (!$id) {
-            echo json_encode(['success' => false, 'message' => 'Pre-order ID required']);
+        $json = file_get_contents('php://input');
+        $data = json_decode($json, true) ?: $_POST;
+
+        error_log("create_pre_order called");
+        error_log("Data received: " . json_encode($data));
+
+        if (empty($data['customer_name']) || empty($data['items'])) {
+            echo json_encode(['success' => false, 'message' => 'Customer name and items required']);
             return;
         }
 
-        // 🔍 DEBUG: Log
-        error_log("Getting preorder ID: $id");
+        $this->tenant_db->trans_start();
 
-        $preorder = $this->tenant_db->get_where('pre_orders', ['id' => $id])->row_array();
+        try {
+            $order_number = 'PRE-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+            $total = 0;
 
-        if (!$preorder) {
-            error_log("Preorder not found: $id");
-            echo json_encode(['success' => false, 'message' => 'Pre-order not found']);
-            return;
+            foreach ($data['items'] as $item) {
+                $total += floatval($item['price']) * intval($item['qty']);
+            }
+
+            $preorder_data = [
+                'order_number' => $order_number,
+                'customer_name' => $data['customer_name'],
+                'customer_phone' => $data['customer_phone'] ?? '',
+                'customer_address' => $data['customer_address'] ?? '',
+                'total_amount' => $total,
+                'status' => 'pending',
+                'user_id' => $this->user_id,
+                'notes' => $data['notes'] ?? ''
+            ];
+
+            error_log("Inserting into tenant DB: " . $this->tenant_db->database);
+            
+            $this->tenant_db->insert('pre_orders', $preorder_data);
+            $preorder_id = $this->tenant_db->insert_id();
+
+            error_log("Created preorder ID: $preorder_id");
+
+            foreach ($data['items'] as $item) {
+                $item_data = [
+                    'pre_order_id' => $preorder_id,
+                    'product_id' => $item['product_id'],
+                    'product_name' => $item['product_name'],
+                    'qty' => $item['qty'],
+                    'price' => $item['price'],
+                    'subtotal' => floatval($item['price']) * intval($item['qty'])
+                ];
+                
+                $this->tenant_db->insert('pre_order_items', $item_data);
+            }
+
+            $this->tenant_db->trans_complete();
+
+            if ($this->tenant_db->trans_status() === FALSE) {
+                throw new Exception('Transaction failed');
+            }
+
+            echo json_encode([
+                'success' => true,
+                'order_number' => $order_number,
+                'pre_order_id' => $preorder_id,
+                'total_amount' => $total,
+                'debug' => [
+                    'database' => $this->tenant_db->database,
+                    'tenant_id' => $this->tenant_id,
+                    'user_id' => $this->user_id
+                ]
+            ]);
+        } catch (Exception $e) {
+            $this->tenant_db->trans_rollback();
+            error_log("create_pre_order error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
-
-        error_log("Preorder found: " . json_encode($preorder));
-
-        // ✅ Cast les types numériques
-        $preorder['id'] = (int)$preorder['id'];
-        $preorder['total_amount'] = (float)$preorder['total_amount'];
-        $preorder['user_id'] = isset($preorder['user_id']) ? (int)$preorder['user_id'] : null;
-
-        // ✅ Charger les items
-        $items = $this->tenant_db
-            ->get_where('pre_order_items', ['pre_order_id' => $id])
-            ->result_array();
-
-        error_log("Items count: " . count($items));
-        error_log("Items: " . json_encode($items));
-
-        // ✅ Cast les types pour chaque item
-        foreach ($items as &$item) {
-            $item['id'] = (int)$item['id'];
-            $item['pre_order_id'] = (int)$item['pre_order_id'];
-            $item['product_id'] = (int)$item['product_id'];
-            $item['qty'] = (int)$item['qty'];
-            $item['price'] = (float)$item['price'];
-            $item['subtotal'] = (float)$item['subtotal'];
-        }
-
-        // ✅ Toujours retourner items (même vide)
-        $preorder['items'] = $items;
-
-        error_log("Final preorder: " . json_encode($preorder));
-
-        echo json_encode([
-            'success' => true,
-            'preorder' => $preorder,
-            'debug' => [
-                'items_count' => count($items),
-                'preorder_id' => $id
-            ]
-        ]);
     }
+
+    // ✅ ALIAS sans underscore
+    public function create_preorder()
+    {
+        return $this->create_pre_order();
+    }
+
+    // ================================
+    // 🛒 PRE-ORDERS - READ
+    // ================================
 
     public function preorders()
     {
@@ -266,7 +282,6 @@ class Api extends CI_Controller
         $this->tenant_db->order_by('created_at', 'DESC');
         $preorders = $this->tenant_db->get()->result_array();
 
-        // ✅ Cast types et charger items pour chaque commande
         foreach ($preorders as &$order) {
             $order['id'] = (int)$order['id'];
             $order['total_amount'] = (float)$order['total_amount'];
@@ -276,7 +291,6 @@ class Api extends CI_Controller
                 ->get_where('pre_order_items', ['pre_order_id' => $order['id']])
                 ->result_array();
 
-            // Cast items
             foreach ($items as &$item) {
                 $item['id'] = (int)$item['id'];
                 $item['pre_order_id'] = (int)$item['pre_order_id'];
@@ -290,5 +304,58 @@ class Api extends CI_Controller
         }
 
         echo json_encode(['success' => true, 'preorders' => $preorders]);
+    }
+
+    public function preorder($id = null)
+    {
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'Pre-order ID required']);
+            return;
+        }
+
+        error_log("Getting preorder ID: $id");
+
+        $preorder = $this->tenant_db->get_where('pre_orders', ['id' => $id])->row_array();
+
+        if (!$preorder) {
+            error_log("Preorder not found: $id");
+            echo json_encode(['success' => false, 'message' => 'Pre-order not found']);
+            return;
+        }
+
+        error_log("Preorder found: " . json_encode($preorder));
+
+        $preorder['id'] = (int)$preorder['id'];
+        $preorder['total_amount'] = (float)$preorder['total_amount'];
+        $preorder['user_id'] = isset($preorder['user_id']) ? (int)$preorder['user_id'] : null;
+
+        $items = $this->tenant_db
+            ->get_where('pre_order_items', ['pre_order_id' => $id])
+            ->result_array();
+
+        error_log("Items count: " . count($items));
+        error_log("Items: " . json_encode($items));
+
+        foreach ($items as &$item) {
+            $item['id'] = (int)$item['id'];
+            $item['pre_order_id'] = (int)$item['pre_order_id'];
+            $item['product_id'] = (int)$item['product_id'];
+            $item['qty'] = (int)$item['qty'];
+            $item['price'] = (float)$item['price'];
+            $item['subtotal'] = (float)$item['subtotal'];
+        }
+
+        $preorder['items'] = $items;
+
+        error_log("Final preorder: " . json_encode($preorder));
+
+        echo json_encode([
+            'success' => true,
+            'preorder' => $preorder,
+            'debug' => [
+                'items_count' => count($items),
+                'preorder_id' => $id
+            ]
+        ]);
     }
 }
