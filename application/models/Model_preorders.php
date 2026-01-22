@@ -1,70 +1,43 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Model_preorders extends CI_Model
+class Model_preorders extends CI_Model 
 {
-    private $db_conn;
-    
-    public function __construct($tenant_db = null)
+    public function get_all_preorders()
     {
-        parent::__construct();
-        // Si un tenant_db est fourni, on l'utilise, sinon fallback sur master
-        $this->db_conn = $tenant_db ?? $this->load->database('master', TRUE);
+        $this->db->select('p.*, u.name as customer_name, u.phone');
+        $this->db->from('pre_orders p');
+        $this->db->join('users u', 'u.id = p.user_id', 'left');
+        $this->db->order_by('p.created_at', 'DESC');
+        return $this->db->get()->result_array();
     }
 
-    public function setTenantDb($tenant_db)
+    public function get_preorder($id)
     {
-        $this->db_conn = $tenant_db;
+        $this->db->where('id', $id);
+        return $this->db->get('pre_orders')->row_array();
     }
 
-    public function getPreOrders()
+    public function get_preorder_items($preorder_id)
     {
-        $query = $this->db_conn->order_by('created_at', 'DESC')->get('pre_orders');
-        return $query->result_array();
+        $this->db->where('preorder_id', $preorder_id);
+        return $this->db->get('pre_order_items')->result_array();
     }
 
-    public function getPreOrderById($id)
+    public function update_status($id, $status)
     {
-        return $this->db_conn->get_where('pre_orders', ['id'=>$id])->row_array();
+        $this->db->where('id', $id);
+        $this->db->update('pre_orders', ['status' => $status, 'updated_at' => date('Y-m-d H:i:s')]);
     }
 
-    public function getPreOrderItems($pre_order_id)
+    public function delete_preorder($id)
     {
-        $this->db_conn->order_by('id', 'ASC');
-        return $this->db_conn->get_where('pre_order_items', ['pre_order_id'=>$pre_order_id])->result_array();
-    }
-
-    public function updateStatus($id, $status)
-    {
-        $data = ['status'=>$status, 'updated_at'=>date('Y-m-d H:i:s')];
-        $this->db_conn->where('id', $id);
-        return $this->db_conn->update('pre_orders', $data);
-    }
-
-    public function deletePreOrder($id)
-    {
-        $this->db_conn->where('pre_order_id', $id);
-        $this->db_conn->delete('pre_order_items');
-
-        $this->db_conn->where('id', $id);
-        return $this->db_conn->delete('pre_orders');
-    }
-
-    public function getStatistics()
-    {
-        $this->db_conn->select('
-            COUNT(*) as total_orders,
-            SUM(CASE WHEN status="pending" THEN 1 ELSE 0 END) as pending_count,
-            SUM(CASE WHEN status="approved" THEN 1 ELSE 0 END) as approved_count,
-            SUM(CASE WHEN status="rejected" THEN 1 ELSE 0 END) as rejected_count,
-            SUM(CASE WHEN status="completed" THEN 1 ELSE 0 END) as completed_count,
-            SUM(total_amount) as total_revenue
-        ', FALSE);
-        $query = $this->db_conn->get('pre_orders');
-        $result = $query->row_array();
-        return $result ?: [
-            'total_orders'=>0,'pending_count'=>0,'approved_count'=>0,
-            'rejected_count'=>0,'completed_count'=>0,'total_revenue'=>0
-        ];
+        // Supprime les items d'abord
+        $this->db->where('preorder_id', $id);
+        $this->db->delete('pre_order_items');
+        
+        // Puis la pré-commande
+        $this->db->where('id', $id);
+        $this->db->delete('pre_orders');
     }
 }

@@ -11,17 +11,20 @@
       <!-- ============================================= -->
       <!-- COMMANDES MOBILE (Preorders) -->
       <!-- ============================================= -->
-      <?php if (isset($user_permission['viewPreorders']) && $user_permission['viewPreorders'] == 1): ?>
-        <li class="<?php echo ($this->uri->segment(1) == 'preorders') ? 'active' : ''; ?>">
-          <a href="<?php echo base_url('preorders') ?>">
-            <i class="fa fa-mobile"></i>
-            <span>Commandes Mobile</span>
-            <?php if (!empty($pending_preorders_count) && $pending_preorders_count > 0): ?>
-              <span class="label label-warning pull-right"><?php echo $pending_preorders_count; ?></span>
-            <?php endif; ?>
+      <?php if (isset($user_permission['viewPreorders'])): ?>
+        <li class="treeview">
+          <a href="#">
+            <i class="fa fa-shopping-cart"></i> <span>Pré-commandes Mobile</span>
+            <span class="pull-right-container">
+              <i class="fa fa-angle-left pull-right"></i>
+            </span>
           </a>
+          <ul class="treeview-menu">
+            <li><a href="<?php echo site_url('preorders'); ?>"><i class="fa fa-list"></i> Liste</a></li>
+          </ul>
         </li>
       <?php endif; ?>
+
 
 
 
