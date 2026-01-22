@@ -28,7 +28,6 @@ class Api extends CI_Controller
     {
         header('Content-Type: application/json');
 
-        // 📥 Lire username (ou email) + password
         $username = $this->input->post('username');
         $password = $this->input->post('password');
 
@@ -37,44 +36,31 @@ class Api extends CI_Controller
             return;
         }
 
-        // 1️⃣ Vérifier l'utilisateur dans stock_master
-        $user = $this->db
+        // 🚀 1 SEULE REQUÊTE avec JOIN (testée et validée ✅)
+        $result = $this->db
+            ->select('u.*, ut.tenant_id, ut.role, t.tenant_name, t.database_name, t.status')
+            ->from('users u')
+            ->join('user_tenant ut', 'u.id = ut.user_id', 'inner')
+            ->join('tenants t', 'ut.tenant_id = t.id', 'inner')
             ->group_start()
-            ->where('username', $username)
-            ->or_where('email', $username)
+            ->where('u.username', $username)
+            ->or_where('u.email', $username)
             ->group_end()
-            ->get('users')->row_array();
+            ->where('t.status', 'active')
+            ->get()
+            ->row_array();
 
-        if (!$user || !password_verify($password, $user['password'])) {
+        if (!$result || !password_verify($password, $result['password'])) {
             echo json_encode(['success' => false, 'message' => 'Invalid credentials']);
             return;
         }
 
-        // 2️⃣ Récupérer le tenant associé
-        $userTenant = $this->db
-            ->where('user_id', $user['id'])
-            ->get('user_tenant')->row_array();
-
-        if (!$userTenant) {
-            echo json_encode(['success' => false, 'message' => 'User not linked to any tenant']);
-            return;
-        }
-
-        $tenant = $this->db
-            ->where('id', $userTenant['tenant_id'])
-            ->get('tenants')->row_array();
-
-        if (!$tenant) {
-            echo json_encode(['success' => false, 'message' => 'Tenant not found']);
-            return;
-        }
-
-        // 3️⃣ Connecter à la base du tenant
+        // ✅ Connecter à la base tenant
         $dbConfig = [
             'hostname' => 'inventorysystem-mysqlinventory-ydsxph',
             'username' => 'mysql',
             'password' => 'Zakaria1304@',
-            'database' => $tenant['database_name'],
+            'database' => $result['database_name'], // stock_donomagic_1768902664
             'dbdriver' => 'mysqli',
             'dbprefix' => '',
             'pconnect' => FALSE,
@@ -86,22 +72,27 @@ class Api extends CI_Controller
 
         $this->tenant_db = $this->load->database($dbConfig, TRUE);
 
-        // 4️⃣ Générer token
+        // 🔑 Générer token
         $token = bin2hex(random_bytes(32));
 
         echo json_encode([
             'success' => true,
             'token' => $token,
-            'tenant_id' => (int)$userTenant['tenant_id'],
+            'tenant_id' => (int)$result['tenant_id'],
+            'tenant_name' => $result['tenant_name'],
+            'database_name' => $result['database_name'],
             'user' => [
-                'id' => (int)$user['id'],
-                'email' => $user['email'],
-                'username' => $user['username'] ?? '',
-                'firstname' => $user['firstname'] ?? '',
-                'lastname' => $user['lastname'] ?? '',
+                'id' => (int)$result['id'],
+                'email' => $result['email'],
+                'username' => $result['username'],
+                'firstname' => $result['firstname'],
+                'lastname' => $result['lastname'],
+                'phone' => $result['phone'],
+                'role' => $result['role']
             ]
         ]);
     }
+
 
 
     // ==================== PRODUCTS ====================
