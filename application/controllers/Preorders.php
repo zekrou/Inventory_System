@@ -18,7 +18,7 @@ class Preorders extends Admin_Controller
         }
 
         // Check permissions
-        if (!in_array('viewPreorders', $this->permission)) {
+        if (!in_array('viewPreOrders', $this->permission)) {
             redirect('dashboard', 'refresh');
         }
     }

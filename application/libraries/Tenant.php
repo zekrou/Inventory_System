@@ -414,9 +414,10 @@ class Tenant
                 'viewReports' => 1,
 
                 // ✅ PRE-ORDERS MOBILE
-                'viewPreOrder' => 1,
-                'updatePreOrder' => 1,
-                'deletePreOrder' => 1
+                'viewPreorders'   => 1,
+                'updatePreorders' => 1,
+                'deletePreorders' => 1
+
             ))
         );
 
