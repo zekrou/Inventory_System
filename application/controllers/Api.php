@@ -28,50 +28,63 @@ class Api extends CI_Controller
     {
         header('Content-Type: application/json');
 
-        $username = $this->input->post('username'); // ou 'email' si tu veux
+        // 📥 Lire username (ou email) + password
+        $username = $this->input->post('username');
         $password = $this->input->post('password');
 
-        if (!$email || !$password) {
-            echo json_encode(['success' => false, 'message' => 'Email and password required']);
+        if (!$username || !$password) {
+            echo json_encode(['success' => false, 'message' => 'Username and password required']);
             return;
         }
 
-        // 1️⃣ Vérifier l'utilisateur dans stock master
-        $user = $this->db->where('email', $email)->get('users')->row_array();
+        // 1️⃣ Vérifier l'utilisateur dans stock_master
+        $user = $this->db
+            ->group_start()
+            ->where('username', $username)
+            ->or_where('email', $username)
+            ->group_end()
+            ->get('users')->row_array();
+
         if (!$user || !password_verify($password, $user['password'])) {
             echo json_encode(['success' => false, 'message' => 'Invalid credentials']);
             return;
         }
 
         // 2️⃣ Récupérer le tenant associé
-        $userTenant = $this->db->where('user_id', $user['id'])->get('user_tenant')->row_array();
+        $userTenant = $this->db
+            ->where('user_id', $user['id'])
+            ->get('user_tenant')->row_array();
+
         if (!$userTenant) {
             echo json_encode(['success' => false, 'message' => 'User not linked to any tenant']);
             return;
         }
 
-        $tenant = $this->db->where('id', $userTenant['tenant_id'])->get('tenants')->row_array();
+        $tenant = $this->db
+            ->where('id', $userTenant['tenant_id'])
+            ->get('tenants')->row_array();
+
         if (!$tenant) {
             echo json_encode(['success' => false, 'message' => 'Tenant not found']);
             return;
         }
 
-        // 3️⃣ Connecter la base du tenant
+        // 3️⃣ Connecter à la base du tenant
         $dbConfig = [
-            'hostname' => 'localhost', // ou tenant['db_hostname']
-            'username' => 'db_user',   // username correct pour toutes les bases tenant
-            'password' => 'db_pass',   // password correct
+            'hostname' => 'inventorysystem-mysqlinventory-ydsxph',
+            'username' => 'mysql',
+            'password' => 'Zakaria1304@',
             'database' => $tenant['database_name'],
             'dbdriver' => 'mysqli',
             'dbprefix' => '',
             'pconnect' => FALSE,
             'db_debug' => FALSE,
             'cache_on' => FALSE,
-            'char_set' => 'utf8',
+            'charset' => 'utf8',
             'dbcollat' => 'utf8_general_ci',
         ];
 
-        $this->tenant_db = $this->load->database($dbConfig, TRUE, 'tenant_db');
+        $this->tenant_db = $this->load->database($dbConfig, TRUE);
 
         // 4️⃣ Générer token
         $token = bin2hex(random_bytes(32));
@@ -79,15 +92,17 @@ class Api extends CI_Controller
         echo json_encode([
             'success' => true,
             'token' => $token,
-            'tenant_id' => (int)$tenant['id'],
+            'tenant_id' => (int)$userTenant['tenant_id'],
             'user' => [
                 'id' => (int)$user['id'],
                 'email' => $user['email'],
-                'firstname' => $user['firstname'],
-                'lastname' => $user['lastname'],
+                'username' => $user['username'] ?? '',
+                'firstname' => $user['firstname'] ?? '',
+                'lastname' => $user['lastname'] ?? '',
             ]
         ]);
     }
+
 
     // ==================== PRODUCTS ====================
     public function products()
