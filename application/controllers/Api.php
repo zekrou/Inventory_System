@@ -4,6 +4,8 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Api extends CI_Controller
 {
     private $tenant_db;
+    private $user_id;
+    private $tenant_id;
 
     public function __construct()
     {
@@ -21,17 +23,83 @@ class Api extends CI_Controller
             http_response_code(200);
             exit;
         }
+
+        // ✅ Authentifier et charger tenant_db pour toutes les requêtes (sauf login)
+        $this->_authenticate();
     }
 
     // ================================
-    // 🔐 AUTHENTICATION
+    // 🔐 AUTHENTIFICATION + LOAD TENANT DB
+    // ================================
+    
+    private function _authenticate()
+    {
+        // Skip auth pour login
+        $request_uri = $_SERVER['REQUEST_URI'];
+        if (strpos($request_uri, '/login') !== false) {
+            return;
+        }
+
+        // Récupérer le token depuis header Authorization
+        $headers = getallheaders();
+        $token = null;
+
+        if (isset($headers['Authorization'])) {
+            $auth = $headers['Authorization'];
+            if (preg_match('/Bearer\s+(.*)$/i', $auth, $matches)) {
+                $token = $matches[1];
+            }
+        }
+
+        if (!$token) {
+            echo json_encode(['success' => false, 'message' => 'Token required']);
+            exit;
+        }
+
+        // ✅ Décoder le token (format: tenant_id|user_id|random)
+        $parts = explode('|', $token);
+        if (count($parts) !== 3) {
+            echo json_encode(['success' => false, 'message' => 'Invalid token format']);
+            exit;
+        }
+
+        $this->tenant_id = (int)$parts[0];
+        $this->user_id = (int)$parts[1];
+
+        // Charger les infos du tenant
+        $tenant = $this->db->where('id', $this->tenant_id)->get('tenants')->row_array();
+
+        if (!$tenant) {
+            echo json_encode(['success' => false, 'message' => 'Tenant not found']);
+            exit;
+        }
+
+        // ✅ Connecter à la base tenant
+        $dbConfig = [
+            'hostname' => 'inventorysystem-mysqlinventory-ydsxph',
+            'username' => 'mysql',
+            'password' => 'Zakaria1304@',
+            'database' => $tenant['database_name'],
+            'dbdriver' => 'mysqli',
+            'dbprefix' => '',
+            'pconnect' => FALSE,
+            'db_debug' => FALSE,
+            'cache_on' => FALSE,
+            'charset' => 'utf8',
+            'dbcollat' => 'utf8_general_ci',
+        ];
+
+        $this->tenant_db = $this->load->database($dbConfig, TRUE);
+    }
+
+    // ================================
+    // 🔐 LOGIN
     // ================================
     
     public function login()
     {
         header('Content-Type: application/json');
 
-        // ✅ Lire JSON depuis body
         $input = json_decode(file_get_contents('php://input'), true);
         $username = $input['username'] ?? null;
         $password = $input['password'] ?? null;
@@ -41,7 +109,7 @@ class Api extends CI_Controller
             return;
         }
 
-        // 🚀 1 SEULE REQUÊTE avec JOIN
+        // Requête avec JOIN
         $result = $this->db
             ->select('u.*, ut.tenant_id, ut.role, t.tenant_name, t.database_name, t.status')
             ->from('users u')
@@ -60,25 +128,8 @@ class Api extends CI_Controller
             return;
         }
 
-        // ✅ Connecter à la base tenant
-        $dbConfig = [
-            'hostname' => 'inventorysystem-mysqlinventory-ydsxph',
-            'username' => 'mysql',
-            'password' => 'Zakaria1304@',
-            'database' => $result['database_name'],
-            'dbdriver' => 'mysqli',
-            'dbprefix' => '',
-            'pconnect' => FALSE,
-            'db_debug' => FALSE,
-            'cache_on' => FALSE,
-            'charset' => 'utf8',
-            'dbcollat' => 'utf8_general_ci',
-        ];
-
-        $this->tenant_db = $this->load->database($dbConfig, TRUE);
-
-        // 🔑 Générer token
-        $token = bin2hex(random_bytes(32));
+        // ✅ Générer token avec tenant_id et user_id
+        $token = $result['tenant_id'] . '|' . $result['id'] . '|' . bin2hex(random_bytes(16));
 
         echo json_encode([
             'success' => true,
@@ -105,14 +156,6 @@ class Api extends CI_Controller
     public function products()
     {
         try {
-            // Vérifier que tenant_db existe
-            if (!isset($this->tenant_db) || !$this->tenant_db) {
-                // Charger tenant_db depuis token (si implémenté)
-                // Pour l'instant, renvoyer erreur
-                echo json_encode(['success' => false, 'message' => 'Tenant DB not loaded. Login first.']);
-                return;
-            }
-
             $products = $this->tenant_db
                 ->order_by('id', 'DESC')
                 ->get('products')->result_array();
@@ -175,7 +218,7 @@ class Api extends CI_Controller
                 'customer_address' => $data['customer_address'] ?? '',
                 'total_amount' => $total,
                 'status' => 'pending',
-                'user_id' => $data['user_id'] ?? null,
+                'user_id' => $this->user_id, // ✅ Utilise user_id du token
                 'notes' => $data['notes'] ?? ''
             ];
 
