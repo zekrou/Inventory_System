@@ -1,6 +1,21 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
-
+/**
+ * @property CI_DB_query_builder $db
+ * @property CI_Session $session
+ * @property CI_Input $input
+ * @property CI_Form_validation $form_validation
+ * @property Model_orders $model_orders
+ * @property Model_products $model_products
+ * @property Model_customers $model_customers
+ * @property Model_orders $model_orders
+ * @property Model_company $model_company
+ * @property CI_Output $output
+ * 
+ * Custom Models
+ * @property Model_preorders $model_preorders
+ * @property Model_users $model_users
+ */
 class Preorders extends Admin_Controller 
 {
     public function __construct()
@@ -17,8 +32,8 @@ class Preorders extends Admin_Controller
             $this->model_preorders->setTenantDb($tenant_db);
         }
 
-        // Check permissions
-        if (!in_array('viewPreOrders', $this->permission)) {
+        // ✅ CORRECTION: Nom de permission cohérent (minuscules)
+        if (!in_array('viewPreorders', $this->permission)) {
             redirect('dashboard', 'refresh');
         }
     }
@@ -39,6 +54,9 @@ class Preorders extends Admin_Controller
         // Get all pre-orders
         $this->data['preorders'] = $this->model_preorders->getPreOrders($status_filter);
         $this->data['status_filter'] = $status_filter;
+        
+        // ✅ IMPORTANT: Passer aussi les permissions à la vue
+        $this->data['user_permission'] = $this->permission;
         
         $this->render_template('preorders/index', $this->data);
     }
@@ -68,6 +86,9 @@ class Preorders extends Admin_Controller
         if (!empty($preorder['user_id'])) {
             $this->data['created_by'] = $this->model_users->getUserData($preorder['user_id']);
         }
+        
+        // ✅ IMPORTANT: Passer aussi les permissions à la vue
+        $this->data['user_permission'] = $this->permission;
         
         $this->render_template('preorders/view', $this->data);
     }
