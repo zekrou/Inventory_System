@@ -1,7 +1,7 @@
 <?php
-defined('BASEPATH') or exit('No direct script access allowed');
+defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Model_preorders extends CI_Model
+class Model_preorders extends CI_Model 
 {
     public function get_all_preorders()
     {
@@ -11,17 +11,15 @@ class Model_preorders extends CI_Model
         return $this->db->get()->result_array();
     }
 
-
-
     public function get_preorder($id)
     {
         $this->db->where('id', $id);
         return $this->db->get('pre_orders')->row_array();
     }
 
-    public function get_preorder_items($preorder_id)
+    public function get_preorder_items($pre_order_id)
     {
-        $this->db->where('preorder_id', $preorder_id);
+        $this->db->where('pre_order_id', $pre_order_id);
         return $this->db->get('pre_order_items')->result_array();
     }
 
@@ -33,11 +31,11 @@ class Model_preorders extends CI_Model
 
     public function delete_preorder($id)
     {
-        // Supprime les items d'abord
-        $this->db->where('preorder_id', $id);
+        // Supprime items d'abord
+        $this->db->where('pre_order_id', $id);
         $this->db->delete('pre_order_items');
-
-        // Puis la pré-commande
+        
+        // Puis pré-commande
         $this->db->where('id', $id);
         $this->db->delete('pre_orders');
     }

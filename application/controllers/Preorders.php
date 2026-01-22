@@ -1,7 +1,7 @@
 <?php
-defined('BASEPATH') OR exit('No direct script access allowed');
+defined('BASEPATH') or exit('No direct script access allowed');
 
-class Preorders extends Admin_Controller 
+class Preorders extends Admin_Controller
 {
     public function __construct()
     {
@@ -29,11 +29,17 @@ class Preorders extends Admin_Controller
         }
 
         $preorder = $this->Model_preorders->get_preorder($id);
-        $items = $this->Model_preorders->get_preorder_items($id);
+        if (!$preorder) {
+            $this->session->set_flashdata('error', 'Pré-commande non trouvée');
+            redirect('preorders');
+        }
+
+        $items = $this->Model_preorders->get_preorder_items($preorder['id']);  // ✅ pre_order_id = id
         $this->data['preorder'] = $preorder;
         $this->data['items'] = $items;
         $this->render_template('preorders/view', $this->data);
     }
+
 
     public function update($id)
     {

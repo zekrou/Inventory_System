@@ -14,7 +14,7 @@
                         <p><strong>Client:</strong> <?php echo $preorder['customer_name']; ?></p>
                         <p><strong>Téléphone:</strong> <?php echo $preorder['customer_phone']; ?></p>
                         <p><strong>Adresse:</strong> <?php echo $preorder['customer_address']; ?></p>
-                        <p><strong>Total:</strong> <?php echo number_format($preorder['total_amount'], 2); ?> TND</p>
+                        <p><strong>Total:</strong> <?php echo number_format($preorder['total_amount'], 2); ?> DA</p>
                         <p><strong>Notes:</strong> <?php echo $preorder['notes']; ?></p>
                         <span class="label label-<?php echo $preorder['status'] == 'pending' ? 'warning' : 'success'; ?>">
                             <?php echo ucfirst($preorder['status']); ?>
@@ -38,7 +38,7 @@
                                 <tr>
                                     <th>Produit</th>
                                     <th>Qté</th>
-                                    <th>Prix Unitaire</th>
+                                    <th>Prix</th>
                                     <th>Sous-total</th>
                                 </tr>
                             </thead>
@@ -46,12 +46,13 @@
                                 <?php foreach ($items as $item): ?>
                                     <tr>
                                         <td><?php echo $item['product_name']; ?></td>
-                                        <td><?php echo $item['quantity']; ?></td>
-                                        <td><?php echo number_format($item['unit_price'], 2); ?> TND</td>
+                                        <td><?php echo $item['qty']; ?></td>
+                                        <td><?php echo number_format($item['price'], 2); ?> TND</td>
                                         <td><?php echo number_format($item['subtotal'], 2); ?> TND</td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
+
                         </table>
                     </div>
                 </div>
