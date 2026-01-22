@@ -126,6 +126,15 @@ class Admin_Controller extends MY_Controller
             $this->permission = array();
             $this->data['user_permission'] = array();
         }
+        // Charger les stats PreOrders pour sidebar
+        if (isset($user_data['user_type']) && $user_data['user_type'] == 'merchant') {
+            $this->load->model('model_preorders');
+            $this->model_preorders->setTenantDb($this->db); // Utiliser la DB du tenant
+            $stats = $this->model_preorders->getStatistics();
+            $this->data['pending_preorders_count'] = $stats['pending_count'] ?? 0;
+        } else {
+            $this->data['pending_preorders_count'] = 0;
+        }
     }
 
     /**
