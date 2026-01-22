@@ -14,7 +14,7 @@
         <li class="header">MOBILE ORDERS</li>
 
         <!-- Pre-Orders Menu -->
-        <?php if (isset($user_permission['viewPreOrder'])): ?>
+        <?php if (isset($user_permission['viewPreorders'])): ?>
           <li class="treeview <?php echo $this->uri->segment(1) == 'preorders' ? 'active' : ''; ?>">
             <a href="<?php echo base_url('preorders'); ?>">
               <i class="fa fa-mobile"></i>
