@@ -197,22 +197,31 @@ class Api extends CI_Controller
             return;
         }
 
+        // 🔍 DEBUG: Log
+        error_log("Getting preorder ID: $id");
+
         $preorder = $this->tenant_db->get_where('pre_orders', ['id' => $id])->row_array();
 
         if (!$preorder) {
+            error_log("Preorder not found: $id");
             echo json_encode(['success' => false, 'message' => 'Pre-order not found']);
             return;
         }
 
+        error_log("Preorder found: " . json_encode($preorder));
+
         // ✅ Cast les types numériques
         $preorder['id'] = (int)$preorder['id'];
         $preorder['total_amount'] = (float)$preorder['total_amount'];
-        $preorder['user_id'] = (int)$preorder['user_id'];
+        $preorder['user_id'] = isset($preorder['user_id']) ? (int)$preorder['user_id'] : null;
 
         // ✅ Charger les items
         $items = $this->tenant_db
             ->get_where('pre_order_items', ['pre_order_id' => $id])
             ->result_array();
+
+        error_log("Items count: " . count($items));
+        error_log("Items: " . json_encode($items));
 
         // ✅ Cast les types pour chaque item
         foreach ($items as &$item) {
@@ -224,10 +233,21 @@ class Api extends CI_Controller
             $item['subtotal'] = (float)$item['subtotal'];
         }
 
-        $preorder['items'] = $items; // ✅ Ajouter items
+        // ✅ Toujours retourner items (même vide)
+        $preorder['items'] = $items;
 
-        echo json_encode(['success' => true, 'preorder' => $preorder]);
+        error_log("Final preorder: " . json_encode($preorder));
+
+        echo json_encode([
+            'success' => true,
+            'preorder' => $preorder,
+            'debug' => [
+                'items_count' => count($items),
+                'preorder_id' => $id
+            ]
+        ]);
     }
+
     public function preorders()
     {
         $user_id = $this->input->get('user_id');
