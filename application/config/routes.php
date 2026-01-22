@@ -153,6 +153,7 @@ $route['api/products'] = 'api/products';
 $route['api/product/(:num)'] = 'api/product/$1';
 $route['api/calculate_price'] = 'api/calculate_price';
 $route['api/create_pre_order'] = 'api/create_pre_order';
+$route['api/create_preorder'] = 'api/create_preorder'; 
 $route['api/pre_orders'] = 'api/pre_orders';
 $route['api/preorders'] = 'api/preorders';
 $route['api/preorder/(:num)'] = 'api/preorder/$1';
