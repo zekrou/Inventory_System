@@ -12,12 +12,13 @@
                     </div>
                     <div class="box-body">
                         <p><strong>Client:</strong> <?php echo $preorder['customer_name']; ?></p>
-                        <p><strong>Téléphone:</strong> <?php echo $preorder['phone']; ?></p>
+                        <p><strong>Téléphone:</strong> <?php echo $preorder['customer_phone']; ?></p>
+                        <p><strong>Adresse:</strong> <?php echo $preorder['customer_address']; ?></p>
                         <p><strong>Total:</strong> <?php echo number_format($preorder['total_amount'], 2); ?> TND</p>
-                        <p><strong>Statut:</strong> 
-                            <span class="label label-<?php echo $preorder['status']=='pending' ? 'warning' : 'success'; ?>">
-                                <?php echo ucfirst($preorder['status']); ?>
-                            </span>
+                        <p><strong>Notes:</strong> <?php echo $preorder['notes']; ?></p>
+                        <span class="label label-<?php echo $preorder['status'] == 'pending' ? 'warning' : 'success'; ?>">
+                            <?php echo ucfirst($preorder['status']); ?>
+                        </span>
                         </p>
                         <p><strong>Date:</strong> <?php echo date('d/m/Y H:i', strtotime($preorder['created_at'])); ?></p>
                     </div>
@@ -42,13 +43,13 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach($items as $item): ?>
-                                <tr>
-                                    <td><?php echo $item['product_name']; ?></td>
-                                    <td><?php echo $item['quantity']; ?></td>
-                                    <td><?php echo number_format($item['unit_price'], 2); ?> TND</td>
-                                    <td><?php echo number_format($item['subtotal'], 2); ?> TND</td>
-                                </tr>
+                                <?php foreach ($items as $item): ?>
+                                    <tr>
+                                        <td><?php echo $item['product_name']; ?></td>
+                                        <td><?php echo $item['quantity']; ?></td>
+                                        <td><?php echo number_format($item['unit_price'], 2); ?> TND</td>
+                                        <td><?php echo number_format($item['subtotal'], 2); ?> TND</td>
+                                    </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>

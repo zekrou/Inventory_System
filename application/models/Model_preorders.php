@@ -5,12 +5,12 @@ class Model_preorders extends CI_Model
 {
     public function get_all_preorders()
     {
-        $this->db->select('p.*, CONCAT(u.firstname, " ", u.lastname) as customer_name, u.phone');
-        $this->db->from('pre_orders p');
-        $this->db->join('users u', 'u.id = p.user_id', 'left');
-        $this->db->order_by('p.created_at', 'DESC');
+        $this->db->select('*, customer_name, customer_phone');
+        $this->db->from('pre_orders');
+        $this->db->order_by('created_at', 'DESC');
         return $this->db->get()->result_array();
     }
+
 
 
     public function get_preorder($id)

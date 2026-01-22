@@ -24,28 +24,29 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach($preorders as $preorder): ?>
-                                <tr>
-                                    <td><?php echo $preorder['id']; ?></td>
-                                    <td><?php echo $preorder['customer_name']; ?></td>
-                                    <td><?php echo $preorder['phone']; ?></td>
-                                    <td><?php echo number_format($preorder['total_amount'], 2); ?> TND</td>
-                                    <td>
-                                        <span class="label label-<?php echo $preorder['status']=='pending' ? 'warning' : 'success'; ?>">
-                                            <?php echo ucfirst($preorder['status']); ?>
-                                        </span>
-                                    </td>
-                                    <td><?php echo date('d/m/Y H:i', strtotime($preorder['created_at'])); ?></td>
-                                    <td>
-                                        <a href="<?php echo site_url('preorders/view/'.$preorder['id']); ?>" class="btn btn-xs btn-info">Voir</a>
-                                        <a href="<?php echo site_url('preorders/update/'.$preorder['id']); ?>" class="btn btn-xs btn-warning">Modifier</a>
-                                        <?php if(isset($this->permission['deletePreorders'])): ?>
-                                        <a href="<?php echo site_url('preorders/delete/'.$preorder['id']); ?>" 
-                                           class="btn btn-xs btn-danger" 
-                                           onclick="return confirm('Confirmer suppression?')">Supprimer</a>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
+                                <?php foreach ($preorders as $preorder): ?>
+                                    <tr>
+                                        <td><?php echo $preorder['id']; ?></td>
+                                        <td><?php echo $preorder['customer_name']; ?></td>
+                                        <td><?php echo $preorder['customer_phone']; ?></td>
+                                        <td><?php echo number_format($preorder['total_amount'], 2); ?> TND</td>
+                                        <td>
+                                            <span class="label label-<?php echo $preorder['status'] == 'pending' ? 'warning' : ($preorder['status'] == 'confirmed' ? 'success' : 'danger'); ?>">
+                                                <?php echo ucfirst($preorder['status']); ?>
+                                            </span>
+                                        </td>
+                                        <td><?php echo date('d/m/Y H:i', strtotime($preorder['created_at'])); ?></td>
+
+                                        <td>
+                                            <a href="<?php echo site_url('preorders/view/' . $preorder['id']); ?>" class="btn btn-xs btn-info">Voir</a>
+                                            <a href="<?php echo site_url('preorders/update/' . $preorder['id']); ?>" class="btn btn-xs btn-warning">Modifier</a>
+                                            <?php if (isset($this->permission['deletePreorders'])): ?>
+                                                <a href="<?php echo site_url('preorders/delete/' . $preorder['id']); ?>"
+                                                    class="btn btn-xs btn-danger"
+                                                    onclick="return confirm('Confirmer suppression?')">Supprimer</a>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
