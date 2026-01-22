@@ -10,6 +10,8 @@ class Api extends CI_Controller
     public function __construct()
     {
         parent::__construct();
+        
+        // ✅ NE CHARGE PAS model_products ici !
         $this->load->database();
 
         // Enable CORS
@@ -132,10 +134,6 @@ class Api extends CI_Controller
         ]);
     }
 
-    // ================================
-    // 📦 PRODUCTS
-    // ================================
-
     public function products()
     {
         try {
@@ -170,18 +168,10 @@ class Api extends CI_Controller
         echo json_encode(['success' => true, 'product' => $product]);
     }
 
-    // ================================
-    // 🛒 PRE-ORDERS - CREATE
-    // ================================
-    
-    // ✅ MÉTHODE MANQUANTE - AJOUTE ICI
     public function create_pre_order()
     {
         $json = file_get_contents('php://input');
         $data = json_decode($json, true) ?: $_POST;
-
-        error_log("create_pre_order called");
-        error_log("Data received: " . json_encode($data));
 
         if (empty($data['customer_name']) || empty($data['items'])) {
             echo json_encode(['success' => false, 'message' => 'Customer name and items required']);
@@ -209,12 +199,8 @@ class Api extends CI_Controller
                 'notes' => $data['notes'] ?? ''
             ];
 
-            error_log("Inserting into tenant DB: " . $this->tenant_db->database);
-            
             $this->tenant_db->insert('pre_orders', $preorder_data);
             $preorder_id = $this->tenant_db->insert_id();
-
-            error_log("Created preorder ID: $preorder_id");
 
             foreach ($data['items'] as $item) {
                 $item_data = [
@@ -239,29 +225,18 @@ class Api extends CI_Controller
                 'success' => true,
                 'order_number' => $order_number,
                 'pre_order_id' => $preorder_id,
-                'total_amount' => $total,
-                'debug' => [
-                    'database' => $this->tenant_db->database,
-                    'tenant_id' => $this->tenant_id,
-                    'user_id' => $this->user_id
-                ]
+                'total_amount' => $total
             ]);
         } catch (Exception $e) {
             $this->tenant_db->trans_rollback();
-            error_log("create_pre_order error: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
-    // ✅ ALIAS sans underscore
     public function create_preorder()
     {
         return $this->create_pre_order();
     }
-
-    // ================================
-    // 🛒 PRE-ORDERS - READ
-    // ================================
 
     public function preorders()
     {
@@ -312,17 +287,12 @@ class Api extends CI_Controller
             return;
         }
 
-        error_log("Getting preorder ID: $id");
-
         $preorder = $this->tenant_db->get_where('pre_orders', ['id' => $id])->row_array();
 
         if (!$preorder) {
-            error_log("Preorder not found: $id");
             echo json_encode(['success' => false, 'message' => 'Pre-order not found']);
             return;
         }
-
-        error_log("Preorder found: " . json_encode($preorder));
 
         $preorder['id'] = (int)$preorder['id'];
         $preorder['total_amount'] = (float)$preorder['total_amount'];
@@ -331,9 +301,6 @@ class Api extends CI_Controller
         $items = $this->tenant_db
             ->get_where('pre_order_items', ['pre_order_id' => $id])
             ->result_array();
-
-        error_log("Items count: " . count($items));
-        error_log("Items: " . json_encode($items));
 
         foreach ($items as &$item) {
             $item['id'] = (int)$item['id'];
@@ -346,15 +313,9 @@ class Api extends CI_Controller
 
         $preorder['items'] = $items;
 
-        error_log("Final preorder: " . json_encode($preorder));
-
         echo json_encode([
             'success' => true,
-            'preorder' => $preorder,
-            'debug' => [
-                'items_count' => count($items),
-                'preorder_id' => $id
-            ]
+            'preorder' => $preorder
         ]);
     }
 }
