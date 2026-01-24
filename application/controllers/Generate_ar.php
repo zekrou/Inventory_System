@@ -2,39 +2,51 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Generate_ar extends CI_Controller {
-    public function index() {
-        // Vérifiez admin/login d'abord
-        if (!$this->input->is_ajax_request()) {
-            show_404();
+
+    public function __construct() {
+        parent::__construct();
+        // Admin check (login page first, adaptez)
+        if (!isset($_SESSION['user_id'])) {
+            redirect('login');
         }
-        
-        // Installez library via composer ou manuellement
-        require_once FCPATH.'vendor/autoload.php'; // OU third_party
-        use Stichoza\GoogleTranslate\GoogleTranslate;
+    }
+
+    public function index() {
+        // Téléchargez https://raw.githubusercontent.com/Stichoza/google-translate-php/master/src/GoogleTranslate.php
+        // Copiez dans application/third_party/GoogleTranslate.php
+        require_once APPPATH.'third_party/GoogleTranslate.php';
         
         $english_file = APPPATH.'language/english/app_lang.php';
-        $arabic_file = APPPATH.'language/arabic/app_lang.php';
+        $arabic_dir = APPPATH.'language/arabic/';
+        $arabic_file = $arabic_dir.'app_lang.php';
+        
+        // Crée dossier arabe
+        if (!is_dir($arabic_dir)) mkdir($arabic_dir, 0755, true);
         
         // Charge english
-        $_lang = [];
+        $lang = [];
         include $english_file;
         
-        $tr = new GoogleTranslate('en', 'ar');
+        // Traduction
+        $tr = new \Stichoza\GoogleTranslate\GoogleTranslate('en', 'ar');
         $new_lang = [];
         
-        foreach ($_lang as $key => $value) {
-            if (trim($value) && !in_array($key, ['direction'])) {
+        foreach ($lang as $key => $value) {
+            if (trim($value) && $key != 'direction') {
                 $new_lang[$key] = $tr->translate($value);
             }
         }
         $new_lang['direction'] = 'rtl';
         
+        // Écrit fichier
         $content = "<?php defined('BASEPATH') OR exit('No direct script access allowed');\n\n";
         $content .= '$direction = \'rtl\';' . "\n\n";
-        $content .= "return " . var_export($new_lang, true) . ";";
+        $content .= var_export($new_lang, true) . ";\n?>";
         
         file_put_contents($arabic_file, $content);
         
-        echo "✅ app_lang.php arabe généré ! <a href='/'>Retour login</a>";
+        echo "<h2>✅ app_lang.php ARABE GÉNÉRÉ !</h2>";
+        echo "<p><a href='/'>← Retour Login</a></p>";
+        echo "<p>Fichier: $arabic_file</p>";
     }
 }
