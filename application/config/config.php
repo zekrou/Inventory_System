@@ -76,7 +76,9 @@ $config['url_suffix'] = '';
 | than english.
 |
 */
-$config['language']    = 'english';
+$config['language'] = 'arabic';  // Par défaut arabe
+$config['supported_languages'] = ['english', 'arabic'];
+
 
 /*
 |--------------------------------------------------------------------------
