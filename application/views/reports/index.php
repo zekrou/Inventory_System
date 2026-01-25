@@ -142,6 +142,113 @@
         </div>
       </div>
     <?php endif; ?>
+    <!-- Losses Stats -->
+    <div class="row">
+      <div class="col-md-12">
+        <h3 style="margin-top: 30px; border-bottom: 2px solid #e74c3c; padding-bottom: 10px;">
+          <i class="fa fa-exclamation-triangle text-danger"></i> Pertes sur Ventes
+        </h3>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-3">
+        <div class="info-box bg-red">
+          <span class="info-box-icon"><i class="fa fa-minus-circle"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Total Pertes</span>
+            <span class="info-box-number">
+              <?= number_format($losses_summary['total_loss'] ?? 0, 2) ?> DZD
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="info-box bg-orange">
+          <span class="info-box-icon"><i class="fa fa-shopping-cart"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Commandes avec Perte</span>
+            <span class="info-box-number">
+              <?= $losses_summary['nb_orders_with_loss'] ?? 0 ?>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="info-box bg-yellow">
+          <span class="info-box-icon"><i class="fa fa-times-circle"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Pertes Réelles</span>
+            <span class="info-box-number">
+              <?= number_format($losses_summary['real_losses'] ?? 0, 2) ?> DZD
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="info-box bg-purple">
+          <span class="info-box-icon"><i class="fa fa-line-chart"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Pertes de Marge</span>
+            <span class="info-box-number">
+              <?= number_format($losses_summary['margin_losses'] ?? 0, 2) ?> DZD
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Products with Losses -->
+    <?php if (!empty($top_loss_products)): ?>
+      <div class="row">
+        <div class="col-md-12">
+          <div class="box box-danger">
+            <div class="box-header with-border">
+              <h3 class="box-title">
+                <i class="fa fa-warning"></i> Top 10 Produits Vendus à Perte
+              </h3>
+            </div>
+            <div class="box-body">
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Produit</th>
+                    <th class="text-center">Commandes</th>
+                    <th class="text-center">Quantité</th>
+                    <th class="text-right">Perte Totale</th>
+                    <th class="text-right">Perte/Unité</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php $rank = 1;
+                  foreach ($top_loss_products as $prod): ?>
+                    <tr>
+                      <td><?= $rank++ ?></td>
+                      <td>
+                        <strong><?= $prod['name'] ?></strong>
+                        <br><small class="text-muted"><?= $prod['sku'] ?></small>
+                      </td>
+                      <td class="text-center"><?= $prod['nb_orders'] ?></td>
+                      <td class="text-center"><?= $prod['qty_sold_at_loss'] ?></td>
+                      <td class="text-right text-danger">
+                        <strong>-<?= number_format($prod['total_loss'], 2) ?> DZD</strong>
+                      </td>
+                      <td class="text-right">
+                        -<?= number_format($prod['avg_loss_per_unit'], 2) ?> DZD
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    <?php endif; ?>
 
     <!-- RAPPORT 1: ANALYSE DE PROFIT -->
     <div class="box box-success">

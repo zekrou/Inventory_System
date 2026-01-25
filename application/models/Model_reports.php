@@ -653,4 +653,66 @@ class Model_reports extends CI_Model
 		$query = $this->db->query($sql, array($year));
 		return $query->result_array();
 	}
+
+	/**
+	 * Get losses summary for period
+	 */
+	public function getLossesSummary($year, $month = null)
+	{
+		$where = "YEAR(oi.date_time) = ?";
+		$params = array($year);
+
+		if ($month) {
+			$where .= " AND MONTH(oi.date_time) = ?";
+			$params[] = $month;
+		}
+
+		$sql = "SELECT 
+        COUNT(DISTINCT o.id) as nb_orders_with_loss,
+        SUM(oi.loss_amount * oi.qty) as total_loss,
+        AVG(oi.loss_amount) as avg_loss_per_item,
+        SUM(CASE WHEN oi.loss_type = 'real_loss' THEN oi.loss_amount * oi.qty ELSE 0 END) as real_losses,
+        SUM(CASE WHEN oi.loss_type = 'margin_loss' THEN oi.loss_amount * oi.qty ELSE 0 END) as margin_losses
+    FROM orders o
+    JOIN orders_item oi ON o.id = oi.order_id
+    WHERE {$where}
+    AND oi.loss_type != 'none'";
+
+		$query = $this->db->query($sql, $params);
+		return $query->row_array();
+	}
+
+	/**
+	 * Get top products sold at loss
+	 */
+	public function getTopLossProducts($year, $month = null, $limit = 10)
+	{
+		$where = "YEAR(o.date_time) = ?";
+		$params = array($year);
+
+		if ($month) {
+			$where .= " AND MONTH(o.date_time) = ?";
+			$params[] = $month;
+		}
+
+		$sql = "SELECT 
+        p.name,
+        p.sku,
+        COUNT(DISTINCT o.id) as nb_orders,
+        SUM(oi.qty) as qty_sold_at_loss,
+        SUM(oi.loss_amount * oi.qty) as total_loss,
+        AVG(oi.loss_amount) as avg_loss_per_unit
+    FROM orders o
+    JOIN orders_item oi ON o.id = oi.order_id
+    JOIN products p ON oi.product_id = p.id
+    WHERE {$where}
+    AND oi.loss_type != 'none'
+    GROUP BY p.id
+    ORDER BY total_loss DESC
+    LIMIT ?";
+
+		$params[] = $limit;
+		$query = $this->db->query($sql, $params);
+		return $query->result_array();
+	}
 }
