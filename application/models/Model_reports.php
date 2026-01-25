@@ -657,13 +657,16 @@ class Model_reports extends CI_Model
 	/**
 	 * Get losses summary for period
 	 */
+	/**
+	 * Get losses summary for period
+	 */
 	public function getLossesSummary($year, $month = null)
 	{
-		$where = "YEAR(oi.date_time) = ?";
+		$where = "YEAR(o.date_time) = ?";
 		$params = array($year);
 
 		if ($month) {
-			$where .= " AND MONTH(oi.date_time) = ?";
+			$where .= " AND MONTH(o.date_time) = ?";
 			$params[] = $month;
 		}
 
@@ -679,9 +682,26 @@ class Model_reports extends CI_Model
     AND oi.loss_type != 'none'";
 
 		$query = $this->db->query($sql, $params);
-		return $query->row_array();
+		$result = $query->row_array();
+
+		// Si aucun résultat, retourner des valeurs par défaut
+		if (empty($result) || $result['nb_orders_with_loss'] === NULL) {
+			return array(
+				'nb_orders_with_loss' => 0,
+				'total_loss' => 0,
+				'avg_loss_per_item' => 0,
+				'real_losses' => 0,
+				'margin_losses' => 0
+			);
+		}
+
+		return $result;
 	}
 
+
+	/**
+	 * Get top products sold at loss
+	 */
 	/**
 	 * Get top products sold at loss
 	 */

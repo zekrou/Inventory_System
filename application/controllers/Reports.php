@@ -84,17 +84,19 @@ class Reports extends Admin_Controller
 			}
 		}
 
-		$this->data['report_years'] = $this->model_reports->getOrderYear();	
+		$this->data['report_years'] = $this->model_reports->getOrderYear();
 		$this->data['selected_year'] = $today_year;
 		$this->data['selected_month'] = $today_month;
 		$this->data['company_currency'] = $this->company_currency();
 		$this->data['results'] = $final_parking_data;
-		// Losses stats
-		$this->data['losses_summary'] = $this->model_reports->getLossesSummary($selected_year, $selected_month);
-		$this->data['top_loss_products'] = $this->model_reports->getTopLossProducts($selected_year, $selected_month, 10);
+
+		// ✅ Losses stats (CORRIGÉ)
+		$this->data['losses_summary'] = $this->model_reports->getLossesSummary($today_year, $today_month);
+		$this->data['top_loss_products'] = $this->model_reports->getTopLossProducts($today_year, $today_month, 10);
 
 		$this->render_template('reports/index', $this->data);
 	}
+
 
 	public function export_csv()
 	{
