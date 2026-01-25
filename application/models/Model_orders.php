@@ -175,34 +175,115 @@ class Model_orders extends CI_Model
 		$count_product = count($this->input->post('product'));
 		for ($x = 0; $x < $count_product; $x++) {
 			$product_id = $this->input->post('product')[$x];
-			$qty_ordered = $this->input->post('qty')[$x];
+			$qty = $this->input->post('qty')[$x];
+			$actual_price = $this->input->post('rate_value')[$x]; // Prix réellement facturé
 
+			// Get product data
 			$product_data = $this->model_products->getProductData($product_id);
-			if ($product_data['qty'] < $qty_ordered) {
+
+			// Check stock availability
+			if ($product_data['qty'] < $qty) {
+				// Delete order if stock insufficient
 				$this->db->where('id', $order_id);
 				$this->db->delete('orders');
-				return false;
+				return array('success' => false, 'message' => 'Stock insuffisant pour: ' . $product_data['name']);
 			}
 
-			// 🔴 CORRECTION: rate_value et amount_value (avec underscore)
+			// ✅ NOUVEAU: Calculer prix attendu selon type client
+			$expected_price = 0;
+			switch ($customer_type) {
+				case 'super_wholesale':
+					$expected_price = $product_data['price_super_wholesale']
+						? $product_data['price_super_wholesale']
+						: $product_data['price_default'];
+					break;
+				case 'wholesale':
+					$expected_price = $product_data['price_wholesale']
+						? $product_data['price_wholesale']
+						: $product_data['price_default'];
+					break;
+				case 'retail':
+				default:
+					$expected_price = $product_data['price_retail']
+						? $product_data['price_retail']
+						: $product_data['price_default'];
+					break;
+			}
+
+			// ✅ NOUVEAU: Calculer perte
+			$product_cost = $product_data['average_cost'] ? $product_data['average_cost'] : 0;
+			$loss_amount = max(0, $expected_price - $actual_price);
+
+			// Déterminer type de perte
+			$loss_type = 'none';
+			if ($actual_price < $product_cost) {
+				$loss_type = 'real_loss'; // Vente à perte réelle
+			} elseif ($actual_price < $expected_price) {
+				$loss_type = 'margin_loss'; // Perte de marge
+			}
+
+			// Insert order item
 			$items = array(
 				'order_id' => $order_id,
 				'product_id' => $product_id,
-				'qty' => $qty_ordered,
-				'rate' => $this->input->post('rate_value')[$x],
+				'qty' => $qty,
+				'rate' => $actual_price,
 				'amount' => $this->input->post('amount_value')[$x],
+				// ✅ NOUVEAU: Colonnes pertes
+				'expected_price' => $expected_price,
+				'actual_price' => $actual_price,
+				'loss_amount' => $loss_amount,
+				'loss_type' => $loss_type,
+				'product_cost' => $product_cost
 			);
 
 			$this->db->insert('orders_item', $items);
+			$order_item_id = $this->db->insert_id();
 
-			$qty_before = $product_data['qty'];
-			$qty_after = $qty_before - $qty_ordered;
+			// ✅ NOUVEAU: Si perte détectée, enregistrer dans sales_losses
+			if ($loss_type != 'none') {
+				$loss_reason = $this->input->post('loss_reason') ? $this->input->post('loss_reason') : 'Non spécifié';
 
-			$update_product = array('qty' => $qty_after);
+				$sales_loss_data = array(
+					'order_id' => $order_id,
+					'order_item_id' => $order_item_id,
+					'product_id' => $product_id,
+					'customer_id' => $customer_id,
+					'customer_type' => $customer_type,
+					'product_cost' => $product_cost,
+					'expected_price' => $expected_price,
+					'actual_price' => $actual_price,
+					'quantity' => $qty,
+					'loss_amount' => $loss_amount,
+					'total_loss' => $loss_amount * $qty,
+					'loss_type' => $loss_type,
+					'reason' => $loss_reason,
+					'approved_by' => $user_id,
+					'sale_date' => date('Y-m-d H:i:s')
+				);
+
+				$this->db->insert('sales_losses', $sales_loss_data);
+			}
+
+			// Update product stock
+			$new_qty = $product_data['qty'] - $qty;
+			$update_product = array('qty' => $new_qty);
 			$this->model_products->update($update_product, $product_id);
 
-			$this->recordStockHistory($product_id, $order_id, 'sale', $qty_ordered, $qty_before, $qty_after, $user_id);
+			// Stock history
+			$stock_data = array(
+				'product_id' => $product_id,
+				'order_id' => $order_id,
+				'movement_type' => 'sale',
+				'quantity' => $qty,
+				'quantity_before' => $product_data['qty'],
+				'quantity_after' => $new_qty,
+				'user_id' => $user_id,
+				'created_at' => date('Y-m-d H:i:s')
+			);
+			$this->db->insert('stock_history', $stock_data);
 		}
+
 
 		// Record first payment if paid
 		if ($paid_amount > 0) {

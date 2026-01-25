@@ -188,7 +188,14 @@
                     <th style="width:40%;">Product</th>
                     <th style="width:15%;">Available</th>
                     <th style="width:15%;">Quantity</th>
-                    <th style="width:15%;">Unit Price</th>
+                    <th style="width:20%;">
+                      Prix Unitaire (DZD)
+                      <br><small class="text-muted">Suggéré → Vous pouvez modifier</small>
+                    </th>
+                    <th style="width:5%;" class="text-center">
+                      <i class="fa fa-warning text-warning" title="Alerte perte"></i>
+                    </th>
+
                     <th style="width:15%;">Amount</th>
                     <th style="width:5%;"><i class="fa fa-trash"></i></th>
                   </tr>
@@ -218,8 +225,21 @@
                       <input type="number" name="qty[]" id="qty_1" class="form-control" onkeyup="getTotal(1)" min="1" value="1" required> <!-- 🔴 AJOUT underscore -->
                     </td>
                     <td>
-                      <input type="text" name="rate[]" id="rate_1" class="form-control" readonly> <!-- 🔴 AJOUT underscore -->
-                      <input type="hidden" name="rate_value[]" id="rate_value_1" class="form-control"> <!-- 🔴 AJOUT underscore -->
+                      <div class="input-group">
+                        <input type="number" name="rate_value[]" id="rate_value_1"
+                          class="form-control price-input"
+                          step="0.01" min="0"
+                          onkeyup="checkPriceLoss(1); getTotal(1)"
+                          data-expected="0"
+                          data-cost="0"
+                          placeholder="0.00"
+                          required>
+                        <span class="input-group-addon">DZD</span>
+                      </div>
+                      <small class="text-muted price-suggestion" id="price_suggest_1"></small>
+                    </td>
+                    <td class="text-center alert-cell" id="alert_cell_1">
+                      <!-- Alerte perte ici -->
                     </td>
                     <td>
                       <input type="text" name="amount[]" id="amount_1" class="form-control" readonly> <!-- 🔴 AJOUT underscore -->
@@ -234,6 +254,33 @@
 
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+        <!-- Loss Warning Section -->
+        <div class="box box-warning" id="loss_warning_box" style="display:none;">
+          <div class="box-header with-border" style="background:#fcf8e3; border-left:4px solid #f0ad4e;">
+            <h3 class="box-title">
+              <i class="fa fa-exclamation-triangle text-warning"></i>
+              <strong>Vente à Perte Détectée</strong>
+            </h3>
+          </div>
+          <div class="box-body">
+            <div class="alert alert-warning" style="margin-bottom:15px;">
+              <strong>⚠️ Attention!</strong> Vous vendez au moins un produit à un prix inférieur au prix normal.
+              <div id="loss_details_list" style="margin-top:10px; font-size:13px;"></div>
+            </div>
+
+            <div class="form-group">
+              <label>
+                <i class="fa fa-edit"></i> Raison de la vente à perte
+                <span class="text-danger">*</span>
+              </label>
+              <textarea name="loss_reason" id="loss_reason" class="form-control" rows="3"
+                placeholder="Ex: Client fidèle, Promotion spéciale, Produit endommagé, Proche expiration, Négociation commerciale..."></textarea>
+              <small class="text-muted">
+                <i class="fa fa-info-circle"></i> Cette raison sera enregistrée dans les rapports de pertes
+              </small>
             </div>
           </div>
         </div>
@@ -422,6 +469,57 @@
     animation: slideDown 0.3s ease-out;
   }
 
+  /* Loss detection styles */
+  #product_info_table tbody tr.danger {
+    background-color: #f2dede !important;
+    border-left: 4px solid #d9534f;
+    animation: pulseRed 2s infinite;
+  }
+
+  #product_info_table tbody tr.warning {
+    background-color: #fcf8e3 !important;
+    border-left: 4px solid #f0ad4e;
+  }
+
+  @keyframes pulseRed {
+
+    0%,
+    100% {
+      border-left-color: #d9534f;
+    }
+
+    50% {
+      border-left-color: #c9302c;
+    }
+  }
+
+  .price-input {
+    font-weight: bold;
+    font-size: 14px;
+  }
+
+  .price-suggestion {
+    display: block;
+    margin-top: 5px;
+    font-size: 11px;
+  }
+
+  #loss_warning_box {
+    animation: slideDown 0.5s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   @keyframes slideDown {
     from {
       opacity: 0;
@@ -490,6 +588,7 @@
     });
 
     // Form validation
+    // Form validation
     $('#createOrderForm').on('submit', function(e) {
       var netamount = parseFloat($('#net_amount_value').val()) || 0;
 
@@ -499,13 +598,22 @@
         return false;
       }
 
+      // ✅ NOUVEAU: Vérifier raison perte
+      var hasLoss = $('#product_info_table tbody tr.danger, #product_info_table tbody tr.warning').length > 0;
+      if (hasLoss && !$('#loss_reason').val().trim()) {
+        e.preventDefault();
+        alert('⚠️ Veuillez indiquer la raison de la vente à perte!');
+        $('#loss_reason').focus();
+        return false;
+      }
+
       // Validate stock availability
       var valid = true;
       $('#product_info_table tbody tr').each(function() {
         var row = $(this);
-        var rowid = row.attr('id').split('row_')[1]; // ✅ AVEC underscore
-        var qty = parseFloat($('#qty_' + rowid).val()) || 0; // ✅ AVEC underscore
-        var available = parseFloat($('#availableqty_' + rowid).text()) || 0; // ✅ AVEC underscore
+        var rowid = row.attr('id').split('_')[1];
+        var qty = parseFloat($('#qty_' + rowid).val()) || 0;
+        var available = parseFloat($('#availableqty_' + rowid).text()) || 0;
 
         if (qty > available) {
           alert('Insufficient stock for product in row ' + rowid);
@@ -519,6 +627,7 @@
         return false;
       }
     });
+
   });
 
   // ===== CUSTOMER SELECT2 =====
@@ -616,6 +725,8 @@
     rowNum++;
 
     var html = '<tr id="row_' + rowNum + '">';
+
+    // Column 1: Product Select
     html += '<td>';
     html += '<select class="form-control select2-product" name="product[]" id="product_' + rowNum + '" onchange="getProductData(' + rowNum + ')" data-row-id="' + rowNum + '" style="width:100%" required>';
     html += '<option value="">-- Select Product --</option>';
@@ -634,16 +745,46 @@
 
     html += '</select>';
     html += '</td>';
+
+    // Column 2: Available Stock
     html += '<td><span class="badge bg-green available-qty" id="availableqty_' + rowNum + '">0</span></td>';
+
+    // Column 3: Quantity
     html += '<td><input type="number" name="qty[]" id="qty_' + rowNum + '" class="form-control" onkeyup="getTotal(' + rowNum + ')" min="1" value="1" required></td>';
-    html += '<td><input type="text" name="rate[]" id="rate_' + rowNum + '" class="form-control" readonly><input type="hidden" name="rate_value[]" id="rate_value_' + rowNum + '"></td>';
-    html += '<td><input type="text" name="amount[]" id="amount_' + rowNum + '" class="form-control" readonly><input type="hidden" name="amount_value[]" id="amount_value_' + rowNum + '"></td>';
-    html += '<td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(' + rowNum + ')"><i class="fa fa-trash"></i></button></td>';
+
+    // ✅ Column 4: PRIX MODIFIABLE (NOUVEAU)
+    html += '<td>';
+    html += '<div class="input-group">';
+    html += '<input type="number" name="rate_value[]" id="rate_value_' + rowNum + '" class="form-control price-input" step="0.01" min="0" onkeyup="checkPriceLoss(' + rowNum + '); getTotal(' + rowNum + ')" data-expected="0" data-cost="0" placeholder="0.00" required>';
+    html += '<span class="input-group-addon">DZD</span>';
+    html += '</div>';
+    html += '<small class="text-muted price-suggestion" id="price_suggest_' + rowNum + '"></small>';
+    html += '</td>';
+
+    // Column 5: Amount
+    html += '<td>';
+    html += '<input type="text" name="amount[]" id="amount_' + rowNum + '" class="form-control" readonly>';
+    html += '<input type="hidden" name="amount_value[]" id="amount_value_' + rowNum + '">';
+    html += '</td>';
+
+    // ✅ Column 6: ALERTE PERTE (NOUVEAU)
+    html += '<td class="text-center alert-cell" id="alert_cell_' + rowNum + '">';
+    html += '<!-- Alerte perte ici -->';
+    html += '</td>';
+
+    // Column 7: Remove Button
+    html += '<td>';
+    html += '<button type="button" class="btn btn-danger btn-sm" onclick="removeRow(' + rowNum + ')">';
+    html += '<i class="fa fa-trash"></i>';
+    html += '</button>';
+    html += '</td>';
+
     html += '</tr>';
 
     $('#product_info_table tbody').append(html);
     initProductSelect2();
   }
+
 
   function removeRow(rowid) {
     if ($('#product_info_table tbody tr').length > 1) { // ✅ CORRIGÉ
@@ -665,7 +806,7 @@
 
       // Mapper le type vers le bon nom d'attribut
       var typeMap = {
-        'super_wholesale': 'super-wholesale', // ✅ AVEC underscore
+        'super_wholesale': 'super-wholesale',
         'superwholesale': 'super-wholesale',
         'wholesale': 'wholesale',
         'retail': 'retail'
@@ -673,32 +814,55 @@
 
       var mappedType = typeMap[customerType] || 'retail';
       var priceAttr = 'data-price-' + mappedType;
-      var price = selectedOption.attr(priceAttr);
+      var expectedPrice = selectedOption.attr(priceAttr);
 
-      console.log('🔍 Type:', customerType, 'Attr:', priceAttr, 'Price:', price);
-
-      if (!price || price === '' || parseFloat(price) === 0) {
-        price = selectedOption.attr('data-price-retail');
+      if (!expectedPrice || expectedPrice === '' || parseFloat(expectedPrice) === 0) {
+        expectedPrice = selectedOption.attr('data-price-retail');
       }
-      price = parseFloat(price) || 0;
+      expectedPrice = parseFloat(expectedPrice) || 0;
 
-      // Display stock
-      $('#availableqty_' + rowid).text(qty); // ✅ AVEC underscore
-      $('#qty_' + rowid).attr('max', qty); // ✅ AVEC underscore
+      // ✅ NOUVEAU: Get product cost via AJAX
+      $.ajax({
+        url: baseurl + 'orders/getProductCost',
+        type: 'POST',
+        data: {
+          product_id: productid
+        },
+        dataType: 'json',
+        success: function(response) {
+          var productCost = response.cost || 0;
 
-      // Set price
-      $('#rate_' + rowid).val(parseFloat(price).toFixed(2) + ' DZD'); // ✅ AVEC underscore
-      $('#rate_value_' + rowid).val(price); // ✅ AVEC underscore
+          // Display stock
+          $('#availableqty_' + rowid).text(qty);
+          $('#qty_' + rowid).attr('max', qty);
 
-      // Calculate total
-      getTotal(rowid);
+          // ✅ Set expected price as suggestion
+          $('#rate_value_' + rowid).val(expectedPrice.toFixed(2));
+          $('#rate_value_' + rowid).attr('data-expected', expectedPrice);
+          $('#rate_value_' + rowid).attr('data-cost', productCost);
+          $('#price_suggest_' + rowid).html(
+            '<i class="fa fa-info-circle"></i> Prix suggéré: <strong>' +
+            expectedPrice.toFixed(2) + ' DZD</strong> | Coût: ' +
+            productCost.toFixed(2) + ' DZD'
+          );
+
+          // Check for loss
+          checkPriceLoss(rowid);
+          getTotal(rowid);
+        }
+      });
+
     } else {
-      $('#rate_' + rowid).val('0'); // ✅ AVEC underscore
-      $('#rate_value_' + rowid).val('0'); // ✅ AVEC underscore
-      $('#availableqty_' + rowid).text('0'); // ✅ AVEC underscore
+      $('#rate_value_' + rowid).val('0');
+      $('#rate_value_' + rowid).attr('data-expected', '0');
+      $('#rate_value_' + rowid).attr('data-cost', '0');
+      $('#availableqty_' + rowid).text('0');
+      $('#price_suggest_' + rowid).html('');
+      $('#alert_cell_' + rowid).html('');
       getTotal(rowid);
     }
   }
+
 
   function getCustomerType() {
     // Get the selected price type (can be overridden)
@@ -744,15 +908,16 @@
 
   // ===== CALCULATIONS =====
   function getTotal(rowid) {
-    var qty = parseFloat($('#qty_' + rowid).val()) || 0; // ✅ AVEC underscore
-    var rate = parseFloat($('#rate_value_' + rowid).val()) || 0; // ✅ AVEC underscore
+    var qty = parseFloat($('#qty_' + rowid).val()) || 0;
+    var rate = parseFloat($('#rate_value_' + rowid).val()) || 0;
     var amount = qty * rate;
 
-    $('#amount_' + rowid).val(amount.toFixed(2) + ' DZD'); // ✅ AVEC underscore
-    $('#amount_value_' + rowid).val(amount.toFixed(2)); // ✅ AVEC underscore
+    $('#amount_' + rowid).val(amount.toFixed(2) + ' DZD');
+    $('#amount_value_' + rowid).val(amount.toFixed(2));
 
     subAmount();
   }
+
 
   function subAmount() {
     var grossamount = 0;
@@ -823,6 +988,116 @@
 
     $('#order_date').val(dateStr);
     $('#order_time').val(timeStr);
+  }
+  // ========================================
+  // DÉTECTION PERTES & ALERTES
+  // ========================================
+
+  function checkPriceLoss(rowid) {
+    var priceInput = $('#rate_value_' + rowid);
+    var actualPrice = parseFloat(priceInput.val()) || 0;
+    var expectedPrice = parseFloat(priceInput.attr('data-expected')) || 0;
+    var productCost = parseFloat(priceInput.attr('data-cost')) || 0;
+    var alertCell = $('#alert_cell_' + rowid);
+    var row = $('#row_' + rowid);
+
+    // Clear previous
+    alertCell.html('');
+    row.removeClass('danger warning');
+
+    if (actualPrice > 0 && expectedPrice > 0) {
+      if (actualPrice < productCost) {
+        // ❌ PERTE RÉELLE (rouge)
+        row.addClass('danger');
+        alertCell.html('<i class="fa fa-times-circle text-danger" style="font-size:20px;" title="PERTE RÉELLE: Prix < Coût achat"></i>');
+      } else if (actualPrice < expectedPrice) {
+        // ⚠️ PERTE DE MARGE (orange)
+        row.addClass('warning');
+        var loss = expectedPrice - actualPrice;
+        alertCell.html('<i class="fa fa-exclamation-triangle text-warning" style="font-size:20px;" title="Perte marge: -' + loss.toFixed(2) + ' DZD"></i>');
+      } else {
+        // ✅ OK
+        alertCell.html('<i class="fa fa-check-circle text-success" style="font-size:18px;" title="Prix OK"></i>');
+      }
+
+      updateLossWarning();
+    }
+  }
+
+  function updateLossWarning() {
+    var lossRows = $('#product_info_table tbody tr.danger, #product_info_table tbody tr.warning');
+
+    if (lossRows.length > 0) {
+      var html = '<ul style="margin:0; padding-left:20px;">';
+      var hasRealLoss = false;
+
+      lossRows.each(function() {
+        var rowid = $(this).attr('id').split('_')[1];
+        var productName = $('#product_' + rowid + ' option:selected').text().split('(')[0].trim();
+        var expected = parseFloat($('#rate_value_' + rowid).attr('data-expected'));
+        var actual = parseFloat($('#rate_value_' + rowid).val());
+        var cost = parseFloat($('#rate_value_' + rowid).attr('data-cost'));
+        var loss = expected - actual;
+        var lossType = actual < cost ? 'RÉELLE' : 'MARGE';
+        var icon = actual < cost ? '❌' : '⚠️';
+
+        if (actual < cost) hasRealLoss = true;
+
+        html += '<li style="margin:5px 0;">';
+        html += icon + ' <strong>' + productName + '</strong>: ';
+        html += 'Prix normal <span class="label label-default">' + expected.toFixed(2) + ' DZD</span> → ';
+        html += 'Prix vendu <span class="label label-warning">' + actual.toFixed(2) + ' DZD</span> ';
+        html += '<span class="label label-danger">Perte ' + lossType + ': -' + loss.toFixed(2) + ' DZD</span>';
+        html += '</li>';
+      });
+      html += '</ul>';
+
+      if (hasRealLoss) {
+        html = '<div class="alert alert-danger" style="padding:8px; margin-bottom:10px;"><strong>🚨 ALERTE: Perte réelle détectée!</strong> Vous vendez moins cher que le prix d\'achat.</div>' + html;
+      }
+
+      $('#loss_details_list').html(html);
+      $('#loss_warning_box').slideDown();
+      $('#loss_reason').prop('required', true);
+    } else {
+      $('#loss_warning_box').slideUp();
+      $('#loss_reason').prop('required', false);
+      $('#loss_reason').val('');
+    }
+  }
+
+  function updateAllProductPrices(customerType) {
+    var typeMap = {
+      'super_wholesale': 'super-wholesale',
+      'superwholesale': 'super-wholesale',
+      'wholesale': 'wholesale',
+      'retail': 'retail'
+    };
+
+    var mappedType = typeMap[customerType] || 'retail';
+
+    $('#product_info_table tbody tr').each(function() {
+      var row = $(this);
+      var rowid = row.attr('id').split('_')[1];
+      var selectedOption = $('#product_' + rowid + ' option:selected');
+      var productid = $('#product_' + rowid).val();
+
+      if (productid) {
+        var priceAttr = 'data-price-' + mappedType;
+        var price = selectedOption.attr(priceAttr);
+
+        if (!price || price === '' || parseFloat(price) === 0) {
+          price = selectedOption.attr('data-price-retail');
+        }
+        price = parseFloat(price) || 0;
+
+        $('#rate_value_' + rowid).val(price.toFixed(2));
+        $('#rate_value_' + rowid).attr('data-expected', price);
+
+        checkPriceLoss(rowid);
+        getTotal(rowid);
+      }
+    });
   }
 </script>
 
