@@ -2,7 +2,7 @@
 <aside class="main-sidebar">
   <!-- sidebar: style can be found in sidebar.less -->
   <section class="sidebar">
-    
+
     <!-- Sidebar user panel -->
     <div class="user-panel">
       <div class="pull-left image">
@@ -17,14 +17,14 @@
     <!-- sidebar menu: : style can be found in sidebar.less -->
     <ul class="sidebar-menu" data-widget="tree">
       <li class="header">SYSTEM ADMINISTRATION</li>
-      
+
       <!-- Dashboard -->
       <li id="adminDashboardNav">
         <a href="<?php echo base_url('admin/dashboard') ?>">
           <i class="fa fa-dashboard"></i> <span>Dashboard</span>
         </a>
       </li>
-      
+
       <!-- Tenants Management -->
       <li id="adminTenantsNav">
         <a href="<?php echo base_url('admin/tenants') ?>">
@@ -34,7 +34,7 @@
           </span>
         </a>
       </li>
-      
+
       <!-- Users Management -->
       <li id="adminUsersNav">
         <a href="<?php echo base_url('admin/users') ?>">
@@ -44,46 +44,52 @@
           </span>
         </a>
       </li>
-      
+
       <li class="header">SYSTEM TOOLS</li>
-      
+
       <!-- System Settings -->
       <li>
         <a href="<?php echo base_url('admin/settings') ?>">
           <i class="fa fa-cogs"></i> <span>System Settings</span>
         </a>
       </li>
-      
+
       <!-- Database Backup -->
       <li>
         <a href="<?php echo base_url('admin/backup') ?>">
           <i class="fa fa-database"></i> <span>Database Backup</span>
         </a>
       </li>
-      
+
       <!-- Activity Logs -->
       <li>
         <a href="<?php echo base_url('admin/logs') ?>">
           <i class="fa fa-history"></i> <span>Activity Logs</span>
         </a>
       </li>
-      
+
       <li class="header">ACTIONS</li>
-      
+      <!-- Back to Merchant View -->
+      <li class="<?= $this->uri->segment(2) == 'migrations' ? 'active' : '' ?>">
+        <a href="<?= base_url('admin/migrations') ?>">
+          <i class="fa fa-database"></i> <span>Database Migrations</span>
+        </a>
+      </li>
+
       <!-- Back to Merchant View -->
       <li>
         <a href="<?php echo base_url('dashboard') ?>">
           <i class="fa fa-reply"></i> <span>Switch to Merchant View</span>
         </a>
       </li>
-      
+
       <!-- Logout -->
       <li>
         <a href="<?php echo base_url('auth/logout') ?>">
           <i class="fa fa-sign-out text-red"></i> <span>Logout</span>
         </a>
       </li>
-      
+
     </ul>
   </section>
   <!-- /.sidebar -->

@@ -565,4 +565,63 @@ class Admin extends CI_Controller
             array($user_id, $tenant_id, $action_type, $description, $ip_address, $this->input->user_agent(), date('Y-m-d H:i:s'))
         );
     }
+        /**
+     * Database Migrations Management
+     */
+    public function migrations()
+    {
+        if ($this->session->userdata('user_type') != 'system_admin') {
+            redirect('dashboard', 'refresh');
+        }
+        
+        $this->data['page_title'] = 'Database Migrations';
+        
+        // Handle migration run
+        if ($this->input->post('run_migrations')) {
+            log_message('info', '🚀 Starting tenant migrations...');
+            
+            $results = $this->tenant->run_tenant_migrations();
+            
+            $success_count = 0;
+            $error_count = 0;
+            
+            foreach ($results as $key => $result) {
+                if (isset($result['success']) && $result['success']) {
+                    $success_count++;
+                } else {
+                    $error_count++;
+                }
+            }
+            
+            if ($error_count == 0) {
+                $this->session->set_flashdata('success', "✅ Migrations completed successfully on all databases! ({$success_count} databases updated)");
+            } else {
+                $this->session->set_flashdata('warning', "⚠️ Migrations completed with {$error_count} errors. {$success_count} databases updated successfully.");
+            }
+            
+            $this->data['migration_results'] = $results;
+        }
+        
+        // Get migration status for all tenants
+        $this->data['migration_status'] = $this->tenant->get_migration_status();
+        
+        // Get available migration files
+        $migration_path = APPPATH . 'migrations/';
+        $migration_files = array();
+        
+        if (is_dir($migration_path)) {
+            $files = scandir($migration_path);
+            foreach ($files as $file) {
+                if ($file != '.' && $file != '..' && pathinfo($file, PATHINFO_EXTENSION) == 'php') {
+                    $migration_files[] = $file;
+                }
+            }
+        }
+        
+        $this->data['migration_files'] = $migration_files;
+        $this->data['total_tenants'] = count($this->data['migration_status']) - 1; // -1 for template
+        
+        $this->render_template_admin('admin/migrations', $this->data);
+    }
+
 }

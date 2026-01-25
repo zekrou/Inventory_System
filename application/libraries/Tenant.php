@@ -448,4 +448,168 @@ class Tenant
 
         return TRUE;
     }
+        /**
+     * Run migrations on all active tenants + template database
+     * 
+     * @return array Results for each tenant
+     */
+    public function run_tenant_migrations()
+    {
+        if (!$this->master_db) {
+            $this->init_master_db();
+        }
+        
+        $results = array();
+        
+        // 1. Run migration on template DB 'stock' first
+        log_message('info', '🔄 Running migrations on template database: stock');
+        $results['stock_template'] = $this->run_migration_on_database('stock');
+        
+        // 2. Get all active tenants
+        $query = $this->master_db->query("SELECT id, tenant_name, database_name FROM tenants WHERE status = 'active'");
+        $tenants = $query->result_array();
+        
+        log_message('info', '📊 Found ' . count($tenants) . ' active tenants to migrate');
+        
+        // 3. Run migration on each tenant
+        foreach ($tenants as $tenant) {
+            $db_name = $tenant['database_name'];
+            $tenant_id = $tenant['id'];
+            
+            log_message('info', "🔄 Running migrations on tenant: {$tenant['tenant_name']} (DB: {$db_name})");
+            
+            $results[$tenant_id] = array_merge(
+                array('tenant_name' => $tenant['tenant_name']),
+                $this->run_migration_on_database($db_name)
+            );
+        }
+        
+        return $results;
+    }
+    
+    /**
+     * Run migration on specific database
+     * 
+     * @param string $database_name Database name
+     * @return array Result with success/error
+     */
+    private function run_migration_on_database($database_name)
+    {
+        try {
+            // Connect to target database
+            $tenant_config = $this->CI->config->item('tenant_db_template');
+            $tenant_config['database'] = $database_name;
+            $temp_db = $this->CI->load->database($tenant_config, TRUE);
+            
+            // Check connection
+            if (!$temp_db || !$temp_db->conn_id) {
+                return array(
+                    'success' => FALSE,
+                    'error' => 'Failed to connect to database'
+                );
+            }
+            
+            // Load migration library with temp DB
+            $this->CI->load->library('migration');
+            
+            // Temporarily switch database
+            $original_db = $this->CI->db;
+            $this->CI->db = $temp_db;
+            
+            // Run migrations
+            $current_version = $this->CI->migration->current();
+            
+            // Restore original database
+            $this->CI->db = $original_db;
+            
+            if ($current_version === FALSE) {
+                $error = $this->CI->migration->error_string();
+                log_message('error', "❌ Migration failed for {$database_name}: {$error}");
+                return array(
+                    'success' => FALSE,
+                    'error' => $error
+                );
+            }
+            
+            log_message('info', "✅ Migration successful for {$database_name}");
+            return array(
+                'success' => TRUE,
+                'version' => $current_version
+            );
+            
+        } catch (Exception $e) {
+            log_message('error', "❌ Exception during migration for {$database_name}: " . $e->getMessage());
+            return array(
+                'success' => FALSE,
+                'error' => $e->getMessage()
+            );
+        }
+    }
+    
+    /**
+     * Get migration status for all tenants
+     * 
+     * @return array Status for each tenant
+     */
+    public function get_migration_status()
+    {
+        if (!$this->master_db) {
+            $this->init_master_db();
+        }
+        
+        $status = array();
+        
+        // Check template DB
+        $status['stock_template'] = $this->get_db_version('stock');
+        
+        // Check all tenants
+        $query = $this->master_db->query("SELECT id, tenant_name, database_name FROM tenants WHERE status = 'active'");
+        $tenants = $query->result_array();
+        
+        foreach ($tenants as $tenant) {
+            $status[$tenant['id']] = array(
+                'tenant_name' => $tenant['tenant_name'],
+                'database_name' => $tenant['database_name'],
+                'version' => $this->get_db_version($tenant['database_name'])
+            );
+        }
+        
+        return $status;
+    }
+    
+    /**
+     * Get current migration version for a database
+     * 
+     * @param string $database_name
+     * @return int Version number
+     */
+    private function get_db_version($database_name)
+    {
+        try {
+            $tenant_config = $this->CI->config->item('tenant_db_template');
+            $tenant_config['database'] = $database_name;
+            $temp_db = $this->CI->load->database($tenant_config, TRUE);
+            
+            if (!$temp_db || !$temp_db->conn_id) {
+                return 0;
+            }
+            
+            // Check if db_version table exists
+            if (!$temp_db->table_exists('db_version')) {
+                return 0;
+            }
+            
+            $query = $temp_db->query("SELECT MAX(version) as max_version FROM db_version");
+            if ($query && $query->num_rows() > 0) {
+                $result = $query->row_array();
+                return (int)$result['max_version'];
+            }
+            
+            return 0;
+        } catch (Exception $e) {
+            log_message('error', "Error getting DB version for {$database_name}: " . $e->getMessage());
+            return 0;
+        }
+    }
+
 }
