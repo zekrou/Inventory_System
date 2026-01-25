@@ -183,8 +183,14 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal"><i class="fa fa-times"></i> Close</button>
+        <button type="button" class="btn btn-primary" onclick="printOrderDetails()">
+          <i class="fa fa-print"></i> Print
+        </button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">
+          <i class="fa fa-times"></i> Close
+        </button>
       </div>
+
     </div>
   </div>
 </div>
@@ -440,6 +446,58 @@
         $('#orderDetailsContent').html('<div class="alert alert-danger"><i class="fa fa-exclamation-triangle"></i> Error loading order details</div>');
       }
     });
+  }
+
+  function printOrderDetails() {
+    var content = document.getElementById('orderDetailsContent');
+    if (!content) {
+      alert('Order details not loaded');
+      return;
+    }
+
+    // petit guard: éviter imprimer "Loading..."
+    if (content.innerText && content.innerText.toLowerCase().includes('loading')) {
+      alert('Please wait until order details finish loading');
+      return;
+    }
+
+    var printWindow = window.open('', '_blank', 'width=900,height=700');
+    var html = `
+  <html>
+    <head>
+      <title>Order Details</title>
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; color:#111; padding:20px; }
+        h1,h2,h3,h4 { margin: 0 0 8px 0; }
+        table { width:100%; border-collapse: collapse; margin-top:10px; }
+        th, td { border:1px solid #ddd; padding:8px; text-align:left; }
+        th { background:#f5f5f5; }
+        .text-right { text-align:right; }
+        .text-center { text-align:center; }
+        .badge, .label { padding:2px 6px; border-radius:4px; font-size:11px; }
+        .label-danger { background:#d9534f; color:#fff; }
+        .label-warning { background:#f0ad4e; color:#fff; }
+        .label-success { background:#5cb85c; color:#fff; }
+        .no-print { display:none !important; }
+        @media print {
+          body { padding:0; }
+        }
+      </style>
+    </head>
+    <body>
+      ${content.innerHTML}
+    </body>
+  </html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+
+    printWindow.focus();
+    setTimeout(function() {
+      printWindow.print();
+      printWindow.close();
+    }, 400);
   }
 
   // Open Add Payment Modal
