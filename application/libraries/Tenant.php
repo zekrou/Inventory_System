@@ -612,18 +612,19 @@ class Tenant
     }
 
     /**
-     * Créer les tables POS pour un nouveau tenant
+     * Créer les tables POS pour un nouveau tenant  
      * @param object $db Connexion DB du tenant
      * @return bool
      */
     private function create_pos_tables($db)
     {
-        // Load dbforge for this database
+        // ✅ FIX: Créer une nouvelle instance de dbforge pour cette connexion DB
         $this->CI->load->dbforge($db, TRUE);
+        $dbforge = $this->CI->dbforge;
 
         // 1. pos_sales
         if (!$db->table_exists('pos_sales')) {
-            $this->CI->dbforge->add_field(array(
+            $dbforge->add_field(array(
                 'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
                 'bill_no' => array('type' => 'VARCHAR', 'constraint' => 50, 'unique' => TRUE),
                 'customer_id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'null' => TRUE),
@@ -657,8 +658,8 @@ class Tenant
                 'created_at' => array('type' => 'DATETIME', 'null' => FALSE),
                 'updated_at' => array('type' => 'DATETIME', 'null' => TRUE)
             ));
-            $this->CI->dbforge->add_key('id', TRUE);
-            $this->CI->dbforge->create_table('pos_sales', TRUE);
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_sales', TRUE);
 
             $db->query('ALTER TABLE `pos_sales` 
             ADD INDEX `idx_bill_no` (`bill_no`),
@@ -671,7 +672,7 @@ class Tenant
 
         // 2. pos_sales_items
         if (!$db->table_exists('pos_sales_items')) {
-            $this->CI->dbforge->add_field(array(
+            $dbforge->add_field(array(
                 'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
                 'sale_id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE),
                 'product_id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE),
@@ -688,8 +689,8 @@ class Tenant
                 'loss_reason' => array('type' => 'VARCHAR', 'constraint' => 255, 'null' => TRUE),
                 'created_at' => array('type' => 'DATETIME', 'null' => FALSE)
             ));
-            $this->CI->dbforge->add_key('id', TRUE);
-            $this->CI->dbforge->create_table('pos_sales_items', TRUE);
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_sales_items', TRUE);
 
             $db->query('ALTER TABLE `pos_sales_items` 
             ADD INDEX `idx_sale_id` (`sale_id`),
@@ -699,7 +700,7 @@ class Tenant
 
         // 3. pos_holds
         if (!$db->table_exists('pos_holds')) {
-            $this->CI->dbforge->add_field(array(
+            $dbforge->add_field(array(
                 'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
                 'hold_reference' => array('type' => 'VARCHAR', 'constraint' => 50, 'unique' => TRUE),
                 'customer_id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'null' => TRUE),
@@ -714,13 +715,13 @@ class Tenant
                 'expires_at' => array('type' => 'DATETIME', 'null' => TRUE),
                 'completed_at' => array('type' => 'DATETIME', 'null' => TRUE)
             ));
-            $this->CI->dbforge->add_key('id', TRUE);
-            $this->CI->dbforge->create_table('pos_holds', TRUE);
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_holds', TRUE);
         }
 
         // 4. pos_cash_register
         if (!$db->table_exists('pos_cash_register')) {
-            $this->CI->dbforge->add_field(array(
+            $dbforge->add_field(array(
                 'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
                 'register_number' => array('type' => 'VARCHAR', 'constraint' => 50),
                 'cashier_id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE),
@@ -745,13 +746,13 @@ class Tenant
                 'closed_by' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'null' => TRUE),
                 'status' => array('type' => 'ENUM', 'constraint' => array('open', 'closed'), 'default' => 'open')
             ));
-            $this->CI->dbforge->add_key('id', TRUE);
-            $this->CI->dbforge->create_table('pos_cash_register', TRUE);
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_cash_register', TRUE);
         }
 
         // 5. pos_split_payments
         if (!$db->table_exists('pos_split_payments')) {
-            $this->CI->dbforge->add_field(array(
+            $dbforge->add_field(array(
                 'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
                 'sale_id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE),
                 'payment_method' => array('type' => 'ENUM', 'constraint' => array('cash', 'card', 'mobile_payment', 'bank_transfer')),
@@ -759,13 +760,13 @@ class Tenant
                 'reference' => array('type' => 'VARCHAR', 'constraint' => 255, 'null' => TRUE),
                 'created_at' => array('type' => 'DATETIME', 'null' => FALSE)
             ));
-            $this->CI->dbforge->add_key('id', TRUE);
-            $this->CI->dbforge->create_table('pos_split_payments', TRUE);
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_split_payments', TRUE);
         }
 
         // 6. pos_cash_movements
         if (!$db->table_exists('pos_cash_movements')) {
-            $this->CI->dbforge->add_field(array(
+            $dbforge->add_field(array(
                 'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
                 'cash_register_id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE),
                 'movement_type' => array('type' => 'ENUM', 'constraint' => array('addition', 'withdrawal')),
@@ -775,20 +776,20 @@ class Tenant
                 'created_by' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE),
                 'created_at' => array('type' => 'DATETIME', 'null' => FALSE)
             ));
-            $this->CI->dbforge->add_key('id', TRUE);
-            $this->CI->dbforge->create_table('pos_cash_movements', TRUE);
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_cash_movements', TRUE);
         }
 
         // 7. pos_settings
         if (!$db->table_exists('pos_settings')) {
-            $this->CI->dbforge->add_field(array(
+            $dbforge->add_field(array(
                 'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
                 'setting_key' => array('type' => 'VARCHAR', 'constraint' => 100, 'unique' => TRUE),
                 'setting_value' => array('type' => 'TEXT', 'null' => TRUE),
                 'updated_at' => array('type' => 'DATETIME', 'null' => TRUE)
             ));
-            $this->CI->dbforge->add_key('id', TRUE);
-            $this->CI->dbforge->create_table('pos_settings', TRUE);
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_settings', TRUE);
 
             // Insert default settings
             $db->query("INSERT IGNORE INTO pos_settings (setting_key, setting_value) VALUES
