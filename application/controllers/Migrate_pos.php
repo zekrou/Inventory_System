@@ -3,6 +3,10 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Migrate_pos extends CI_Controller
 {
+    private $db_hostname = 'inventorysystem-mysqlinventory-ydsxph';
+    private $db_username = 'mysql';
+    private $db_password = 'Zakaria1304@';
+
     public function __construct()
     {
         parent::__construct();
@@ -14,19 +18,20 @@ class Migrate_pos extends CI_Controller
             }
         }
         
-        $this->load->model('Tenants'); // ✅ FIX: Avec un S
-        $this->load->database(); // Load default DB
+        $this->load->database(); // Load master DB
+        $this->load->dbforge();
     }
 
     /**
-     * Créer directement les tables POS (RECOMMANDÉ)
+     * Créer les tables POS sur tous les tenants
      */
-    public function create_tables_direct()
+    public function create_tables()
     {
-        echo "<h2>🚀 Direct POS Tables Creation - Multi-Tenant</h2>";
+        echo "<h2>🚀 POS Tables Creation - Multi-Tenant</h2>";
+        echo "<p><strong>Database:</strong> {$this->db_hostname}</p>";
         echo "<hr>";
 
-        // Get all active tenants from master database
+        // Get all active tenants
         $query = $this->db->query("SELECT * FROM tenants WHERE status = 'active'");
         $tenants = $query->result_array();
 
@@ -34,6 +39,9 @@ class Migrate_pos extends CI_Controller
             echo "<p style='color:red'>❌ No active tenants found!</p>";
             return;
         }
+
+        echo "<p>Found <strong>" . count($tenants) . "</strong> active tenant(s)</p>";
+        echo "<hr>";
 
         $success_count = 0;
         $error_count = 0;
@@ -44,20 +52,21 @@ class Migrate_pos extends CI_Controller
             $db_name = $tenant['database_name'];
             
             echo "<div style='margin:20px 0; padding:15px; background:#f5f5f5; border-left:4px solid #3498db;'>";
-            echo "<h3>🏢 Tenant: {$tenant_name} (DB: {$db_name})</h3>";
+            echo "<h3>🏢 Tenant: <strong>{$tenant_name}</strong></h3>";
+            echo "<p>Database: <code>{$db_name}</code></p>";
 
             try {
-                // Connect to tenant database directly
+                // Connect to tenant database
                 $tenant_config = array(
                     'dsn'      => '',
-                    'hostname' => 'localhost', // Adapter si différent
-                    'username' => 'root',      // Adapter selon ta config
-                    'password' => 'root',      // Adapter selon ta config
+                    'hostname' => $this->db_hostname,
+                    'username' => $this->db_username,
+                    'password' => $this->db_password,
                     'database' => $db_name,
                     'dbdriver' => 'mysqli',
                     'dbprefix' => '',
                     'pconnect' => FALSE,
-                    'db_debug' => FALSE, // Important pour éviter les erreurs fatales
+                    'db_debug' => FALSE,
                     'cache_on' => FALSE,
                     'cachedir' => '',
                     'char_set' => 'utf8mb4',
@@ -76,241 +85,447 @@ class Migrate_pos extends CI_Controller
                     throw new Exception("Cannot connect to database: {$db_name}");
                 }
 
-                // Execute SQL directly on tenant DB
-                $this->execute_pos_sql($tenant_db);
+                // Create tables
+                $this->create_pos_tables($tenant_db);
 
-                echo "<p style='color:green'>✅ Tables created successfully!</p>";
+                echo "<p style='color:green;font-weight:bold'>✅ Tables created successfully!</p>";
                 $success_count++;
 
                 // Close connection
                 $tenant_db->close();
 
             } catch (Exception $e) {
-                echo "<p style='color:red'>❌ Error: " . $e->getMessage() . "</p>";
+                echo "<p style='color:red;font-weight:bold'>❌ Error: " . $e->getMessage() . "</p>";
                 $error_count++;
             }
 
             echo "</div>";
         }
 
+        // Summary
         echo "<hr>";
-        echo "<div style='padding:20px; background:#2ecc71; color:white; font-size:18px;'>";
-        echo "✅ Successful: <strong>{$success_count}</strong> tenants<br>";
-        echo "❌ Failed: <strong>{$error_count}</strong> tenants";
+        echo "<div style='padding:20px; background:" . ($error_count > 0 ? '#f39c12' : '#2ecc71') . "; color:white; font-size:18px; border-radius:5px;'>";
+        echo "<strong>📊 Migration Summary:</strong><br><br>";
+        echo "✅ Successful: <strong>{$success_count}</strong> tenant(s)<br>";
+        echo "❌ Failed: <strong>{$error_count}</strong> tenant(s)";
         echo "</div>";
     }
 
     /**
-     * Exécuter SQL directement sur une DB tenant
+     * Créer les tables POS (style ancien migration)
      */
-    private function execute_pos_sql($db)
+    private function create_pos_tables($db)
     {
+        $dbforge = $this->load->dbforge($db, TRUE);
+
         // 1. pos_sales
-        $sql = "CREATE TABLE IF NOT EXISTS `pos_sales` (
-            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-            `bill_no` VARCHAR(50) NOT NULL UNIQUE,
-            `customer_id` INT(11) UNSIGNED NULL COMMENT 'NULL = Walk-in customer',
-            `customer_name` VARCHAR(255) NULL,
-            `customer_phone` VARCHAR(50) NULL,
-            `customer_type` ENUM('retail','wholesale','superwholesale') DEFAULT 'retail',
-            `gross_amount` DECIMAL(12,2) DEFAULT 0.00,
-            `discount_type` ENUM('percentage','fixed') DEFAULT 'fixed',
-            `discount_value` DECIMAL(10,2) DEFAULT 0.00,
-            `discount_amount` DECIMAL(10,2) DEFAULT 0.00,
-            `discount_reason` VARCHAR(255) NULL,
-            `tax_rate` DECIMAL(5,2) DEFAULT 0.00,
-            `tax_amount` DECIMAL(10,2) DEFAULT 0.00,
-            `net_amount` DECIMAL(12,2) DEFAULT 0.00,
-            `payment_method` ENUM('cash','card','mobile_payment','bank_transfer','credit','split') DEFAULT 'cash',
-            `paid_amount` DECIMAL(12,2) DEFAULT 0.00,
-            `change_amount` DECIMAL(10,2) DEFAULT 0.00,
-            `payment_reference` VARCHAR(255) NULL,
-            `payment_notes` TEXT NULL,
-            `cashier_id` INT(11) UNSIGNED NOT NULL,
-            `cash_register_id` INT(11) UNSIGNED NULL,
-            `status` ENUM('completed','refunded','cancelled') DEFAULT 'completed',
-            `refund_reason` VARCHAR(255) NULL,
-            `refunded_by` INT(11) UNSIGNED NULL,
-            `refunded_at` DATETIME NULL,
-            `total_items` INT(5) DEFAULT 0,
-            `total_quantity` INT(11) DEFAULT 0,
-            `receipt_printed` TINYINT(1) DEFAULT 0,
-            `receipt_printed_times` INT(3) DEFAULT 0,
-            `notes` TEXT NULL,
-            `created_at` DATETIME NOT NULL,
-            `updated_at` DATETIME NULL,
-            PRIMARY KEY (`id`),
-            KEY `bill_no` (`bill_no`),
-            KEY `customer_id` (`customer_id`),
-            KEY `cashier_id` (`cashier_id`),
-            KEY `status` (`status`),
-            KEY `created_at` (`created_at`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-        
-        $db->query($sql);
+        if (!$db->table_exists('pos_sales')) {
+            $dbforge->add_field(array(
+                'id' => array(
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'unsigned' => TRUE,
+                    'auto_increment' => TRUE
+                ),
+                'bill_no' => array(
+                    'type' => 'VARCHAR',
+                    'constraint' => 50,
+                    'unique' => TRUE
+                ),
+                'customer_id' => array(
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'unsigned' => TRUE,
+                    'null' => TRUE
+                ),
+                'customer_name' => array(
+                    'type' => 'VARCHAR',
+                    'constraint' => 255,
+                    'null' => TRUE
+                ),
+                'customer_phone' => array(
+                    'type' => 'VARCHAR',
+                    'constraint' => 50,
+                    'null' => TRUE
+                ),
+                'customer_type' => array(
+                    'type' => 'ENUM',
+                    'constraint' => array('retail', 'wholesale', 'superwholesale'),
+                    'default' => 'retail'
+                ),
+                'gross_amount' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '12,2',
+                    'default' => 0.00
+                ),
+                'discount_type' => array(
+                    'type' => 'ENUM',
+                    'constraint' => array('percentage', 'fixed'),
+                    'default' => 'fixed'
+                ),
+                'discount_value' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '10,2',
+                    'default' => 0.00
+                ),
+                'discount_amount' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '10,2',
+                    'default' => 0.00
+                ),
+                'discount_reason' => array(
+                    'type' => 'VARCHAR',
+                    'constraint' => 255,
+                    'null' => TRUE
+                ),
+                'tax_rate' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '5,2',
+                    'default' => 0.00
+                ),
+                'tax_amount' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '10,2',
+                    'default' => 0.00
+                ),
+                'net_amount' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '12,2',
+                    'default' => 0.00
+                ),
+                'payment_method' => array(
+                    'type' => 'ENUM',
+                    'constraint' => array('cash', 'card', 'mobile_payment', 'bank_transfer', 'credit', 'split'),
+                    'default' => 'cash'
+                ),
+                'paid_amount' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '12,2',
+                    'default' => 0.00
+                ),
+                'change_amount' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '10,2',
+                    'default' => 0.00
+                ),
+                'payment_reference' => array(
+                    'type' => 'VARCHAR',
+                    'constraint' => 255,
+                    'null' => TRUE
+                ),
+                'payment_notes' => array(
+                    'type' => 'TEXT',
+                    'null' => TRUE
+                ),
+                'cashier_id' => array(
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'unsigned' => TRUE
+                ),
+                'cash_register_id' => array(
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'unsigned' => TRUE,
+                    'null' => TRUE
+                ),
+                'status' => array(
+                    'type' => 'ENUM',
+                    'constraint' => array('completed', 'refunded', 'cancelled'),
+                    'default' => 'completed'
+                ),
+                'refund_reason' => array(
+                    'type' => 'VARCHAR',
+                    'constraint' => 255,
+                    'null' => TRUE
+                ),
+                'refunded_by' => array(
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'unsigned' => TRUE,
+                    'null' => TRUE
+                ),
+                'refunded_at' => array(
+                    'type' => 'DATETIME',
+                    'null' => TRUE
+                ),
+                'total_items' => array(
+                    'type' => 'INT',
+                    'constraint' => 5,
+                    'default' => 0
+                ),
+                'total_quantity' => array(
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'default' => 0
+                ),
+                'receipt_printed' => array(
+                    'type' => 'TINYINT',
+                    'constraint' => 1,
+                    'default' => 0
+                ),
+                'receipt_printed_times' => array(
+                    'type' => 'INT',
+                    'constraint' => 3,
+                    'default' => 0
+                ),
+                'notes' => array(
+                    'type' => 'TEXT',
+                    'null' => TRUE
+                ),
+                'created_at' => array(
+                    'type' => 'DATETIME',
+                    'null' => FALSE
+                ),
+                'updated_at' => array(
+                    'type' => 'DATETIME',
+                    'null' => TRUE
+                )
+            ));
+
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_sales', TRUE);
+
+            // Add indexes
+            $db->query('ALTER TABLE `pos_sales` 
+                ADD INDEX `idx_bill_no` (`bill_no`),
+                ADD INDEX `idx_customer_id` (`customer_id`),
+                ADD INDEX `idx_cashier_id` (`cashier_id`),
+                ADD INDEX `idx_status` (`status`),
+                ADD INDEX `idx_created_at` (`created_at`)
+            ');
+        }
 
         // 2. pos_sales_items
-        $sql = "CREATE TABLE IF NOT EXISTS `pos_sales_items` (
-            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-            `sale_id` INT(11) UNSIGNED NOT NULL,
-            `product_id` INT(11) UNSIGNED NOT NULL,
-            `product_name` VARCHAR(255) NOT NULL,
-            `product_sku` VARCHAR(100) NULL,
-            `qty` INT(11) DEFAULT 1,
-            `unit_price` DECIMAL(10,2) DEFAULT 0.00,
-            `cost_price` DECIMAL(10,2) DEFAULT 0.00,
-            `line_discount` DECIMAL(10,2) DEFAULT 0.00,
-            `subtotal` DECIMAL(10,2) DEFAULT 0.00,
-            `profit` DECIMAL(10,2) DEFAULT 0.00,
-            `loss_type` ENUM('none','margin_loss','real_loss') DEFAULT 'none',
-            `loss_amount` DECIMAL(10,2) DEFAULT 0.00,
-            `loss_reason` VARCHAR(255) NULL,
-            `created_at` DATETIME NOT NULL,
-            PRIMARY KEY (`id`),
-            KEY `sale_id` (`sale_id`),
-            KEY `product_id` (`product_id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-        
-        $db->query($sql);
+        if (!$db->table_exists('pos_sales_items')) {
+            $dbforge->add_field(array(
+                'id' => array(
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'unsigned' => TRUE,
+                    'auto_increment' => TRUE
+                ),
+                'sale_id' => array(
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'unsigned' => TRUE
+                ),
+                'product_id' => array(
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'unsigned' => TRUE
+                ),
+                'product_name' => array(
+                    'type' => 'VARCHAR',
+                    'constraint' => 255
+                ),
+                'product_sku' => array(
+                    'type' => 'VARCHAR',
+                    'constraint' => 100,
+                    'null' => TRUE
+                ),
+                'qty' => array(
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'default' => 1
+                ),
+                'unit_price' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '10,2',
+                    'default' => 0.00
+                ),
+                'cost_price' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '10,2',
+                    'default' => 0.00
+                ),
+                'line_discount' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '10,2',
+                    'default' => 0.00
+                ),
+                'subtotal' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '10,2',
+                    'default' => 0.00
+                ),
+                'profit' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '10,2',
+                    'default' => 0.00
+                ),
+                'loss_type' => array(
+                    'type' => 'ENUM',
+                    'constraint' => array('none', 'margin_loss', 'real_loss'),
+                    'default' => 'none'
+                ),
+                'loss_amount' => array(
+                    'type' => 'DECIMAL',
+                    'constraint' => '10,2',
+                    'default' => 0.00
+                ),
+                'loss_reason' => array(
+                    'type' => 'VARCHAR',
+                    'constraint' => 255,
+                    'null' => TRUE
+                ),
+                'created_at' => array(
+                    'type' => 'DATETIME',
+                    'null' => FALSE
+                )
+            ));
 
-        // 3. pos_holds
-        $sql = "CREATE TABLE IF NOT EXISTS `pos_holds` (
-            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-            `hold_reference` VARCHAR(50) NOT NULL UNIQUE,
-            `customer_id` INT(11) UNSIGNED NULL,
-            `customer_name` VARCHAR(255) NULL,
-            `cart_data` LONGTEXT NOT NULL,
-            `total_amount` DECIMAL(12,2) DEFAULT 0.00,
-            `discount_data` TEXT NULL,
-            `cashier_id` INT(11) UNSIGNED NOT NULL,
-            `notes` VARCHAR(500) NULL,
-            `status` ENUM('active','completed','cancelled') DEFAULT 'active',
-            `created_at` DATETIME NOT NULL,
-            `expires_at` DATETIME NULL,
-            `completed_at` DATETIME NULL,
-            PRIMARY KEY (`id`),
-            KEY `hold_reference` (`hold_reference`),
-            KEY `cashier_id` (`cashier_id`),
-            KEY `status` (`status`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-        
-        $db->query($sql);
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_sales_items', TRUE);
 
-        // 4. pos_cash_register
-        $sql = "CREATE TABLE IF NOT EXISTS `pos_cash_register` (
-            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-            `register_number` VARCHAR(50) NOT NULL,
-            `cashier_id` INT(11) UNSIGNED NOT NULL,
-            `cashier_name` VARCHAR(255) NOT NULL,
-            `opening_amount` DECIMAL(12,2) DEFAULT 0.00,
-            `opening_notes` TEXT NULL,
-            `opened_at` DATETIME NOT NULL,
-            `closing_amount` DECIMAL(12,2) NULL,
-            `expected_amount` DECIMAL(12,2) NULL,
-            `difference` DECIMAL(10,2) DEFAULT 0.00,
-            `total_sales_cash` DECIMAL(12,2) DEFAULT 0.00,
-            `total_sales_card` DECIMAL(12,2) DEFAULT 0.00,
-            `total_sales_mobile` DECIMAL(12,2) DEFAULT 0.00,
-            `total_sales_credit` DECIMAL(12,2) DEFAULT 0.00,
-            `total_sales` DECIMAL(12,2) DEFAULT 0.00,
-            `total_transactions` INT(11) DEFAULT 0,
-            `total_refunds` DECIMAL(10,2) DEFAULT 0.00,
-            `cash_withdrawals` DECIMAL(10,2) DEFAULT 0.00,
-            `cash_additions` DECIMAL(10,2) DEFAULT 0.00,
-            `closing_notes` TEXT NULL,
-            `closed_at` DATETIME NULL,
-            `closed_by` INT(11) UNSIGNED NULL,
-            `status` ENUM('open','closed') DEFAULT 'open',
-            PRIMARY KEY (`id`),
-            KEY `cashier_id` (`cashier_id`),
-            KEY `status` (`status`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-        
-        $db->query($sql);
+            $db->query('ALTER TABLE `pos_sales_items` 
+                ADD INDEX `idx_sale_id` (`sale_id`),
+                ADD INDEX `idx_product_id` (`product_id`)
+            ');
+        }
 
-        // 5. pos_split_payments
-        $sql = "CREATE TABLE IF NOT EXISTS `pos_split_payments` (
-            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-            `sale_id` INT(11) UNSIGNED NOT NULL,
-            `payment_method` ENUM('cash','card','mobile_payment','bank_transfer') NOT NULL,
-            `amount` DECIMAL(10,2) DEFAULT 0.00,
-            `reference` VARCHAR(255) NULL,
-            `created_at` DATETIME NOT NULL,
-            PRIMARY KEY (`id`),
-            KEY `sale_id` (`sale_id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-        
-        $db->query($sql);
-
-        // 6. pos_cash_movements
-        $sql = "CREATE TABLE IF NOT EXISTS `pos_cash_movements` (
-            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-            `cash_register_id` INT(11) UNSIGNED NOT NULL,
-            `movement_type` ENUM('addition','withdrawal') NOT NULL,
-            `amount` DECIMAL(10,2) DEFAULT 0.00,
-            `reason` VARCHAR(255) NOT NULL,
-            `notes` TEXT NULL,
-            `created_by` INT(11) UNSIGNED NOT NULL,
-            `created_at` DATETIME NOT NULL,
-            PRIMARY KEY (`id`),
-            KEY `cash_register_id` (`cash_register_id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-        
-        $db->query($sql);
-
-        // 7. pos_settings
-        $sql = "CREATE TABLE IF NOT EXISTS `pos_settings` (
-            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-            `setting_key` VARCHAR(100) NOT NULL UNIQUE,
-            `setting_value` TEXT NULL,
-            `updated_at` DATETIME NULL,
-            PRIMARY KEY (`id`),
-            KEY `setting_key` (`setting_key`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-        
-        $db->query($sql);
-
-        // Insert default settings
-        $db->query("INSERT IGNORE INTO pos_settings (setting_key, setting_value) VALUES
-            ('receipt_header', 'Merci pour votre visite!'),
-            ('receipt_footer', 'À bientôt!'),
-            ('auto_print_receipt', '1'),
-            ('enable_barcode_scanner', '1'),
-            ('hold_expiry_hours', '24'),
-            ('default_customer_type', 'retail'),
-            ('require_customer', '0'),
-            ('enable_tax', '0'),
-            ('tax_rate', '19'),
-            ('currency_symbol', 'DZD'),
-            ('products_per_page', '20'),
-            ('enable_sound', '0')
-        ");
+        // 3-7: Autres tables (continué dans le prochain message car trop long)
+        $this->create_remaining_tables($db, $dbforge);
 
         return true;
     }
 
     /**
-     * Vérifier statut des tables POS
+     * Créer les tables restantes
+     */
+    private function create_remaining_tables($db, $dbforge)
+    {
+        // 3. pos_holds
+        if (!$db->table_exists('pos_holds')) {
+            $dbforge->add_field(array(
+                'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
+                'hold_reference' => array('type' => 'VARCHAR', 'constraint' => 50, 'unique' => TRUE),
+                'customer_id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'null' => TRUE),
+                'customer_name' => array('type' => 'VARCHAR', 'constraint' => 255, 'null' => TRUE),
+                'cart_data' => array('type' => 'LONGTEXT'),
+                'total_amount' => array('type' => 'DECIMAL', 'constraint' => '12,2', 'default' => 0.00),
+                'discount_data' => array('type' => 'TEXT', 'null' => TRUE),
+                'cashier_id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE),
+                'notes' => array('type' => 'VARCHAR', 'constraint' => 500, 'null' => TRUE),
+                'status' => array('type' => 'ENUM', 'constraint' => array('active', 'completed', 'cancelled'), 'default' => 'active'),
+                'created_at' => array('type' => 'DATETIME', 'null' => FALSE),
+                'expires_at' => array('type' => 'DATETIME', 'null' => TRUE),
+                'completed_at' => array('type' => 'DATETIME', 'null' => TRUE)
+            ));
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_holds', TRUE);
+        }
+
+        // 4. pos_cash_register
+        if (!$db->table_exists('pos_cash_register')) {
+            $dbforge->add_field(array(
+                'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
+                'register_number' => array('type' => 'VARCHAR', 'constraint' => 50),
+                'cashier_id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE),
+                'cashier_name' => array('type' => 'VARCHAR', 'constraint' => 255),
+                'opening_amount' => array('type' => 'DECIMAL', 'constraint' => '12,2', 'default' => 0.00),
+                'opening_notes' => array('type' => 'TEXT', 'null' => TRUE),
+                'opened_at' => array('type' => 'DATETIME', 'null' => FALSE),
+                'closing_amount' => array('type' => 'DECIMAL', 'constraint' => '12,2', 'null' => TRUE),
+                'expected_amount' => array('type' => 'DECIMAL', 'constraint' => '12,2', 'null' => TRUE),
+                'difference' => array('type' => 'DECIMAL', 'constraint' => '10,2', 'default' => 0.00),
+                'total_sales_cash' => array('type' => 'DECIMAL', 'constraint' => '12,2', 'default' => 0.00),
+                'total_sales_card' => array('type' => 'DECIMAL', 'constraint' => '12,2', 'default' => 0.00),
+                'total_sales_mobile' => array('type' => 'DECIMAL', 'constraint' => '12,2', 'default' => 0.00),
+                'total_sales_credit' => array('type' => 'DECIMAL', 'constraint' => '12,2', 'default' => 0.00),
+                'total_sales' => array('type' => 'DECIMAL', 'constraint' => '12,2', 'default' => 0.00),
+                'total_transactions' => array('type' => 'INT', 'constraint' => 11, 'default' => 0),
+                'total_refunds' => array('type' => 'DECIMAL', 'constraint' => '10,2', 'default' => 0.00),
+                'cash_withdrawals' => array('type' => 'DECIMAL', 'constraint' => '10,2', 'default' => 0.00),
+                'cash_additions' => array('type' => 'DECIMAL', 'constraint' => '10,2', 'default' => 0.00),
+                'closing_notes' => array('type' => 'TEXT', 'null' => TRUE),
+                'closed_at' => array('type' => 'DATETIME', 'null' => TRUE),
+                'closed_by' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'null' => TRUE),
+                'status' => array('type' => 'ENUM', 'constraint' => array('open', 'closed'), 'default' => 'open')
+            ));
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_cash_register', TRUE);
+        }
+
+        // 5. pos_split_payments
+        if (!$db->table_exists('pos_split_payments')) {
+            $dbforge->add_field(array(
+                'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
+                'sale_id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE),
+                'payment_method' => array('type' => 'ENUM', 'constraint' => array('cash', 'card', 'mobile_payment', 'bank_transfer')),
+                'amount' => array('type' => 'DECIMAL', 'constraint' => '10,2', 'default' => 0.00),
+                'reference' => array('type' => 'VARCHAR', 'constraint' => 255, 'null' => TRUE),
+                'created_at' => array('type' => 'DATETIME', 'null' => FALSE)
+            ));
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_split_payments', TRUE);
+        }
+
+        // 6. pos_cash_movements
+        if (!$db->table_exists('pos_cash_movements')) {
+            $dbforge->add_field(array(
+                'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
+                'cash_register_id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE),
+                'movement_type' => array('type' => 'ENUM', 'constraint' => array('addition', 'withdrawal')),
+                'amount' => array('type' => 'DECIMAL', 'constraint' => '10,2', 'default' => 0.00),
+                'reason' => array('type' => 'VARCHAR', 'constraint' => 255),
+                'notes' => array('type' => 'TEXT', 'null' => TRUE),
+                'created_by' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE),
+                'created_at' => array('type' => 'DATETIME', 'null' => FALSE)
+            ));
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_cash_movements', TRUE);
+        }
+
+        // 7. pos_settings
+        if (!$db->table_exists('pos_settings')) {
+            $dbforge->add_field(array(
+                'id' => array('type' => 'INT', 'constraint' => 11, 'unsigned' => TRUE, 'auto_increment' => TRUE),
+                'setting_key' => array('type' => 'VARCHAR', 'constraint' => 100, 'unique' => TRUE),
+                'setting_value' => array('type' => 'TEXT', 'null' => TRUE),
+                'updated_at' => array('type' => 'DATETIME', 'null' => TRUE)
+            ));
+            $dbforge->add_key('id', TRUE);
+            $dbforge->create_table('pos_settings', TRUE);
+
+            // Insert default settings
+            $db->query("INSERT IGNORE INTO pos_settings (setting_key, setting_value) VALUES
+                ('receipt_header', 'Merci pour votre visite!'),
+                ('receipt_footer', 'À bientôt!'),
+                ('auto_print_receipt', '1'),
+                ('enable_barcode_scanner', '1'),
+                ('hold_expiry_hours', '24'),
+                ('default_customer_type', 'retail'),
+                ('require_customer', '0'),
+                ('enable_tax', '0'),
+                ('tax_rate', '19'),
+                ('currency_symbol', 'DZD'),
+                ('products_per_page', '20'),
+                ('enable_sound', '0')
+            ");
+        }
+    }
+
+    /**
+     * Vérifier statut
      */
     public function check_status()
     {
         $query = $this->db->query("SELECT * FROM tenants WHERE status = 'active'");
         $tenants = $query->result_array();
 
-        echo "<h2>📊 POS Migration Status</h2>";
+        echo "<h2>📊 POS Tables Status</h2>";
         echo "<table border='1' cellpadding='10' style='border-collapse:collapse; width:100%;'>";
         echo "<tr style='background:#34495e; color:white;'>";
-        echo "<th>Tenant</th><th>Database</th><th>Tables Exist</th><th>Status</th>";
+        echo "<th>Tenant</th><th>Database</th><th>pos_sales</th><th>pos_cash_register</th><th>pos_settings</th><th>Status</th>";
         echo "</tr>";
 
         foreach ($tenants as $tenant) {
             $db_name = $tenant['database_name'];
             
-            // Connect to tenant DB
             $tenant_config = array(
-                'hostname' => 'localhost',
-                'username' => 'root',
-                'password' => 'root',
+                'hostname' => $this->db_hostname,
+                'username' => $this->db_username,
+                'password' => $this->db_password,
                 'database' => $db_name,
                 'dbdriver' => 'mysqli',
                 'db_debug' => FALSE
@@ -319,23 +534,27 @@ class Migrate_pos extends CI_Controller
             $tenant_db = $this->load->database($tenant_config, TRUE);
             
             if ($tenant_db && $tenant_db->conn_id) {
-                $tables_exist = $tenant_db->table_exists('pos_sales') && 
-                              $tenant_db->table_exists('pos_cash_register');
-
-                $status = $tables_exist ? 
-                    "<span style='color:green'>✅ Migrated</span>" : 
-                    "<span style='color:red'>❌ Not Migrated</span>";
+                $t1 = $tenant_db->table_exists('pos_sales') ? '✅' : '❌';
+                $t2 = $tenant_db->table_exists('pos_cash_register') ? '✅' : '❌';
+                $t3 = $tenant_db->table_exists('pos_settings') ? '✅' : '❌';
+                
+                $all_exist = ($t1 == '✅' && $t2 == '✅' && $t3 == '✅');
+                $status = $all_exist ? 
+                    "<span style='color:green;font-weight:bold'>✅ Complete</span>" : 
+                    "<span style='color:orange;font-weight:bold'>⚠️ Partial</span>";
                 
                 $tenant_db->close();
             } else {
-                $tables_exist = false;
-                $status = "<span style='color:orange'>⚠️ Connection Failed</span>";
+                $t1 = $t2 = $t3 = '❓';
+                $status = "<span style='color:red;font-weight:bold'>❌ Connection Failed</span>";
             }
 
             echo "<tr>";
             echo "<td><strong>{$tenant['tenant_name']}</strong></td>";
-            echo "<td>{$db_name}</td>";
-            echo "<td>" . ($tables_exist ? 'Yes' : 'No') . "</td>";
+            echo "<td><code>{$db_name}</code></td>";
+            echo "<td style='text-align:center'>{$t1}</td>";
+            echo "<td style='text-align:center'>{$t2}</td>";
+            echo "<td style='text-align:center'>{$t3}</td>";
             echo "<td>{$status}</td>";
             echo "</tr>";
         }
