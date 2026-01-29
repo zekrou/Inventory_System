@@ -34,7 +34,7 @@ $config['migration_auto_latest'] = FALSE;
 | Migrations version
 |--------------------------------------------------------------------------
 */
-$config['migration_version'] = 1;
+$config['migration_version'] = 12;
 
 /*
 |--------------------------------------------------------------------------

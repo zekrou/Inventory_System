@@ -1,0 +1,369 @@
+🏪 POS (Point of Sale) - Système de Vente au Comptoir
+Excellent choix! Un POS est un système de caisse pour les ventes rapides en magasin/boutique. C'est différent du module "Orders" classique.
+
+📊 Différence POS vs Orders classiques:
+Feature	Orders (Actuel)	POS (Nouveau)
+Usage	Gestion commandes détaillées	Vente rapide au comptoir
+Interface	Formulaire traditionnel	Interface tactile/caisse
+Vitesse	Processus en plusieurs étapes	Vente en 1 clic
+Client	Obligatoire avec détails	Optionnel (client anonyme "Walk-in")
+Print	Facture détaillée	Ticket de caisse
+Paiement	Peut être différé	Immédiat à la vente
+Écran	Desktop friendly	Tablette/tactile optimisé
+🎯 FONCTIONNALITÉS COMPLÈTES DU MODULE POS:
+1. INTERFACE DE VENTE (Écran Principal)
+A. Zone Produits (Gauche - 70%)
+Barre de recherche rapide: Scan barcode ou recherche par nom/SKU
+
+Catégories filtres: Boutons rapides par catégorie (Boissons, Snacks, etc.)
+
+Grille de produits: Cartes visuelles avec:
+
+Image produit
+
+Nom + Prix
+
+Stock disponible
+
+Badge promo si réduction
+
+Clic = Ajout au panier
+
+Pagination/scroll infini
+
+Favoris/Produits populaires en haut
+
+B. Panier (Droite - 30%)
+Liste des articles ajoutés:
+
+Nom produit
+
+Quantité (avec +/- pour modifier)
+
+Prix unitaire
+
+Sous-total
+
+Bouton supprimer (×)
+
+Calcul en temps réel:
+
+Sous-total
+
+Discount global (% ou montant fixe)
+
+TVA (si activée)
+
+TOTAL en gros caractères
+
+Boutons d'action:
+
+🗑️ Vider panier
+
+💾 Mettre en attente (Hold)
+
+💳 PAYER (gros bouton vert)
+
+2. GESTION CLIENT
+A. Sélection rapide client:
+Client par défaut: "Walk-in Customer" (client anonyme)
+
+Recherche client existant: Par nom/téléphone
+
+Ajout client express: Popup rapide avec:
+
+Nom
+
+Téléphone
+
+Type (Retail/Wholesale/Super)
+
+Le reste des infos optionnel
+
+Historique achats client (popup sur demande)
+
+B. Prix dynamique selon type client:
+Si client Wholesale sélectionné → Prix wholesale automatique
+
+Si Retail → Prix retail
+
+Override manuel possible (avec raison)
+
+3. PROCESSUS DE PAIEMENT
+A. Écran Paiement (Modal/Full screen):
+Affichage:
+
+Résumé commande
+
+Total à payer en GROS
+
+Client sélectionné
+
+Méthodes de paiement (boutons):
+
+💵 Cash (Espèces)
+
+Champ "Montant reçu"
+
+Calcul automatique du rendu de monnaie
+
+Boutons rapides: 500 DA, 1000 DA, 2000 DA, 5000 DA
+
+💳 Carte bancaire
+
+Champ référence transaction
+
+📱 Mobile Payment (CCP, BaridiMob, etc.)
+
+Champ référence
+
+🏦 Virement
+
+Champ référence
+
+🔄 Mixte (Cash + Carte)
+
+Split payment
+
+📋 Crédit (À crédit/Dette)
+
+Enregistre dette client
+
+Date échéance
+
+Actions:
+
+✅ Confirmer vente
+
+🖨️ Print & Confirmer (impression automatique)
+
+❌ Annuler
+
+4. TICKETS DE CAISSE
+Format Ticket (80mm thermique):
+text
+=====================================
+     NOM DE VOTRE BOUTIQUE
+     Oued Zenati, Guelma
+     Tél: 0672357753
+=====================================
+Date: 29/01/2026  14:35
+Ticket #: POS-00123
+Caissier: Zakaria
+-------------------------------------
+Channel x10        500.00     5000.00
+Coca 1.5L x5       150.00      750.00
+Pain x20            50.00     1000.00
+-------------------------------------
+                Sous-total:  6750.00
+                Remise:      -250.00
+-------------------------------------
+                TOTAL:       6500.00 DA
+-------------------------------------
+Espèces:                    10000.00
+Rendu:                       3500.00
+=====================================
+   Merci pour votre visite!
+   À bientôt!
+=====================================
+5. FONCTIONNALITÉS AVANCÉES
+A. Hold (Mise en attente):
+Sauvegarder une vente en cours
+
+Lister les ventes en attente
+
+Récupérer pour finaliser plus tard
+
+Cas d'usage: Client oublie portefeuille, file d'attente
+
+B. Gestion des raccourcis clavier:
+F1 → Recherche produit
+
+F2 → Client
+
+F3 → Discount
+
+F4 → Paiement
+
+F9 → Hold
+
+ESC → Vider panier
+
+Enter → Confirmer paiement
+
+C. Scanner Barcode:
+Support scan USB/Bluetooth
+
+Détection automatique produit
+
+Ajout instantané au panier
+
+Quantité multiple: Scanner 3x = Qty: 3
+
+D. Calcul rendu de monnaie intelligent:
+Suggestions billets optimales
+
+Ex: Rendu 3500 DA → 1x2000 + 1x1000 + 1x500
+
+E. Discount rapide:
+% global sur commande
+
+Montant fixe
+
+Discount par ligne produit
+
+Raisons prédéfinies: Promo, Fidélité, Endommagé
+
+6. HISTORIQUE & RAPPORTS POS
+A. Historique ventes:
+Liste toutes les ventes POS du jour
+
+Filtres: Date, Caissier, Client, Méthode paiement
+
+Actions: Voir détails, Réimprimer ticket, Rembourser
+
+B. Caisse du jour (Cash Register):
+Ouverture caisse:
+
+Montant initial en caisse
+
+Heure ouverture
+
+Fermeture caisse:
+
+Total ventes cash
+
+Total ventes carte
+
+Total attendu
+
+Total réel compté
+
+Écart (+ ou -)
+
+Commentaires
+
+C. Rapports quotidiens:
+Total ventes par caissier
+
+Total par méthode paiement
+
+Produits les plus vendus
+
+Moyenne panier
+
+Nombre transactions
+
+7. DESIGN & UX
+Interface moderne:
+Design: Flat, coloré, grandes zones cliquables
+
+Responsive: Fonctionne sur tablette (iPad style)
+
+Thème: Fond clair, boutons colorés
+
+Feedback visuel: Animations ajout panier, sons (optionnel)
+
+Zones d'affichage:
+text
+┌─────────────────────────────────┬──────────────┐
+│  [🔍 Search]  [Categories...]   │   PANIER     │
+├─────────────────────────────────┤              │
+│  ┌────┐ ┌────┐ ┌────┐ ┌────┐   │  • Item 1    │
+│  │Img │ │Img │ │Img │ │Img │   │  • Item 2    │
+│  │Name│ │Name│ │Name│ │Name│   │  • Item 3    │
+│  │500 │ │150 │ │200 │ │100 │   │              │
+│  └────┘ └────┘ └────┘ └────┘   │  Discount    │
+│  ┌────┐ ┌────┐ ┌────┐ ┌────┐   │  TVA         │
+│  │... │ │... │ │... │ │... │   │  ──────────  │
+│  └────┘ └────┘ └────┘ └────┘   │  TOTAL: 6500 │
+│                                 │              │
+│                                 │  [🗑️ Clear]  │
+│                                 │  [💾 Hold]   │
+│                                 │  [💳 PAY]    │
+└─────────────────────────────────┴──────────────┘
+8. BASE DE DONNÉES
+Nouvelles tables nécessaires:
+
+pos_sales (Ventes POS)
+
+id, bill_no, customer_id, total, discount, payment_method, paid_amount, change_amount, cashier_id, date_time, status
+
+pos_sales_items (Lignes ventes)
+
+id, sale_id, product_id, qty, rate, amount
+
+pos_holds (Ventes en attente)
+
+id, hold_data (JSON), cashier_id, created_at
+
+pos_cash_register (Caisse)
+
+id, cashier_id, opening_amount, closing_amount, expected_amount, actual_amount, difference, opened_at, closed_at
+
+9. SÉCURITÉ & PERMISSIONS
+Permissions:
+
+viewPOS → Accès module
+
+createPOSSale → Faire vente
+
+deletePOSSale → Supprimer
+
+refundPOSSale → Rembourser
+
+discountPOS → Appliquer remise
+
+openCashRegister → Ouvrir caisse
+
+closeCashRegister → Fermer caisse
+
+Audit trail: Toutes actions loggées avec user_id
+
+🚀 WORKFLOW TYPIQUE D'UNE VENTE:
+Caissier ouvre la caisse (1x par jour)
+
+Client arrive
+
+Caissier scan/clique produits → Panier se remplit
+
+Ajuste quantités si besoin
+
+Applique discount si promo
+
+Clique PAYER
+
+Sélectionne méthode paiement
+
+Entre montant reçu (si cash)
+
+Système calcule rendu
+
+Confirme → Ticket imprimé automatiquement
+
+Stock mis à jour automatiquement
+
+Prêt pour client suivant (panier vidé)
+
+📱 BONUS: Vue Mobile/Tablette
+Interface optimisée tactile
+
+Grille produits 2 colonnes
+
+Clavier numérique natif
+
+Support orientation portrait/paysage
+
+Voilà! Un POS complet, rapide, professionnel.
+
+Tu veux que je commence le développement? Par quelle partie?
+
+Structure base de données + migration
+
+Interface POS principale
+
+Processus paiement
+
+Tickets de caisse
+
+Dis-moi par où commencer! 🎯
