@@ -7,32 +7,34 @@ class Migrate_pos extends CI_Controller
     {
         parent::__construct();
         
-        // SÉCURITÉ: Accessible seulement en dev ou par super admin
+        // SÉCURITÉ
         if (ENVIRONMENT !== 'development') {
-            // Vérifier si super admin
             if (!$this->session->userdata('user_id') || $this->session->userdata('user_id') != 1) {
                 show_404();
             }
         }
         
-        $this->load->library('migration');
-        $this->load->database();
+        $this->load->model('Tenant');
     }
 
     /**
-     * Migrer TOUS les tenants
+     * Créer directement les tables POS (RECOMMANDÉ)
+     * Contourne le problème de migration gap
      */
-    public function run_all_tenants()
+    public function create_tables_direct()
     {
-        echo "<h2>🚀 Migration POS Multi-Tenant</h2>";
+        echo "<h2>🚀 Direct POS Tables Creation - Multi-Tenant</h2>";
         echo "<hr>";
 
-        // Get all tenants from central/main database
-        $central_db = $this->load->database('default', TRUE);
-        $tenants = $central_db->get('tenants')->result_array();
+        // Init master DB
+        $master_db = $this->Tenant->initMasterDb();
+        
+        // Get all active tenants
+        $query = $master_db->query("SELECT * FROM tenants WHERE status = 'active'");
+        $tenants = $query->result_array();
 
         if (empty($tenants)) {
-            echo "<p style='color:red'>❌ No tenants found!</p>";
+            echo "<p style='color:red'>❌ No active tenants found!</p>";
             return;
         }
 
@@ -40,42 +42,25 @@ class Migrate_pos extends CI_Controller
         $error_count = 0;
 
         foreach ($tenants as $tenant) {
+            $tenant_name = $tenant['tenant_name'];
+            $tenant_id = $tenant['id'];
+            $db_name = $tenant['database_name'];
+            
             echo "<div style='margin:20px 0; padding:15px; background:#f5f5f5; border-left:4px solid #3498db;'>";
-            echo "<h3>🏢 Tenant: {$tenant['tenant_name']} (DB: {$tenant['db_name']})</h3>";
+            echo "<h3>🏢 Tenant: {$tenant_name} (DB: {$db_name})</h3>";
 
             try {
-                // Switch to tenant database
-                $tenant_db_config = array(
-                    'dsn'      => '',
-                    'hostname' => $tenant['db_host'],
-                    'username' => $tenant['db_user'],
-                    'password' => $tenant['db_password'],
-                    'database' => $tenant['db_name'],
-                    'dbdriver' => 'mysqli',
-                    'dbprefix' => '',
-                    'pconnect' => FALSE,
-                    'db_debug' => TRUE,
-                    'cache_on' => FALSE,
-                    'cachedir' => '',
-                    'char_set' => 'utf8mb4',
-                    'dbcollat' => 'utf8mb4_unicode_ci',
-                    'swap_pre' => '',
-                    'encrypt'  => FALSE,
-                    'compress' => FALSE,
-                    'stricton' => FALSE,
-                    'failover' => array(),
-                    'save_queries' => TRUE
-                );
-
-                $this->db->close();
-                $this->db->initialize($tenant_db_config, FALSE, TRUE);
-
-                // Run migration
-                if ($this->migration->current() === FALSE) {
-                    throw new Exception($this->migration->error_string());
+                // Switch to tenant database using your Tenant model
+                $tenant_db = $this->Tenant->switchTenantDb($tenant_id);
+                
+                if (!$tenant_db) {
+                    throw new Exception("Cannot connect to tenant database");
                 }
 
-                echo "<p style='color:green'>✅ Migration successful!</p>";
+                // Execute SQL directly on tenant DB
+                $this->execute_pos_sql($tenant_db);
+
+                echo "<p style='color:green'>✅ Tables created successfully!</p>";
                 $success_count++;
 
             } catch (Exception $e) {
@@ -86,71 +71,210 @@ class Migrate_pos extends CI_Controller
             echo "</div>";
         }
 
-        // Summary
         echo "<hr>";
         echo "<div style='padding:20px; background:#2ecc71; color:white; font-size:18px;'>";
         echo "✅ Successful: <strong>{$success_count}</strong> tenants<br>";
         echo "❌ Failed: <strong>{$error_count}</strong> tenants";
         echo "</div>";
-
-        // Reconnect to default database
-        $this->db->close();
-        $this->db->initialize($this->load->database('default', TRUE, TRUE), FALSE, TRUE);
     }
 
     /**
-     * Migrer UN seul tenant
+     * Exécuter SQL directement sur une DB tenant
      */
-    public function run_single($tenant_id)
+    private function execute_pos_sql($db)
     {
-        if (!$tenant_id) {
-            echo "❌ Tenant ID required!";
-            return;
-        }
+        // 1. pos_sales
+        $sql = "CREATE TABLE IF NOT EXISTS `pos_sales` (
+            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+            `bill_no` VARCHAR(50) NOT NULL UNIQUE,
+            `customer_id` INT(11) UNSIGNED NULL COMMENT 'NULL = Walk-in customer',
+            `customer_name` VARCHAR(255) NULL,
+            `customer_phone` VARCHAR(50) NULL,
+            `customer_type` ENUM('retail','wholesale','superwholesale') DEFAULT 'retail',
+            `gross_amount` DECIMAL(12,2) DEFAULT 0.00,
+            `discount_type` ENUM('percentage','fixed') DEFAULT 'fixed',
+            `discount_value` DECIMAL(10,2) DEFAULT 0.00,
+            `discount_amount` DECIMAL(10,2) DEFAULT 0.00,
+            `discount_reason` VARCHAR(255) NULL,
+            `tax_rate` DECIMAL(5,2) DEFAULT 0.00,
+            `tax_amount` DECIMAL(10,2) DEFAULT 0.00,
+            `net_amount` DECIMAL(12,2) DEFAULT 0.00,
+            `payment_method` ENUM('cash','card','mobile_payment','bank_transfer','credit','split') DEFAULT 'cash',
+            `paid_amount` DECIMAL(12,2) DEFAULT 0.00,
+            `change_amount` DECIMAL(10,2) DEFAULT 0.00,
+            `payment_reference` VARCHAR(255) NULL,
+            `payment_notes` TEXT NULL,
+            `cashier_id` INT(11) UNSIGNED NOT NULL,
+            `cash_register_id` INT(11) UNSIGNED NULL,
+            `status` ENUM('completed','refunded','cancelled') DEFAULT 'completed',
+            `refund_reason` VARCHAR(255) NULL,
+            `refunded_by` INT(11) UNSIGNED NULL,
+            `refunded_at` DATETIME NULL,
+            `total_items` INT(5) DEFAULT 0,
+            `total_quantity` INT(11) DEFAULT 0,
+            `receipt_printed` TINYINT(1) DEFAULT 0,
+            `receipt_printed_times` INT(3) DEFAULT 0,
+            `notes` TEXT NULL,
+            `created_at` DATETIME NOT NULL,
+            `updated_at` DATETIME NULL,
+            PRIMARY KEY (`id`),
+            KEY `bill_no` (`bill_no`),
+            KEY `customer_id` (`customer_id`),
+            KEY `cashier_id` (`cashier_id`),
+            KEY `status` (`status`),
+            KEY `created_at` (`created_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        
+        $db->query($sql);
 
-        $central_db = $this->load->database('default', TRUE);
-        $tenant = $central_db->get_where('tenants', array('id' => $tenant_id))->row_array();
+        // 2. pos_sales_items
+        $sql = "CREATE TABLE IF NOT EXISTS `pos_sales_items` (
+            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+            `sale_id` INT(11) UNSIGNED NOT NULL,
+            `product_id` INT(11) UNSIGNED NOT NULL,
+            `product_name` VARCHAR(255) NOT NULL,
+            `product_sku` VARCHAR(100) NULL,
+            `qty` INT(11) DEFAULT 1,
+            `unit_price` DECIMAL(10,2) DEFAULT 0.00,
+            `cost_price` DECIMAL(10,2) DEFAULT 0.00,
+            `line_discount` DECIMAL(10,2) DEFAULT 0.00,
+            `subtotal` DECIMAL(10,2) DEFAULT 0.00,
+            `profit` DECIMAL(10,2) DEFAULT 0.00,
+            `loss_type` ENUM('none','margin_loss','real_loss') DEFAULT 'none',
+            `loss_amount` DECIMAL(10,2) DEFAULT 0.00,
+            `loss_reason` VARCHAR(255) NULL,
+            `created_at` DATETIME NOT NULL,
+            PRIMARY KEY (`id`),
+            KEY `sale_id` (`sale_id`),
+            KEY `product_id` (`product_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        
+        $db->query($sql);
 
-        if (!$tenant) {
-            echo "❌ Tenant not found!";
-            return;
-        }
+        // 3. pos_holds
+        $sql = "CREATE TABLE IF NOT EXISTS `pos_holds` (
+            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+            `hold_reference` VARCHAR(50) NOT NULL UNIQUE,
+            `customer_id` INT(11) UNSIGNED NULL,
+            `customer_name` VARCHAR(255) NULL,
+            `cart_data` LONGTEXT NOT NULL,
+            `total_amount` DECIMAL(12,2) DEFAULT 0.00,
+            `discount_data` TEXT NULL,
+            `cashier_id` INT(11) UNSIGNED NOT NULL,
+            `notes` VARCHAR(500) NULL,
+            `status` ENUM('active','completed','cancelled') DEFAULT 'active',
+            `created_at` DATETIME NOT NULL,
+            `expires_at` DATETIME NULL,
+            `completed_at` DATETIME NULL,
+            PRIMARY KEY (`id`),
+            KEY `hold_reference` (`hold_reference`),
+            KEY `cashier_id` (`cashier_id`),
+            KEY `status` (`status`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        
+        $db->query($sql);
 
-        echo "<h2>🚀 Migration POS - {$tenant['tenant_name']}</h2>";
-        echo "<hr>";
+        // 4. pos_cash_register
+        $sql = "CREATE TABLE IF NOT EXISTS `pos_cash_register` (
+            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+            `register_number` VARCHAR(50) NOT NULL,
+            `cashier_id` INT(11) UNSIGNED NOT NULL,
+            `cashier_name` VARCHAR(255) NOT NULL,
+            `opening_amount` DECIMAL(12,2) DEFAULT 0.00,
+            `opening_notes` TEXT NULL,
+            `opened_at` DATETIME NOT NULL,
+            `closing_amount` DECIMAL(12,2) NULL,
+            `expected_amount` DECIMAL(12,2) NULL,
+            `difference` DECIMAL(10,2) DEFAULT 0.00,
+            `total_sales_cash` DECIMAL(12,2) DEFAULT 0.00,
+            `total_sales_card` DECIMAL(12,2) DEFAULT 0.00,
+            `total_sales_mobile` DECIMAL(12,2) DEFAULT 0.00,
+            `total_sales_credit` DECIMAL(12,2) DEFAULT 0.00,
+            `total_sales` DECIMAL(12,2) DEFAULT 0.00,
+            `total_transactions` INT(11) DEFAULT 0,
+            `total_refunds` DECIMAL(10,2) DEFAULT 0.00,
+            `cash_withdrawals` DECIMAL(10,2) DEFAULT 0.00,
+            `cash_additions` DECIMAL(10,2) DEFAULT 0.00,
+            `closing_notes` TEXT NULL,
+            `closed_at` DATETIME NULL,
+            `closed_by` INT(11) UNSIGNED NULL,
+            `status` ENUM('open','closed') DEFAULT 'open',
+            PRIMARY KEY (`id`),
+            KEY `cashier_id` (`cashier_id`),
+            KEY `status` (`status`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        
+        $db->query($sql);
 
-        try {
-            $tenant_db_config = array(
-                'hostname' => $tenant['db_host'],
-                'username' => $tenant['db_user'],
-                'password' => $tenant['db_password'],
-                'database' => $tenant['db_name'],
-                'dbdriver' => 'mysqli',
-                'char_set' => 'utf8mb4',
-                'dbcollat' => 'utf8mb4_unicode_ci'
-            );
+        // 5. pos_split_payments
+        $sql = "CREATE TABLE IF NOT EXISTS `pos_split_payments` (
+            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+            `sale_id` INT(11) UNSIGNED NOT NULL,
+            `payment_method` ENUM('cash','card','mobile_payment','bank_transfer') NOT NULL,
+            `amount` DECIMAL(10,2) DEFAULT 0.00,
+            `reference` VARCHAR(255) NULL,
+            `created_at` DATETIME NOT NULL,
+            PRIMARY KEY (`id`),
+            KEY `sale_id` (`sale_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        
+        $db->query($sql);
 
-            $this->db->close();
-            $this->db->initialize($tenant_db_config, FALSE, TRUE);
+        // 6. pos_cash_movements
+        $sql = "CREATE TABLE IF NOT EXISTS `pos_cash_movements` (
+            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+            `cash_register_id` INT(11) UNSIGNED NOT NULL,
+            `movement_type` ENUM('addition','withdrawal') NOT NULL,
+            `amount` DECIMAL(10,2) DEFAULT 0.00,
+            `reason` VARCHAR(255) NOT NULL,
+            `notes` TEXT NULL,
+            `created_by` INT(11) UNSIGNED NOT NULL,
+            `created_at` DATETIME NOT NULL,
+            PRIMARY KEY (`id`),
+            KEY `cash_register_id` (`cash_register_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        
+        $db->query($sql);
 
-            if ($this->migration->current() === FALSE) {
-                throw new Exception($this->migration->error_string());
-            }
+        // 7. pos_settings
+        $sql = "CREATE TABLE IF NOT EXISTS `pos_settings` (
+            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+            `setting_key` VARCHAR(100) NOT NULL UNIQUE,
+            `setting_value` TEXT NULL,
+            `updated_at` DATETIME NULL,
+            PRIMARY KEY (`id`),
+            KEY `setting_key` (`setting_key`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        
+        $db->query($sql);
 
-            echo "<p style='color:green; font-size:20px'>✅ Migration successful!</p>";
+        // Insert default settings
+        $db->query("INSERT IGNORE INTO pos_settings (setting_key, setting_value) VALUES
+            ('receipt_header', 'Merci pour votre visite!'),
+            ('receipt_footer', 'À bientôt!'),
+            ('auto_print_receipt', '1'),
+            ('enable_barcode_scanner', '1'),
+            ('hold_expiry_hours', '24'),
+            ('default_customer_type', 'retail'),
+            ('require_customer', '0'),
+            ('enable_tax', '0'),
+            ('tax_rate', '19'),
+            ('currency_symbol', 'DZD'),
+            ('products_per_page', '20'),
+            ('enable_sound', '0')
+        ");
 
-        } catch (Exception $e) {
-            echo "<p style='color:red; font-size:20px'>❌ Error: " . $e->getMessage() . "</p>";
-        }
+        return true;
     }
 
     /**
-     * Vérifier état migration par tenant
+     * Vérifier statut des tables POS
      */
     public function check_status()
     {
-        $central_db = $this->load->database('default', TRUE);
-        $tenants = $central_db->get('tenants')->result_array();
+        $master_db = $this->Tenant->initMasterDb();
+        $query = $master_db->query("SELECT * FROM tenants WHERE status = 'active'");
+        $tenants = $query->result_array();
 
         echo "<h2>📊 POS Migration Status</h2>";
         echo "<table border='1' cellpadding='10' style='border-collapse:collapse; width:100%;'>";
@@ -159,27 +283,23 @@ class Migrate_pos extends CI_Controller
         echo "</tr>";
 
         foreach ($tenants as $tenant) {
-            $tenant_db_config = array(
-                'hostname' => $tenant['db_host'],
-                'username' => $tenant['db_user'],
-                'password' => $tenant['db_password'],
-                'database' => $tenant['db_name'],
-                'dbdriver' => 'mysqli'
-            );
+            $tenant_db = $this->Tenant->switchTenantDb($tenant['id']);
+            
+            if ($tenant_db) {
+                $tables_exist = $tenant_db->table_exists('pos_sales') && 
+                              $tenant_db->table_exists('pos_cash_register');
 
-            $this->db->close();
-            $tenant_db = $this->db->initialize($tenant_db_config, FALSE, TRUE);
-
-            $tables_exist = $tenant_db->table_exists('pos_sales') && 
-                          $tenant_db->table_exists('pos_cash_register');
-
-            $status = $tables_exist ? 
-                "<span style='color:green'>✅ Migrated</span>" : 
-                "<span style='color:red'>❌ Not Migrated</span>";
+                $status = $tables_exist ? 
+                    "<span style='color:green'>✅ Migrated</span>" : 
+                    "<span style='color:red'>❌ Not Migrated</span>";
+            } else {
+                $tables_exist = false;
+                $status = "<span style='color:orange'>⚠️ Connection Failed</span>";
+            }
 
             echo "<tr>";
             echo "<td><strong>{$tenant['tenant_name']}</strong></td>";
-            echo "<td>{$tenant['db_name']}</td>";
+            echo "<td>{$tenant['database_name']}</td>";
             echo "<td>" . ($tables_exist ? 'Yes' : 'No') . "</td>";
             echo "<td>{$status}</td>";
             echo "</tr>";
