@@ -14,23 +14,20 @@ class Migrate_pos extends CI_Controller
             }
         }
         
-        $this->load->model('Tenant');
+        $this->load->model('Tenants'); // ✅ FIX: Avec un S
+        $this->load->database(); // Load default DB
     }
 
     /**
      * Créer directement les tables POS (RECOMMANDÉ)
-     * Contourne le problème de migration gap
      */
     public function create_tables_direct()
     {
         echo "<h2>🚀 Direct POS Tables Creation - Multi-Tenant</h2>";
         echo "<hr>";
 
-        // Init master DB
-        $master_db = $this->Tenant->initMasterDb();
-        
-        // Get all active tenants
-        $query = $master_db->query("SELECT * FROM tenants WHERE status = 'active'");
+        // Get all active tenants from master database
+        $query = $this->db->query("SELECT * FROM tenants WHERE status = 'active'");
         $tenants = $query->result_array();
 
         if (empty($tenants)) {
@@ -50,11 +47,33 @@ class Migrate_pos extends CI_Controller
             echo "<h3>🏢 Tenant: {$tenant_name} (DB: {$db_name})</h3>";
 
             try {
-                // Switch to tenant database using your Tenant model
-                $tenant_db = $this->Tenant->switchTenantDb($tenant_id);
+                // Connect to tenant database directly
+                $tenant_config = array(
+                    'dsn'      => '',
+                    'hostname' => 'localhost', // Adapter si différent
+                    'username' => 'root',      // Adapter selon ta config
+                    'password' => 'root',      // Adapter selon ta config
+                    'database' => $db_name,
+                    'dbdriver' => 'mysqli',
+                    'dbprefix' => '',
+                    'pconnect' => FALSE,
+                    'db_debug' => FALSE, // Important pour éviter les erreurs fatales
+                    'cache_on' => FALSE,
+                    'cachedir' => '',
+                    'char_set' => 'utf8mb4',
+                    'dbcollat' => 'utf8mb4_unicode_ci',
+                    'swap_pre' => '',
+                    'encrypt'  => FALSE,
+                    'compress' => FALSE,
+                    'stricton' => FALSE,
+                    'failover' => array(),
+                    'save_queries' => TRUE
+                );
+
+                $tenant_db = $this->load->database($tenant_config, TRUE);
                 
-                if (!$tenant_db) {
-                    throw new Exception("Cannot connect to tenant database");
+                if (!$tenant_db || !$tenant_db->conn_id) {
+                    throw new Exception("Cannot connect to database: {$db_name}");
                 }
 
                 // Execute SQL directly on tenant DB
@@ -62,6 +81,9 @@ class Migrate_pos extends CI_Controller
 
                 echo "<p style='color:green'>✅ Tables created successfully!</p>";
                 $success_count++;
+
+                // Close connection
+                $tenant_db->close();
 
             } catch (Exception $e) {
                 echo "<p style='color:red'>❌ Error: " . $e->getMessage() . "</p>";
@@ -272,8 +294,7 @@ class Migrate_pos extends CI_Controller
      */
     public function check_status()
     {
-        $master_db = $this->Tenant->initMasterDb();
-        $query = $master_db->query("SELECT * FROM tenants WHERE status = 'active'");
+        $query = $this->db->query("SELECT * FROM tenants WHERE status = 'active'");
         $tenants = $query->result_array();
 
         echo "<h2>📊 POS Migration Status</h2>";
@@ -283,15 +304,29 @@ class Migrate_pos extends CI_Controller
         echo "</tr>";
 
         foreach ($tenants as $tenant) {
-            $tenant_db = $this->Tenant->switchTenantDb($tenant['id']);
+            $db_name = $tenant['database_name'];
             
-            if ($tenant_db) {
+            // Connect to tenant DB
+            $tenant_config = array(
+                'hostname' => 'localhost',
+                'username' => 'root',
+                'password' => 'root',
+                'database' => $db_name,
+                'dbdriver' => 'mysqli',
+                'db_debug' => FALSE
+            );
+
+            $tenant_db = $this->load->database($tenant_config, TRUE);
+            
+            if ($tenant_db && $tenant_db->conn_id) {
                 $tables_exist = $tenant_db->table_exists('pos_sales') && 
                               $tenant_db->table_exists('pos_cash_register');
 
                 $status = $tables_exist ? 
                     "<span style='color:green'>✅ Migrated</span>" : 
                     "<span style='color:red'>❌ Not Migrated</span>";
+                
+                $tenant_db->close();
             } else {
                 $tables_exist = false;
                 $status = "<span style='color:orange'>⚠️ Connection Failed</span>";
@@ -299,7 +334,7 @@ class Migrate_pos extends CI_Controller
 
             echo "<tr>";
             echo "<td><strong>{$tenant['tenant_name']}</strong></td>";
-            echo "<td>{$tenant['database_name']}</td>";
+            echo "<td>{$db_name}</td>";
             echo "<td>" . ($tables_exist ? 'Yes' : 'No') . "</td>";
             echo "<td>{$status}</td>";
             echo "</tr>";
