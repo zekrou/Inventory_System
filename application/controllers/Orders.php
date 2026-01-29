@@ -400,7 +400,7 @@ class Orders extends Admin_Controller
 
     public function update($id)
     {
-        if (!in_array('updateOrder', $this->permission)) {
+        if (!isset($this->permission['updateOrder'])) {
             redirect('dashboard', 'refresh');
         }
 
@@ -513,7 +513,7 @@ class Orders extends Admin_Controller
                 $paid_status = 3; // Partial
             }
 
-            $user_id = $this->getTenantUserId();
+            $user_id = $this->get_tenant_user_id();
 
             // Prepare order update data
             $update_data = array(
@@ -624,7 +624,7 @@ class Orders extends Admin_Controller
                                 'order_id' => $id,
                                 'product_id' => $product_id,
                                 'qty' => $qty,
-                                'expected_price' => 0, // You can calculate this from product price
+                                'expected_price' => 0, // You can calculate this
                                 'actual_price' => $rate,
                                 'loss_amount' => $loss_amount,
                                 'loss_type' => $loss_type,
@@ -646,67 +646,59 @@ class Orders extends Admin_Controller
         } else {
             // Load form - validation failed or first load
 
-            // Get order data
-            $order_raw = $this->model_orders->getOrdersData($id);
+            $customers = $this->model_customers->getActiveCustomers();
+            $this->data['customers'] = $customers;
 
-            if (!$order_raw) {
+            $products = $this->model_products->getActiveProductData();
+            $this->data['products'] = $products;
+
+            $company_data = $this->model_company->getCompanyData(1);
+            $this->data['company_data'] = $company_data;
+
+            $this->data['is_vat_enabled'] = false;
+            $this->data['is_service_enabled'] = false;
+
+            // ✅ FIX: Get order data and normalize
+            $result = array();
+            $orders_data = $this->model_orders->getOrdersData($id);
+
+            if (!$orders_data) {
                 $this->session->set_flashdata('error', 'Order not found!');
                 redirect('orders', 'refresh');
             }
 
-            // ✅ NORMALIZE data for view
-            $order_data = array(
-                'order_id' => $order_raw['id'],
-                'order_number' => $order_raw['bill_no'],
-                'order_date' => $order_raw['date_time'],
-                'order_customer_id' => $order_raw['customer_id'],
-                'order_customer_name' => $order_raw['customer_name'],
-                'order_customer_phone' => $order_raw['customer_phone'],
-                'order_customer_address' => $order_raw['customer_address'],
-                'order_customer_type' => $order_raw['customer_type'],
-                'order_price_type_override' => $order_raw['price_type_override'] ?? '',
-                'order_override_reason' => $order_raw['override_reason'] ?? '',
-                'order_gross_amount' => $order_raw['gross_amount'],
-                'order_discount' => $order_raw['discount'],
-                'order_net_amount' => $order_raw['net_amount'],
-                'order_paid_amount' => $order_raw['paid_amount'],
-                'order_due_amount' => $order_raw['due_amount'],
-                'order_paid_status' => $order_raw['paid_status'],
-                'order_payment_method' => $order_raw['payment_method'] ?? 'cash',
-                'order_payment_notes' => $order_raw['payment_notes'] ?? '',
-                'order_item' => array()
-            );
+            // Normalize keys for view
+            $result['order_id'] = $orders_data['id'];
+            $result['order_number'] = $orders_data['bill_no'];
+            $result['order_date'] = $orders_data['date_time'];
+            $result['order_customer_id'] = $orders_data['customer_id'];
+            $result['order_customer_name'] = $orders_data['customer_name'];
+            $result['order_customer_phone'] = $orders_data['customer_phone'];
+            $result['order_customer_address'] = $orders_data['customer_address'];
+            $result['order_customer_type'] = $orders_data['customer_type'];
+            $result['order_price_type_override'] = isset($orders_data['price_type_override']) ? $orders_data['price_type_override'] : '';
+            $result['order_override_reason'] = isset($orders_data['override_reason']) ? $orders_data['override_reason'] : '';
+            $result['order_gross_amount'] = $orders_data['gross_amount'];
+            $result['order_discount'] = $orders_data['discount'];
+            $result['order_net_amount'] = $orders_data['net_amount'];
+            $result['order_paid_amount'] = $orders_data['paid_amount'];
+            $result['order_due_amount'] = $orders_data['due_amount'];
+            $result['order_paid_status'] = $orders_data['paid_status'];
+            $result['order_payment_method'] = isset($orders_data['payment_method']) ? $orders_data['payment_method'] : 'cash';
+            $result['order_payment_notes'] = isset($orders_data['payment_notes']) ? $orders_data['payment_notes'] : '';
 
-            // Get order items
-            $order_items = $this->model_orders->getOrdersItemData($id);
+            $orders_item = $this->model_orders->getOrdersItemData($orders_data['id']);
+            $result['order_item'] = array();
 
-            if ($order_items) {
-                foreach ($order_items as $item) {
-                    $order_data['order_item'][] = array(
-                        'product_id' => $item['product_id'],
-                        'qty' => $item['qty'],
-                        'rate' => $item['rate'],
-                        'amount' => $item['amount']
-                    );
-                }
+            foreach ($orders_item as $k => $v) {
+                $result['order_item'][] = $v;
             }
 
-            // Get all products and customers
-            $customers = $this->model_customers->getActiveCustomers();
-            $products = $this->model_products->getActiveProductData();
-
-            $company_data = $this->model_company->getCompanyData(1);
-
-            $this->data['customers'] = $customers;
-            $this->data['products'] = $products;
-            $this->data['company_data'] = $company_data;
-            $this->data['is_vat_enabled'] = false;
-            $this->data['is_service_enabled'] = false;
-            $this->data['order_data'] = $order_data;
-
+            $this->data['order_data'] = $result;
             $this->render_template('orders/edit', $this->data);
         }
     }
+
 
     public function remove()
     {
