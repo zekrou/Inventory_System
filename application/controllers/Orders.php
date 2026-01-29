@@ -400,44 +400,310 @@ class Orders extends Admin_Controller
 
     public function update($id)
     {
-        if (!isset($this->permission['updateOrder'])) {
-            redirect('dashboard', 'refresh');
-        }
-        if (!$id) {
+        if (!in_array('updateOrder', $this->permission)) {
             redirect('dashboard', 'refresh');
         }
 
-        $this->form_validation->set_rules('product[]', 'Product name', 'trim|required');
+        if (!$id) {
+            redirect('orders', 'refresh');
+        }
+
+        // VALIDATION
+        $this->form_validation->set_rules('product[]', 'Product', 'required');
+        $this->form_validation->set_rules('qty[]', 'Quantity', 'required|numeric');
+        $this->form_validation->set_rules('rate_value[]', 'Rate', 'required|numeric');
+
+        // Conditional validation for new customer
+        if ($this->input->post('customer_id') == 'new') {
+            $this->form_validation->set_rules('new_customer_name', 'Customer Name', 'trim|required');
+            $this->form_validation->set_rules('new_customer_phone', 'Customer Phone', 'trim|required');
+            $this->form_validation->set_rules('new_customer_type', 'Customer Type', 'trim|required');
+        }
 
         if ($this->form_validation->run() == TRUE) {
 
-            $user_id = $this->get_tenant_user_id();
-            $update = $this->model_orders->update($id, $user_id);
-            if ($update == true) {
-                $this->session->set_flashdata('success', 'Successfully updated');
+            $customer_id = $this->input->post('customer_id');
+
+            // AUTO-CREATE NEW CUSTOMER IF SELECTED
+            if ($customer_id == 'new') {
+                $this->load->model('model_customers');
+
+                $customer_data = array(
+                    'customer_code' => $this->model_customers->generateCustomerCode(),
+                    'customer_name' => $this->input->post('new_customer_name'),
+                    'phone' => $this->input->post('new_customer_phone'),
+                    'address' => $this->input->post('new_customer_address'),
+                    'email' => $this->input->post('new_customer_email'),
+                    'customer_type' => $this->input->post('new_customer_type'),
+                    'active' => 1
+                );
+
+                $customer_id = $this->model_customers->create($customer_data);
+
+                if (!$customer_id) {
+                    $this->session->set_flashdata('error', 'Error creating customer!');
+                    redirect('orders/update/' . $id, 'refresh');
+                    return;
+                }
+            }
+
+            // Get customer data
+            $customer = $this->model_customers->getCustomerData($customer_id);
+
+            if (!$customer) {
+                $this->session->set_flashdata('error', 'Customer not found!');
                 redirect('orders/update/' . $id, 'refresh');
+                return;
+            }
+
+            // Get price type (can be overridden)
+            $price_type_override = $this->input->post('customer_type_override');
+            $original_type = $customer['customer_type'];
+            $override_reason = $this->input->post('override_reason');
+
+            // Prepare products and items
+            $products = $this->input->post('product');
+            $quantities = $this->input->post('qty');
+            $rates = $this->input->post('rate_value');
+            $amounts = $this->input->post('amount_value');
+            $loss_types = $this->input->post('loss_type');
+            $loss_amounts = $this->input->post('loss_amount');
+            $loss_reasons = $this->input->post('loss_reason');
+
+            // Validate stock BEFORE updating
+            $this->load->model('model_products');
+
+            for ($i = 0; $i < count($products); $i++) {
+                if ($products[$i] && $quantities[$i]) {
+                    $product_data = $this->model_products->getProductData($products[$i]);
+
+                    // Get current order item to adjust available stock
+                    $current_item = $this->db->where('order_id', $id)
+                        ->where('product_id', $products[$i])
+                        ->get('orders_item')
+                        ->row_array();
+
+                    $qty_in_order = $current_item ? $current_item['qty'] : 0;
+                    $available_qty = $product_data['qty'] + $qty_in_order; // Add back current order qty
+
+                    if ($quantities[$i] > $available_qty) {
+                        $this->session->set_flashdata('error', 'Insufficient stock for product: ' . $product_data['name'] . '. Available: ' . $available_qty);
+                        redirect('orders/update/' . $id, 'refresh');
+                        return;
+                    }
+                }
+            }
+
+            // Calculate totals
+            $gross_amount = floatval($this->input->post('gross_amount_value'));
+            $discount = $this->input->post('discount') ? floatval($this->input->post('discount')) : 0;
+            $net_amount = floatval($this->input->post('net_amount_value'));
+
+            // Keep existing payment data (don't change it here)
+            $order_data = $this->model_orders->getOrdersData($id);
+            $paid_amount = $order_data['paid_amount'];
+            $due_amount = $net_amount - $paid_amount;
+
+            // Update payment status based on new amounts
+            if ($paid_amount <= 0) {
+                $paid_status = 2; // Unpaid
+            } elseif ($paid_amount >= $net_amount) {
+                $paid_status = 1; // Fully paid
             } else {
-                $this->session->set_flashdata('error', 'Error occurred!!');
+                $paid_status = 3; // Partial
+            }
+
+            $user_id = $this->getTenantUserId();
+
+            // Prepare order update data
+            $update_data = array(
+                'customer_id' => $customer_id,
+                'customer_type' => $original_type,
+                'price_type_override' => ($price_type_override && $price_type_override != $original_type) ? $price_type_override : '',
+                'override_reason' => ($price_type_override && $price_type_override != $original_type) ? $override_reason : '',
+                'customer_name' => $customer['customer_name'],
+                'customer_address' => $customer['address'],
+                'customer_phone' => $customer['phone'],
+                'gross_amount' => $gross_amount,
+                'net_amount' => $net_amount,
+                'due_amount' => $due_amount,
+                'discount' => $discount,
+                'paid_status' => $paid_status
+            );
+
+            // Update order
+            $this->db->where('id', $id);
+            $order_updated = $this->db->update('orders', $update_data);
+
+            if ($order_updated) {
+
+                // RESTORE STOCK from old items
+                $old_items = $this->model_orders->getOrdersItemData($id);
+
+                foreach ($old_items as $old_item) {
+                    $product = $this->model_products->getProductData($old_item['product_id']);
+                    $restored_qty = $product['qty'] + $old_item['qty'];
+
+                    $this->model_products->update(
+                        array('qty' => $restored_qty),
+                        $old_item['product_id']
+                    );
+
+                    // Record stock history
+                    if ($this->db->table_exists('stock_history')) {
+                        $stock_data = array(
+                            'product_id' => $old_item['product_id'],
+                            'order_id' => $id,
+                            'movement_type' => 'sale_cancelled',
+                            'quantity' => $old_item['qty'],
+                            'quantity_before' => $product['qty'],
+                            'quantity_after' => $restored_qty,
+                            'user_id' => $user_id
+                        );
+                        $this->db->insert('stock_history', $stock_data);
+                    }
+                }
+
+                // DELETE old items
+                $this->db->where('order_id', $id);
+                $this->db->delete('orders_item');
+
+                // DELETE old losses
+                if ($this->db->table_exists('sales_losses')) {
+                    $this->db->where('order_id', $id);
+                    $this->db->delete('sales_losses');
+                }
+
+                // INSERT new items and DEDUCT stock
+                for ($i = 0; $i < count($products); $i++) {
+                    if ($products[$i] && $quantities[$i]) {
+
+                        $product_id = $products[$i];
+                        $qty = $quantities[$i];
+                        $rate = $rates[$i];
+                        $amount = $amounts[$i];
+                        $loss_type = isset($loss_types[$i]) ? $loss_types[$i] : 'none';
+                        $loss_amount = isset($loss_amounts[$i]) ? $loss_amounts[$i] : 0;
+                        $loss_reason = isset($loss_reasons[$i]) ? $loss_reasons[$i] : '';
+
+                        // Insert item
+                        $item_data = array(
+                            'order_id' => $id,
+                            'product_id' => $product_id,
+                            'qty' => $qty,
+                            'rate' => $rate,
+                            'amount' => $amount
+                        );
+                        $this->db->insert('orders_item', $item_data);
+
+                        // Update product stock
+                        $product_data = $this->model_products->getProductData($product_id);
+                        $qty_before = $product_data['qty'];
+                        $qty_after = $qty_before - $qty;
+
+                        $update_product = array('qty' => $qty_after);
+                        $this->model_products->update($update_product, $product_id);
+
+                        // Record stock history
+                        if ($this->db->table_exists('stock_history')) {
+                            $stock_data = array(
+                                'product_id' => $product_id,
+                                'order_id' => $id,
+                                'movement_type' => 'sale',
+                                'quantity' => $qty,
+                                'quantity_before' => $qty_before,
+                                'quantity_after' => $qty_after,
+                                'user_id' => $user_id
+                            );
+                            $this->db->insert('stock_history', $stock_data);
+                        }
+
+                        // Record loss if exists
+                        if ($loss_type != 'none' && $loss_amount > 0 && $this->db->table_exists('sales_losses')) {
+                            $loss_data = array(
+                                'order_id' => $id,
+                                'product_id' => $product_id,
+                                'qty' => $qty,
+                                'expected_price' => 0, // You can calculate this from product price
+                                'actual_price' => $rate,
+                                'loss_amount' => $loss_amount,
+                                'loss_type' => $loss_type,
+                                'loss_reason' => $loss_reason,
+                                'created_date' => date('Y-m-d H:i:s'),
+                                'created_by' => $user_id
+                            );
+                            $this->db->insert('sales_losses', $loss_data);
+                        }
+                    }
+                }
+
+                $this->session->set_flashdata('success', 'Order updated successfully!');
+                redirect('orders', 'refresh');
+            } else {
+                $this->session->set_flashdata('error', 'Error updating order!');
                 redirect('orders/update/' . $id, 'refresh');
             }
         } else {
+            // Load form - validation failed or first load
+
+            // Get order data
+            $order_raw = $this->model_orders->getOrdersData($id);
+
+            if (!$order_raw) {
+                $this->session->set_flashdata('error', 'Order not found!');
+                redirect('orders', 'refresh');
+            }
+
+            // ✅ NORMALIZE data for view
+            $order_data = array(
+                'order_id' => $order_raw['id'],
+                'order_number' => $order_raw['bill_no'],
+                'order_date' => $order_raw['date_time'],
+                'order_customer_id' => $order_raw['customer_id'],
+                'order_customer_name' => $order_raw['customer_name'],
+                'order_customer_phone' => $order_raw['customer_phone'],
+                'order_customer_address' => $order_raw['customer_address'],
+                'order_customer_type' => $order_raw['customer_type'],
+                'order_price_type_override' => $order_raw['price_type_override'] ?? '',
+                'order_override_reason' => $order_raw['override_reason'] ?? '',
+                'order_gross_amount' => $order_raw['gross_amount'],
+                'order_discount' => $order_raw['discount'],
+                'order_net_amount' => $order_raw['net_amount'],
+                'order_paid_amount' => $order_raw['paid_amount'],
+                'order_due_amount' => $order_raw['due_amount'],
+                'order_paid_status' => $order_raw['paid_status'],
+                'order_payment_method' => $order_raw['payment_method'] ?? 'cash',
+                'order_payment_notes' => $order_raw['payment_notes'] ?? '',
+                'order_item' => array()
+            );
+
+            // Get order items
+            $order_items = $this->model_orders->getOrdersItemData($id);
+
+            if ($order_items) {
+                foreach ($order_items as $item) {
+                    $order_data['order_item'][] = array(
+                        'product_id' => $item['product_id'],
+                        'qty' => $item['qty'],
+                        'rate' => $item['rate'],
+                        'amount' => $item['amount']
+                    );
+                }
+            }
+
+            // Get all products and customers
             $customers = $this->model_customers->getActiveCustomers();
-            $this->data['customers'] = $customers;
             $products = $this->model_products->getActiveProductData();
-            $this->data['products'] = $products;
+
             $company_data = $this->model_company->getCompanyData(1);
+
+            $this->data['customers'] = $customers;
+            $this->data['products'] = $products;
             $this->data['company_data'] = $company_data;
             $this->data['is_vat_enabled'] = false;
             $this->data['is_service_enabled'] = false;
+            $this->data['order_data'] = $order_data;
 
-            $result = array();
-            $orders_data = $this->model_orders->getOrdersData($id);
-            $result['order'] = $orders_data;
-            $orders_item = $this->model_orders->getOrdersItemData($orders_data['id']);
-            foreach ($orders_item as $k => $v) {
-                $result['order_item'][] = $v;
-            }
-            $this->data['order_data'] = $result;
             $this->render_template('orders/edit', $this->data);
         }
     }
